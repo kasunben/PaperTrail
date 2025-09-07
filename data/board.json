@@ -2,7 +2,7 @@
   "id": "board-1",
   "title": "Bike Theft – PaperTrail Demo",
   "createdAt": "2025-09-07T09:00:00.000Z",
-  "updatedAt": "2025-09-07T15:05:40.667Z",
+  "updatedAt": "2025-09-07T21:02:50.967Z",
   "nodes": [
     {
       "id": "n-summary",
@@ -141,6 +141,19 @@
           "summary"
         ]
       }
+    },
+    {
+      "id": "n-daxcyk",
+      "type": "text",
+      "x": 794,
+      "y": 1095.5,
+      "w": 240,
+      "data": {
+        "text": "New note...",
+        "html": "Test",
+        "title": "Text",
+        "tags": []
+      }
     }
   ],
   "edges": [
@@ -181,6 +194,11 @@
       "sourceId": "n-post",
       "targetId": "n-hypothesis",
       "label": "pattern"
+    },
+    {
+      "id": "e-ek91n7",
+      "sourceId": "n-cctv",
+      "targetId": "n-daxcyk"
     }
   ]
 }
