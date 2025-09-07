@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PaperTrail — map your evidence, follow the story.</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --panel: #111827;
+        --muted: #9ca3af;
+        --ink: #e5e7eb;
+        --accent: #60a5fa;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.4 ui-sans-serif, system-ui;
+      }
+      .app-title {
+        display: flex;
+        flex-direction: column;
+        margin-right: 1rem;
+      }
+      .app-title .brand {
+        font-weight: 700;
+        font-size: 16px;
+        color: #111827;
+      }
+      .app-title .tagline {
+        font-size: 11px;
+        color: #6b7280;
+      }
+      .app-title .board-name {
+        font-size: 12px;
+        color: #374151;
+        margin-top: 2px;
+        font-style: italic;
+      }
+      .board-name[contenteditable="true"] {
+        cursor: text;
+        border-bottom: 1px dashed #e5e7eb;
+        padding-bottom: 1px;
+        line-height: 1.2;
+        max-width: 280px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .board-name[contenteditable="true"]:focus {
+        outline: none;
+        border-bottom-color: #60a5fa;
+        box-shadow: inset 0 -1px 0 #60a5fa;
+      }
+      .board-name[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: #f9fafb;
+        color: #111;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .toolbar input,
+      .toolbar button,
+      .toolbar select {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #111;
+        padding: 0.45rem 0.8rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        transition: background 0.2s, box-shadow 0.2s;
+      }
+      .toolbar button:hover,
+      .toolbar select:hover {
+        background: #f3f4f6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .toolbar button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #save { margin-left: auto; }
+      .board {
+        position: relative;
+        height: calc(100% - 48px - 34px);
+        overflow: auto;
+        background-image: radial-gradient(var(--muted) 1px, transparent 1px);
+        background-size: 16px 16px;
+        background-position: -1px -1px;
+      }
+      /* SVG underlay for edges */
+      svg#edges {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: auto;
+      }
+      .node {
+        position: absolute;
+        min-width: 120px;
+        max-width: none;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        background: #f9fafb;
+        border: 1px solid #d1d5db;
+        color: #111;
+        cursor: grab;
+        user-select: none;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+        box-sizing: border-box;
+      }
+      .node:active {
+        cursor: grabbing;
+      }
+      .node .title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 13px;
+        color: #111827;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .node .content {
+        font-size: 13px;
+        color: #1f2937;
+        word-wrap: break-word;
+      }
+      .node img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        border-radius: 0.3rem;
+        margin-bottom: 0.35rem;
+      }
+      .node .ports {
+        margin-top: 0.35rem;
+        display: flex;
+        gap: 0.35rem;
+      }
+      .node .port {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #94a3b8;
+        border: 1px solid #1f2937;
+        transition: background 0.2s, border-color 0.2s;
+      }
+
+      body.connect-mode .node .port {
+        background: #ef4444; /* red */
+        border-color: #b91c1c;
+      }
+      #connect.active {
+        background: #ef4444;
+        color: #fff;
+        border-color: #b91c1c;
+        box-shadow: 0 2px 6px rgba(239,68,68,.3);
+      }
+      #connect.active:hover {
+        background: #dc2626;
+        box-shadow: 0 3px 8px rgba(220,38,38,.35);
+      }
+      .node.selected {
+        outline: 2px solid var(--accent);
+      }
+
+      /* Resize handle */
+      .resizer {
+        position: absolute;
+        right: 2px;
+        bottom: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        background: rgba(17,17,17,0.1);
+        border: 1px solid rgba(0,0,0,0.15);
+        cursor: se-resize;
+        display: none;
+      }
+      .node:hover .resizer, .node:focus-within .resizer { display: block; }
+      .edge {
+        stroke: red;
+        stroke-width: 2;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        pointer-events: stroke; /* enable clicks on the line only */
+        cursor: pointer;
+      }
+      .edge.selected {
+        stroke: var(--accent);
+        stroke-width: 3;
+      }
+      .edge:hover { stroke-width: 3; }
+      .edge.dashed { stroke-dasharray: 6 6; }
+      .edge-label {
+        fill: #374151;
+        font-size: 11px;
+        font-weight: 500;
+        user-select: none;
+        paint-order: stroke;
+        stroke: #f9fafb;
+        stroke-width: 2px;
+      }
+      .hint {
+        color: #000000;
+        margin-left: 0.5rem;
+      }
+      .context-menu {
+        position: absolute;
+        min-width: 180px;
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        padding: 0.25rem;
+        z-index: 1000;
+        display: none;
+        color: #111;
+      }
+      .context-menu button {
+        width: 100%;
+        display: block;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        color: #111;
+        padding: 0.5rem 0.6rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        transition: background 0.15s ease-in-out;
+      }
+      .context-menu button:hover {
+        background: #f3f4f6;
+      }
+
+      /* Inline rich text toolbar */
+      .rtb {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: none;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid #d1d5db;
+        border-radius: 0.4rem;
+        padding: 2px;
+        gap: 2px;
+        z-index: 5;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
+      .node:hover .rtb, .node:focus-within .rtb { display: flex; }
+      .rtb button {
+        border: 0;
+        background: transparent;
+        color: #111;
+        padding: 4px 6px;
+        font-size: 12px;
+        border-radius: 0.3rem;
+        cursor: pointer;
+        transition: background 0.15s ease-in-out;
+      }
+      .rtb button:hover { background: #f3f4f6; }
+      .rich {
+        outline: none;
+        white-space: pre-wrap;
+      }
+      .rich a { color: #93c5fd; text-decoration: underline; }
+      /* Discoverable editable areas */
+      .title[contenteditable="true"] {
+        cursor: text;
+        border-bottom: 1px dashed #e5e7eb;
+        padding-bottom: 2px;
+      }
+      .node:hover .title[contenteditable="true"] { border-bottom-color: #d1d5db; }
+      .title[contenteditable="true"]:focus {
+        outline: none;
+        border-bottom-color: #60a5fa;
+        box-shadow: inset 0 -1px 0 #60a5fa;
+      }
+      .title[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+
+      .rich[contenteditable="true"] {
+        cursor: text;
+        min-height: 56px;
+        padding: 6px 8px;
+        background: #ffffff;
+        border: 1px dashed #d1d5db;
+        border-radius: 6px;
+        transition: border-color .15s ease, box-shadow .15s ease;
+      }
+      .node:hover .rich[contenteditable="true"] { border-color: #cbd5e1; }
+      .rich[contenteditable="true"]:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96,165,250,0.2);
+        background: #fff;
+      }
+      .rich[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+
+      /* Small edit affordance on hover */
+      .editable-hint::after {
+        content: "✎";
+        font-size: 11px;
+        color: #9ca3af;
+        margin-left: 6px;
+        opacity: 0;
+        transition: opacity .15s ease;
+      }
+      .node:hover .editable-hint::after,
+      .editable-hint:focus::after { opacity: 1; }
+      /* Tags */
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+      .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: #e5e7eb; color: #111827; font-size: 11px; border: 1px solid #d1d5db; }
+      .chip button { border: 0; background: transparent; color: #9ca3af; cursor: pointer; font-size: 11px; padding: 0; }
+      .chip button:hover { color: #e5e7eb; }
+      .add-tag { margin-top: 6px; background: #f3f4f6; border: 1px dashed #d1d5db; color: #374151; border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+      .node.dim { opacity: 0.35; filter: grayscale(0.3); }
+      .highlight { outline: 2px dashed var(--accent); }
+      .toolbar .search { min-width: 200px; }
+      .add-desc { margin-top: 6px; background: #ffffff; border: 1px dashed #d1d5db; color: #374151; border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+      /* Link preview card */
+      .link-card { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #ffffff; }
+      .link-card .thumb { width: 56px; height: 56px; border-radius: 6px; background: #f3f4f6; object-fit: cover; display: block; }
+      .link-card .meta { min-width: 0; }
+      .link-card .title { font-weight: 600; color: #111827; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .link-card .desc { color: #374151; font-size: 12px; max-height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .link-card .site { color: #6b7280; font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .link-card .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; border-radius: 3px; }
+      .link-card a { color: #2563eb; text-decoration: none; }
+      /* Status bar */
+      .statusbar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 2px 12px;
+        background: transparent;
+        border: none;
+        color: #000;
+        z-index: 20;
+        font-size: smaller;
+      }
+      .statusbar #status { color: #000; }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="app-title">
+        <div class="brand">PaperTrail</div>
+        <div class="tagline">map your evidence, follow the story.</div>
+        <div class="board-name" id="boardName" contenteditable="true" data-placeholder="Untitled Board"></div>
+      </div>
+      <button id="addText">+ Text</button>
+      <button id="addImage">+ Image</button>
+      <button id="uploadImage">+ Upload Image</button>
+      <input
+        id="fileInput"
+        type="file"
+        accept="image/*"
+        style="display: none"
+      />
+      <button id="addLink">+ Link</button>
+      <button id="connect">Connect (c)</button>
+      <button id="autoLayout">Auto-layout</button>
+      <button id="export">Export</button>
+      <button id="importBtn">Import</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <input id="search" class="search" type="search" placeholder="Search… (use #tag)" />
+      <button id="clearSearch" title="Clear search">✕</button>
+      <button id="save" disabled>Save</button>
+      <button id="reset">Reset board</button>
+    </div>
+
+    <div class="board" id="board">
+      <svg id="edges"></svg>
+    </div>
+     <div id="ctxMenu" class="context-menu"></div>
+     <div class="statusbar">
+      <span id="status"></span>
+      <span class="hint" id="modeHint">💡 Mode: Select/Move. Press C to toggle connect mode.</span>
+    </div>
+
+    <script>
+      /** Types (informal)
+       * Node = { id, type: 'text'|'image'|'imageText'|'link', x, y, w?, h?, data: { text?, imageUrl?, linkUrl?, title? } }
+       * Edge = { id, sourceId, targetId }
+       * Board = { id, title, nodes: Node[], edges: Edge[], createdAt, updatedAt }
+       */
+      const $ = (sel) => document.querySelector(sel);
+      const boardEl = $("#board");
+      const edgesSvg = $("#edges");
+      const statusEl = $("#status");
+      const saveBtn = document.getElementById("save");
+      const exportBtn = document.getElementById("export");
+      const importBtn = document.getElementById("importBtn");
+      const importFile = document.getElementById("importFile");
+      const searchInput = document.getElementById('search');
+      let lastSavedJSON = null;
+
+      const boardNameEl = document.getElementById('boardName');
+      // Keep single-line feel: prevent Enter/Return from inserting new lines
+      boardNameEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); boardNameEl.blur(); }
+      });
+      // Update model on input and enable Save
+      boardNameEl.addEventListener('input', () => {
+        board.title = (boardNameEl.textContent || '').trim();
+        markDirty();
+      });
+      // On blur, ensure a non-empty title for display (model can be empty if desired)
+      boardNameEl.addEventListener('blur', () => {
+        if (!boardNameEl.textContent || !boardNameEl.textContent.trim()) {
+          boardNameEl.textContent = 'Untitled Board';
+        }
+      });
+
+      function isTypingTarget(el) {
+        if (!el) return false;
+        if (el.isContentEditable) return true;
+        const tag = (el.tagName || '').toUpperCase();
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      }
+
+      function computeSnapshot() {
+        // Exclude volatile fields if needed; for now we snapshot the whole board
+        return JSON.stringify(board);
+      }
+      function updateSaveButton() {
+        const snap = computeSnapshot();
+        const dirty = lastSavedJSON !== null && snap !== lastSavedJSON;
+        saveBtn.disabled = !dirty;
+      }
+      function markDirty() {
+        // Enable save when something changed
+        updateSaveButton();
+      }
+      const ctxMenu = document.getElementById("ctxMenu");
+      let ctxTarget = null; // { type: 'node'|'edge', id: string }
+
+      function showContextMenu(x, y, target) {
+        ctxTarget = target; // { type, id }
+        const menu = ctxMenu;
+
+        // Build menu dynamically based on target type
+        if (ctxTarget && ctxTarget.type === 'edge') {
+          menu.innerHTML = `
+            <button data-action="label">Edit label</button>
+            <button data-action="dashed">Toggle dashed</button>
+            <button data-action="color">Set color…</button>
+            <button data-action="delete">Delete</button>
+          `;
+        } else {
+          menu.innerHTML = `
+            <button data-action="delete">Delete</button>
+          `;
+        }
+
+        menu.style.display = "block";
+        // constrain within window
+        const mw = menu.offsetWidth || 160;
+        const mh = menu.offsetHeight || 44;
+        const vw = window.innerWidth; const vh = window.innerHeight;
+        let px = x, py = y;
+        if (px + mw > vw) px = vw - mw - 8;
+        if (py + mh > vh) py = vh - mh - 8;
+        menu.style.left = px + "px";
+        menu.style.top = py + "px";
+      }
+      function hideContextMenu() {
+        ctxMenu.style.display = "none";
+        ctxTarget = null;
+      }
+
+      // clicking elsewhere hides menu
+      document.addEventListener("mousedown", (ev) => {
+        if (ctxMenu.style.display === "block") {
+          const within = ctxMenu.contains(ev.target);
+          if (!within) hideContextMenu();
+        }
+      });
+      // Esc hides menu
+      document.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") hideContextMenu();
+      });
+      // Context menu actions (delegated)
+      ctxMenu.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('button');
+        if (!btn) return;
+        const action = btn.getAttribute('data-action');
+        if (!ctxTarget) { hideContextMenu(); return; }
+
+        if (ctxTarget.type === 'node') {
+          if (action === 'delete') {
+            selectedNodeId = ctxTarget.id;
+            selectedEdgeId = null;
+            hideContextMenu();
+            removeSelection();
+          }
+          return;
+        }
+
+        // Edge actions
+        const edge = board.edges.find(e => e.id === ctxTarget.id);
+        if (!edge) { hideContextMenu(); return; }
+
+        if (action === 'delete') {
+          selectedEdgeId = edge.id;
+          selectedNodeId = null;
+          hideContextMenu();
+          removeSelection();
+        } else if (action === 'label') {
+          const val = prompt('Edge label:', edge.label || '');
+          if (val !== null) {
+            edge.label = val.trim();
+            hideContextMenu();
+            markDirty();
+            renderEdges();
+          }
+        } else if (action === 'dashed') {
+          edge.dashed = !edge.dashed;
+          hideContextMenu();
+          markDirty();
+          renderEdges();
+        } else if (action === 'color') {
+          const val = prompt('Stroke color (e.g. #f87171 or red). Leave blank to reset:', edge.color || '');
+          if (val === null) return;
+          const v = val.trim();
+          if (v === '') delete edge.color; else edge.color = v;
+          hideContextMenu();
+          markDirty();
+          renderEdges();
+        }
+      });
+
+      let board = {
+        id: "board-1",
+        title: "My Evidence Board",
+        nodes: [],
+        edges: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      // Initialize board name display from default board.title
+      boardNameEl.textContent = board.title || '';
+
+      let selectedNodeId = null;
+      let selectedEdgeId = null;
+      let connectMode = false;
+      let connectFromId = null;
+
+      const genId = (p = "id") =>
+        p + "-" + Math.random().toString(36).slice(2, 8);
+
+      function setStatus(msg) {
+        statusEl.textContent = msg;
+      }
+
+      function addNode(type, at = { x: 100, y: 100 }, payload = {}) {
+        const id = genId("n");
+        const base = {
+          id,
+          type,
+          x: at.x,
+          y: at.y,
+          w: 240,
+          h: undefined,
+          data: {},
+        };
+        if (type === "text") {
+          base.data.text = payload.text ?? "New note...";
+          base.data.html = escapeHtml(base.data.text);
+          base.data.title = payload.title ?? "Text";
+        } else if (type === "image") {
+          base.data.imageUrl = payload.imageUrl ?? prompt("Image URL?", "");
+          base.data.title = payload.title ?? "Image";
+          base.data.descHtml = payload.descHtml ?? ""; // optional description (rich)
+        } else if (type === "link") {
+          base.data.linkUrl = payload.linkUrl ?? prompt("Link URL?", "https://");
+          base.data.title = payload.title ?? "Link";
+          base.data.descHtml = payload.descHtml ?? ""; // optional description (rich)
+        }
+        board.nodes.push(base);
+        markDirty();
+        render();
+        return base;
+      }
+
+      function addEdge(sourceId, targetId) {
+        if (!sourceId || !targetId || sourceId === targetId) return;
+        const already = board.edges.find(
+          (e) => e.sourceId === sourceId && e.targetId === targetId
+        );
+        if (already) return;
+        board.edges.push({ id: genId("e"), sourceId, targetId });
+        markDirty();
+        renderEdges();
+      }
+
+      function removeSelection() {
+        if (selectedNodeId) {
+          board.edges = board.edges.filter(
+            (e) =>
+              e.sourceId !== selectedNodeId && e.targetId !== selectedNodeId
+          );
+          board.nodes = board.nodes.filter((n) => n.id !== selectedNodeId);
+          setStatus("Node deleted.");
+          selectedNodeId = null;
+        } else if (selectedEdgeId) {
+          board.edges = board.edges.filter((e) => e.id !== selectedEdgeId);
+          setStatus("Edge deleted.");
+          selectedEdgeId = null;
+        }
+        markDirty();
+        render();
+      }
+
+      function nodeBounds(n) {
+        const el = document.getElementById(n.id);
+        if (!el)
+          return {
+            x: n.x,
+            y: n.y,
+            w: n.w || el?.offsetWidth || 200,
+            h: n.h || el?.offsetHeight || 80,
+          };
+        const w = el.offsetWidth,
+          h = el.offsetHeight;
+        return { x: n.x, y: n.y, w: n.w || w, h: n.h || h };
+      }
+
+      function centerOf(n) {
+        const b = nodeBounds(n);
+        return { cx: b.x + b.w / 2, cy: b.y + b.h / 2 };
+      }
+
+      function renderNode(n) {
+        let el = document.getElementById(n.id);
+        if (!el) {
+          el = document.createElement("div");
+          el.className = "node";
+          el.id = n.id;
+          el.innerHTML = `
+      <div class="title editable-hint" contenteditable="true" data-placeholder="Untitled"></div>
+      <div class="content"></div>
+      <div class="ports"><div class="port"></div></div>
+    `;
+          boardEl.appendChild(el);
+
+          // add resize handle
+          const resizer = document.createElement('div');
+          resizer.className = 'resizer';
+          el.appendChild(resizer);
+
+          let resizing = false;
+          let startW = 0, startH = 0, startX = 0, startY = 0;
+          resizer.addEventListener('mousedown', (ev) => {
+            ev.stopPropagation();
+            resizing = true;
+            startX = ev.clientX; startY = ev.clientY;
+            startW = el.offsetWidth; startH = el.offsetHeight;
+            document.body.style.userSelect = 'none';
+          });
+          window.addEventListener('mousemove', (ev) => {
+            if (!resizing) return;
+            const dx = ev.clientX - startX;
+            const dy = ev.clientY - startY;
+            const minW = 160, minH = 80, maxW = 640, maxH = 600;
+            n.w = Math.max(minW, Math.min(maxW, Math.round(startW + dx)));
+            n.h = Math.max(minH, Math.min(maxH, Math.round(startH + dy)));
+            el.style.width = n.w + 'px';
+            el.style.height = n.h + 'px';
+            renderEdges();
+          });
+          window.addEventListener('mouseup', () => {
+            if (!resizing) return;
+            resizing = false;
+            document.body.style.userSelect = '';
+            markDirty();
+          });
+
+          // select on click
+          el.addEventListener("mousedown", (ev) => {
+            if ((ev.target && ev.target.closest('.resizer'))) return;
+            // if connect mode, handle port click like connection
+            if (connectMode) {
+              if (!connectFromId) {
+                connectFromId = n.id;
+                setStatus("Selected source. Click a target node.");
+              } else {
+                addEdge(connectFromId, n.id);
+                connectFromId = null;
+                setStatus(
+                  "Connected. Click another pair or press C to exit connect mode."
+                );
+              }
+              ev.stopPropagation();
+              return;
+            }
+            selectedEdgeId = null;
+            selectedNodeId = n.id;
+            updateSelections();
+          });
+          // right-click to open context menu for this node
+          el.addEventListener("contextmenu", (ev) => {
+            ev.preventDefault();
+            selectedEdgeId = null;
+            selectedNodeId = n.id;
+            updateSelections();
+            // show menu at mouse position
+            showContextMenu(ev.clientX, ev.clientY, { type: 'node', id: n.id });
+          });
+          // drag
+          let dragging = false,
+            offX = 0,
+            offY = 0;
+          el.addEventListener("mousedown", (ev) => {
+            if ((ev.target && ev.target.closest('.resizer'))) return;
+            dragging = true;
+            offX = ev.clientX - n.x;
+            offY = ev.clientY - n.y;
+          });
+          window.addEventListener("mousemove", (ev) => {
+            if (!dragging) return;
+            n.x = ev.clientX - offX;
+            n.y = ev.clientY - offY;
+            el.style.left = n.x + "px";
+            el.style.top = n.y + "px";
+            renderEdges(); // update edge positions live
+          });
+          window.addEventListener("mouseup", () => {
+            if (dragging) {
+              dragging = false;
+              markDirty();
+            }
+          });
+
+          // inline edits
+          const titleEl = el.querySelector(".title");
+          titleEl.addEventListener("input", () => {
+            n.data.title = titleEl.textContent || "";
+            markDirty();
+            renderEdges(); // keep connections glued to borders as size changes
+          });
+        el.addEventListener("dblclick", (ev) => {
+          if (n.type === "text") {
+            // Focus the rich editor instead of opening a prompt
+            const rich = el.querySelector('.rich');
+            if (rich) { rich.focus(); }
+            return; // no prompt
+          } else if (n.type === "link") {
+            const url = prompt(
+              "Edit link URL:",
+              n.data.linkUrl ?? "https://"
+            );
+            if (url !== null) n.data.linkUrl = url;
+          } else if (n.type === "image") {
+            const url = prompt("Edit image URL:", n.data.imageUrl ?? "");
+            if (url !== null) n.data.imageUrl = url;
+          }
+          renderNode(n);
+          renderEdges();
+          markDirty();
+        });
+        }
+
+        el.style.left = n.x + "px";
+        el.style.top = n.y + "px";
+        if (n.w) el.style.width = n.w + 'px'; else el.style.removeProperty('width');
+        if (n.h) el.style.height = n.h + 'px'; else el.style.removeProperty('height');
+        el.classList.toggle("selected", selectedNodeId === n.id);
+
+        const titleEl = el.querySelector(".title");
+        titleEl.setAttribute('data-placeholder', n.type === 'text' ? 'Text title' : n.type === 'image' ? 'Image title' : 'Link title');
+        // Preserve existing title; allow empty to show placeholder
+        titleEl.textContent = (typeof n.data.title === 'string') ? n.data.title : (n.type === 'text' ? 'Text' : n.type === 'image' ? 'Image' : 'Link');
+
+        const contentEl = el.querySelector(".content");
+        if (n.type === "text") {
+          const html = n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
+          contentEl.innerHTML = `
+            <div class="rtb" role="toolbar" aria-label="Text formatting">
+              <button data-cmd="bold" title="Bold">B</button>
+              <button data-cmd="italic" title="Italic"><i>I</i></button>
+              <button data-cmd="underline" title="Underline"><u>U</u></button>
+              <button data-cmd="insertUnorderedList" title="Bullet list">••</button>
+              <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+              <button data-action="link" title="Insert link">🔗</button>
+              <button data-action="clear" title="Clear formatting">⨯</button>
+            </div>
+            <div class="rich" contenteditable="true" data-placeholder="Type text…">${html}</div>`;
+        } else if (n.type === "image") {
+          const desc = n.data.descHtml ?? "";
+          contentEl.innerHTML = n.data.imageUrl
+            ? `<img src="${escapeAttr(n.data.imageUrl)}" alt="">` +
+              (() => {
+                const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
+                const wrapDisplay = hasDesc ? '' : 'style="display:none"';
+                const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+                return `
+                  ${addBtn}
+                  <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
+                    <button data-cmd="bold" title="Bold">B</button>
+                    <button data-cmd="italic" title="Italic"><i>I</i></button>
+                    <button data-cmd="underline" title="Underline"><u>U</u></button>
+                    <button data-cmd="insertUnorderedList" title="Bullet list">••</button>
+                    <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+                    <button data-action="link" title="Insert link">🔗</button>
+                    <button data-action="clear" title="Clear formatting">⨯</button>
+                  </div>
+                  <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${n.data.descHtml ?? ''}</div>
+                `;
+              })()
+            : `<em>No image</em>`;
+          // Wire up Add description toggler
+          const addDescBtn = el.querySelector('.add-desc');
+          if (addDescBtn) {
+            addDescBtn.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              const rtb = el.querySelector('.rtb');
+              const rich = el.querySelector('.rich[data-field="descHtml"]');
+              if (rtb) rtb.style.display = '';
+              if (rich) rich.style.display = '';
+              addDescBtn.remove();
+            });
+          }
+        } else if (n.type === "link") {
+          const u = n.data.linkUrl ?? "";
+          const desc = n.data.descHtml ?? "";
+          if (!u) {
+            contentEl.innerHTML = `<em>No link</em>`;
+          } else if (n.data.preview) {
+            const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
+            const wrapDisplay = hasDesc ? '' : 'style="display:none"';
+            const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+            contentEl.innerHTML =
+              renderLinkCard(n.data.preview, u) +
+              `${addBtn}
+               <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
+                 <button data-cmd="bold" title="Bold">B</button>
+                 <button data-cmd="italic" title="Italic"><i>I</i></button>
+                 <button data-cmd="underline" title="Underline"><u>U</u></button>
+                 <button data-cmd="insertUnorderedList" title="Bullet list">••</button>
+                 <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+                 <button data-action="link" title="Insert link">🔗</button>
+                 <button data-action="clear" title="Clear formatting">⨯</button>
+               </div>
+               <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
+          } else {
+            // initial minimal view while loading
+            const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
+            const wrapDisplay = hasDesc ? '' : 'style="display:none"';
+            const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+            contentEl.innerHTML =
+              `<a href="${escapeAttr(u)}" target="_blank" rel="noopener">${escapeHtml(u)}</a>` +
+              `<div style="margin-top:6px;color:#9ca3af;font-size:12px;">Loading preview…</div>` +
+              `${addBtn}
+               <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
+                 <button data-cmd="bold" title="Bold">B</button>
+                 <button data-cmd="italic" title="Italic"><i>I</i></button>
+                 <button data-cmd="underline" title="Underline"><u>U</u></button>
+                 <button data-cmd="insertUnorderedList" title="Bullet list">••</button>
+                 <button data-cmd="insertOrderedList" title="Numbered list">1.</button>
+                 <button data-action="link" title="Insert link">🔗</button>
+                 <button data-action="clear" title="Clear formatting">⨯</button>
+               </div>
+               <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
+            // kick off preview fetch (once)
+            (async () => {
+              const p = await fetchLinkPreview(u);
+              if (p) {
+                n.data.preview = p;
+                markDirty();
+                renderNode(n);
+                renderEdges();
+              }
+            })();
+          }
+          // Wire up Add description toggler for Link
+          const addDescBtnL = el.querySelector('.add-desc');
+          if (addDescBtnL) {
+            addDescBtnL.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              const rtb = el.querySelector('.rtb');
+              const rich = el.querySelector('.rich[data-field="descHtml"]');
+              if (rtb) rtb.style.display = '';
+              if (rich) rich.style.display = '';
+              addDescBtnL.remove();
+            });
+          }
+        }
+
+        // Tags UI (common to all types)
+        let tagsWrap = el.querySelector('.tags');
+        if (!tagsWrap) {
+          tagsWrap = document.createElement('div');
+          tagsWrap.className = 'tags';
+          el.querySelector('.content').appendChild(tagsWrap);
+        }
+        renderTagChips(n, tagsWrap);
+
+        let addTagBtn = el.querySelector('.add-tag');
+        if (!addTagBtn) {
+          addTagBtn = document.createElement('button');
+          addTagBtn.className = 'add-tag';
+          addTagBtn.textContent = '+ tag';
+          el.querySelector('.content').appendChild(addTagBtn);
+          addTagBtn.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            const input = prompt('Add tags (comma separated or single #tag):');
+            if (!input) return;
+            const parts = input.split(',').map(s=>normalizeTag(s)).filter(Boolean);
+            const tags = ensureTags(n);
+            for (const t of parts) { if (!tags.includes(t)) tags.push(t); }
+            renderTagChips(n, tagsWrap);
+            markDirty();
+          });
+        }
+        // Attach rich text toolbar listeners (Text uses data.html; Image/Link use data.descHtml)
+        {
+          const rtb = el.querySelector('.rtb');
+          const rich = el.querySelector('.rich');
+          if (rtb && rich) {
+            const field = (n.type === 'text') ? 'html' : 'descHtml';
+            // Keep focus inside editor when clicking toolbar
+            rtb.addEventListener('mousedown', (ev) => { ev.preventDefault(); rich.focus(); });
+            rtb.addEventListener('click', (ev) => {
+              const btn = ev.target.closest('button');
+              if (!btn) return;
+              const cmd = btn.getAttribute('data-cmd');
+              const act = btn.getAttribute('data-action');
+              rich.focus();
+              if (cmd) {
+                document.execCommand(cmd, false, null);
+                n.data[field] = rich.innerHTML;
+                markDirty();
+                renderEdges();
+              } else if (act === 'link') {
+                const url = prompt('Link URL', 'https://');
+                if (url) document.execCommand('createLink', false, url);
+                n.data[field] = rich.innerHTML;
+                markDirty();
+              } else if (act === 'clear') {
+                document.execCommand('removeFormat');
+                // Also unwrap a single link if present for simplicity
+                const a = rich.querySelector('a');
+                if (a) {
+                  const t = document.createTextNode(a.textContent || '');
+                  a.replaceWith(t);
+                }
+                n.data[field] = rich.innerHTML;
+                markDirty();
+              }
+            });
+            const syncHtml = () => { n.data[field] = rich.innerHTML; markDirty(); };
+            rich.addEventListener('input', syncHtml);
+            rich.addEventListener('blur', syncHtml);
+          }
+        }
+        // Toggle resizer visibility based on node type (only for text and image)
+        const resizerEl = el.querySelector('.resizer');
+        if (resizerEl) {
+          resizerEl.style.display = (n.type === 'text' || n.type === 'image') ? '' : 'none';
+        }
+      }
+
+      function renderNodes() {
+        // Remove DOM nodes that no longer exist in data
+        const ids = new Set(board.nodes.map((n) => n.id));
+        document.querySelectorAll(".node").forEach((el) => {
+          if (!ids.has(el.id)) el.remove();
+        });
+        board.nodes.forEach(renderNode);
+      }
+
+      // Compute an anchor point on the boundary of node n that faces (ox, oy)
+      function anchorPoint(n, ox, oy) {
+        const b = nodeBounds(n);
+        const cx = b.x + b.w / 2;
+        const cy = b.y + b.h / 2;
+        const dx = ox - cx;
+        const dy = oy - cy;
+
+        // Choose side by dominant axis
+        if (Math.abs(dx) > Math.abs(dy)) {
+          // left/right
+          if (dx >= 0) {
+            return { x: b.x + b.w, y: cy, side: 'right' };
+          } else {
+            return { x: b.x, y: cy, side: 'left' };
+          }
+        } else {
+          // top/bottom
+          if (dy >= 0) {
+            return { x: cx, y: b.y + b.h, side: 'bottom' };
+          } else {
+            return { x: cx, y: b.y, side: 'top' };
+          }
+        }
+      }
+
+      // Smooth cubic path between two anchors, with curvature adaptive to distance
+      function smoothCubic(a, b) {
+        const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const d  = Math.max(dx, dy);
+        const c  = Math.min(160, Math.max(40, d * 0.6)); // curvature
+
+        let c1x = x1, c1y = y1, c2x = x2, c2y = y2;
+
+        // Push control points outward from each side
+        switch (a.side) {
+          case 'right':  c1x += c; break;
+          case 'left':   c1x -= c; break;
+          case 'top':    c1y -= c; break;
+          case 'bottom': c1y += c; break;
+        }
+        switch (b.side) {
+          case 'right':  c2x -= c; break;
+          case 'left':   c2x += c; break;
+          case 'top':    c2y += c; break;
+          case 'bottom': c2y -= c; break;
+        }
+
+        return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
+      }
+
+      function renderEdges() {
+        edgesSvg.innerHTML = "";
+        // ensure SVG size tracks board scroll size
+        edgesSvg.setAttribute("width", boardEl.scrollWidth);
+        edgesSvg.setAttribute("height", boardEl.scrollHeight);
+        if (!visibleNodeIds) {
+          visibleNodeIds = new Set(board.nodes.map(n=>n.id));
+        }
+
+        for (const e of board.edges) {
+          const s = board.nodes.find((n) => n.id === e.sourceId);
+          const t = board.nodes.find((n) => n.id === e.targetId);
+          if (!s || !t) continue;
+          if (!visibleNodeIds.has(s.id) || !visibleNodeIds.has(t.id)) continue;
+          const sc = centerOf(s);
+          const tc = centerOf(t);
+          const a1 = anchorPoint(s, tc.cx, tc.cy);
+          const a2 = anchorPoint(t, sc.cx, sc.cy);
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.setAttribute('data-id', e.id);
+
+          // Path
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", smoothCubic(a1, a2));
+          let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
+          if (e.dashed) cls += " dashed";
+          path.setAttribute("class", cls);
+          if (e.color) path.setAttribute('stroke', e.color); else path.removeAttribute('stroke');
+          path.dataset.id = e.id;
+
+          // Label (optional)
+          if (e.label) {
+            const tx = (a1.x + a2.x) / 2;
+            const ty = (a1.y + a2.y) / 2 - 4; // slight raise above the curve
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute('x', tx);
+            text.setAttribute('y', ty);
+            text.setAttribute('class', 'edge-label');
+            text.textContent = e.label;
+
+            // Click/ctx on label behave like the edge
+            text.addEventListener("click", (ev) => {
+              selectedNodeId = null;
+              selectedEdgeId = e.id;
+              updateSelections();
+              ev.stopPropagation();
+              return false;
+            });
+            text.addEventListener("contextmenu", (ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              selectedNodeId = null;
+              selectedEdgeId = e.id;
+              updateSelections();
+              showContextMenu(ev.clientX, ev.clientY, { type: 'edge', id: e.id });
+              return false;
+            });
+            g.appendChild(text);
+          }
+
+          // Events on path
+          path.addEventListener("click", (ev) => {
+            selectedNodeId = null;
+            selectedEdgeId = e.id;
+            updateSelections();
+            ev.stopPropagation();
+            return false;
+          });
+          path.addEventListener("contextmenu", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            selectedNodeId = null;
+            selectedEdgeId = e.id;
+            updateSelections();
+            showContextMenu(ev.clientX, ev.clientY, { type: 'edge', id: e.id });
+            return false;
+          });
+
+          g.appendChild(path);
+          edgesSvg.appendChild(g);
+        }
+      }
+
+      function updateSelections() {
+        // nodes
+        document.querySelectorAll(".node").forEach((el) => {
+          el.classList.toggle("selected", el.id === selectedNodeId);
+        });
+        // edges
+        document.querySelectorAll("path.edge").forEach((p) => {
+          p.classList.toggle("selected", p.dataset.id === selectedEdgeId);
+        });
+      }
+
+      function render() {
+        renderNodes();
+        renderEdges();
+        applySearchFilter();
+      }
+
+      function escapeHtml(s) {
+        return (s ?? "").toString().replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[c])
+        );
+      }
+      function escapeAttr(s) {
+        return escapeHtml(s);
+      }
+
+      function ensureTags(n) { if (!n.data) n.data = {}; if (!Array.isArray(n.data.tags)) n.data.tags = []; return n.data.tags; }
+      function normalizeTag(t) { return (t||'').toString().trim().replace(/^#+/, '').toLowerCase(); }
+      function renderTagChips(n, hostEl) {
+        const tags = ensureTags(n);
+        hostEl.innerHTML = '';
+        for (let i=0;i<tags.length;i++) {
+          const tag = tags[i];
+          const chip = document.createElement('span');
+          chip.className = 'chip';
+          chip.innerHTML = `<span>#${escapeHtml(tag)}</span> <button title="Remove tag" data-i="${i}">✕</button>`;
+          chip.querySelector('button').addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            tags.splice(i,1);
+            renderTagChips(n, hostEl);
+            markDirty();
+          });
+          hostEl.appendChild(chip);
+        }
+      }
+
+      function plainTextFromHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html || '';
+        return (tmp.textContent || tmp.innerText || '').trim();
+      }
+
+      let currentQuery = '';
+      let visibleNodeIds = null; // Set<string>
+
+      function parseQuery(q) {
+        const parts = (q||'').trim().split(/\\s+/).filter(Boolean);
+        const tags = []; const terms = [];
+        for (const p of parts) {
+          if (p.startsWith('#')) tags.push(normalizeTag(p)); else terms.push(p.toLowerCase());
+        }
+        return { tags, terms };
+      }
+
+      function nodeMatches(n, q) {
+        if (!q || (!q.tags.length && !q.terms.length)) return true;
+        const tags = ensureTags(n);
+        // tag logic: all query tags must be present
+        for (const t of q.tags) { if (!tags.map(normalizeTag).includes(t)) return false; }
+        if (!q.terms.length) return true;
+        const hay = [
+          n.data?.title || '',
+          n.data?.text || '',
+          plainTextFromHtml(n.data?.html || ''),
+          n.data?.linkUrl || '',
+          tags.join(' ')
+        ].join(' ').toLowerCase();
+        return q.terms.every(term => hay.includes(term));
+      }
+
+      function applySearchFilter() {
+        const q = parseQuery(currentQuery);
+        visibleNodeIds = new Set();
+        for (const n of board.nodes) {
+          const el = document.getElementById(n.id);
+          const match = nodeMatches(n, q);
+          if (el) {
+            el.style.display = match ? '' : 'none';
+            el.classList.toggle('dim', !match && currentQuery.length>0);
+          }
+          if (match) visibleNodeIds.add(n.id);
+        }
+        renderEdges();
+      }
+
+      function slugify(s) {
+        return (s || "board").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      }
+
+      function exportBoard() {
+        const data = JSON.stringify(board, null, 2);
+        const blob = new Blob([data], { type: "application/json" });
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        const name = `${slugify(board.title || 'board')}-${ts}.json`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click();
+        URL.revokeObjectURL(url); a.remove();
+        setStatus(`Exported ${name}`);
+      }
+
+      async function fetchLinkPreview(url) {
+        try {
+          const res = await fetch('/api/link-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          if (!res.ok) throw new Error('Failed');
+          return await res.json();
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function renderLinkCard(preview, href) {
+        const title = escapeHtml(preview?.title || href || 'Link');
+        const desc  = escapeHtml(preview?.description || '');
+        const site  = escapeHtml(preview?.siteName || (href ? new URL(href).hostname : ''));
+        const icon  = preview?.icon ? `<img class="icon" src="${escapeAttr(preview.icon)}" alt="">` : '';
+        const img   = preview?.image ? `<img class="thumb" src="${escapeAttr(preview.image)}" alt="">` : `<div class="thumb"></div>`;
+        const safeHref = escapeAttr(href || preview?.url || '#');
+        return `
+          <a href="${safeHref}" target="_blank" rel="noopener" class="link-card">
+            ${img}
+            <div class="meta">
+              <div class="title">${title}</div>
+              ${desc ? `<div class="desc">${desc}</div>` : ''}
+              <div class="site">${icon}${site}</div>
+            </div>
+          </a>
+        `;
+      }
+
+      function validateImported(json) {
+        if (!json || typeof json !== 'object') throw new Error('File is not a JSON object');
+        if (!Array.isArray(json.nodes) || !Array.isArray(json.edges)) throw new Error('Missing nodes/edges arrays');
+        // Minimal normalization: ensure required fields exist
+        json.id = json.id || 'board-1';
+        json.title = json.title || 'Imported Board';
+        json.createdAt = json.createdAt || new Date().toISOString();
+        json.updatedAt = new Date().toISOString();
+        json.nodes = json.nodes.map((n, i) => ({
+          id: n.id || `n_imp_${i}`,
+          type: n.type || 'text',
+          x: Number.isFinite(n.x) ? n.x : 100 + i * 20,
+          y: Number.isFinite(n.y) ? n.y : 100 + i * 20,
+          w: n.w, h: n.h,
+          data: n.data || {}
+        }));
+        json.edges = json.edges.filter(e => e && e.sourceId && e.targetId).map((e, i) => ({ id: e.id || `e_imp_${i}`, sourceId: e.sourceId, targetId: e.targetId }));
+        return json;
+      }
+
+      // --- Auto-layout (simple layered layout, dagre-like) ---
+      function buildGraph() {
+        const nodes = board.nodes.map(n => ({ id: n.id }));
+        const edges = board.edges.map(e => ({ from: e.sourceId, to: e.targetId }));
+        const adj = new Map();
+        const indeg = new Map();
+        for (const n of nodes) { adj.set(n.id, []); indeg.set(n.id, 0); }
+        for (const e of edges) {
+          if (!adj.has(e.from)) adj.set(e.from, []);
+          adj.get(e.from).push(e.to);
+          if (indeg.has(e.to)) indeg.set(e.to, indeg.get(e.to) + 1); else indeg.set(e.to, 1);
+        }
+        return { nodes, edges, adj, indeg };
+      }
+
+      function topoLayers() {
+        const { nodes, adj, indeg } = buildGraph();
+        const q = [];
+        const indegCopy = new Map(indeg);
+        for (const n of nodes) if ((indegCopy.get(n.id) || 0) === 0) q.push(n.id);
+        const layers = [];
+        const placed = new Set();
+        // Kahn-like layering: nodes with indegree==0 form layer 0, then peel
+        let current = q.slice();
+        let visitedCount = 0;
+        while (current.length) {
+          layers.push(current);
+          const next = [];
+          for (const id of current) {
+            placed.add(id); visitedCount++;
+            const outs = (adj.get(id) || []);
+            for (const v of outs) {
+              indegCopy.set(v, (indegCopy.get(v) || 0) - 1);
+              if (indegCopy.get(v) === 0) next.push(v);
+            }
+          }
+          current = next;
+        }
+        // Any remaining nodes are in cycles; place them in subsequent layers by a simple BFS from any unplaced
+        if (visitedCount < nodes.length) {
+          const rest = nodes.map(n=>n.id).filter(id=>!placed.has(id));
+          // group into chunks of up to 5 per layer to avoid stacking all in one
+          const chunk = 5;
+          for (let i=0;i<rest.length;i+=chunk) layers.push(rest.slice(i, i+chunk));
+        }
+        return layers;
+      }
+
+      function autoLayout(direction = 'LR') {
+        if (!board.nodes.length) return;
+        // Ensure DOM sizes are measured before layout
+        renderNodes();
+        // Build layered structure
+        const layers = topoLayers();
+        const layerGap = 180; // distance between layers
+        const nodeGap = 80;   // distance between nodes within a layer
+
+        // Precompute sizes
+        const size = new Map();
+        for (const n of board.nodes) {
+          const b = nodeBounds(n);
+          size.set(n.id, { w: b.w || 240, h: b.h || 100 });
+        }
+
+        if (direction === 'LR') {
+          // Layers progress left-to-right; within each layer, nodes are stacked vertically
+          let x = 80;
+          for (const layer of layers) {
+            // compute max width in this layer
+            let maxW = 0; for (const id of layer) { maxW = Math.max(maxW, (size.get(id)?.w || 240)); }
+            // vertical placement centered around the board's current view
+            let y = 80;
+            for (const id of layer) {
+              const n = board.nodes.find(nn => nn.id === id);
+              if (!n) continue;
+              const wh = size.get(id) || { w: 240, h: 100 };
+              n.x = x; n.y = y;
+              y += wh.h + nodeGap;
+            }
+            x += maxW + layerGap;
+          }
+        } else { // TB top-to-bottom
+          let y = 80;
+          for (const layer of layers) {
+            let maxH = 0; for (const id of layer) { maxH = Math.max(maxH, (size.get(id)?.h || 100)); }
+            let x = 80;
+            for (const id of layer) {
+              const n = board.nodes.find(nn => nn.id === id);
+              if (!n) continue;
+              const wh = size.get(id) || { w: 240, h: 100 };
+              n.x = x; n.y = y;
+              x += wh.w + nodeGap;
+            }
+            y += maxH + layerGap;
+          }
+        }
+        render();
+        markDirty();
+        setStatus('Auto-layout applied');
+      }
+
+      // Toolbar wiring
+      $("#addText").onclick = () =>
+        addNode("text", viewCenter(), { text: "New note..." });
+      $("#addImage").onclick = () => addNode("image", viewCenter());
+      $("#addLink").onclick = () => addNode("link", viewCenter());
+      $("#connect").onclick = toggleConnectMode;
+      document.getElementById('autoLayout').onclick = () => autoLayout('LR');
+      exportBtn.onclick = exportBoard;
+      importBtn.onclick = () => importFile.click();
+      importFile.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          const validated = validateImported(json);
+          board = validated;
+          render();
+          // Mark dirty so Save enables (import not yet persisted to server)
+          markDirty();
+          setStatus(`Imported ${file.name}`);
+        } catch (err) {
+          console.error(err);
+          alert(`Import failed: ${err.message || err}`);
+          setStatus('Import failed.');
+        } finally {
+          importFile.value = '';
+        }
+      });
+      // Search wiring (debounced + clear)
+      let searchTimer = null;
+      const clearSearchBtn = document.getElementById('clearSearch');
+      const updateClearBtn = () => { clearSearchBtn.disabled = !searchInput.value; };
+      updateClearBtn();
+
+      searchInput.addEventListener('input', (e) => {
+        currentQuery = e.target.value || '';
+        if (searchTimer) clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => applySearchFilter(), 150);
+        updateClearBtn();
+      });
+
+      // Allow Esc to clear search without triggering global handlers
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchInput.value = '';
+          currentQuery = '';
+          applySearchFilter();
+          updateClearBtn();
+          e.stopPropagation();
+        }
+      });
+
+      // Clear button
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        currentQuery = '';
+        applySearchFilter();
+        updateClearBtn();
+        searchInput.focus();
+      });
+      $("#save").onclick = saveBoard;
+      $("#reset").onclick = resetBoard;
+
+      function viewCenter() {
+        const rect = boardEl.getBoundingClientRect();
+        return {
+          x: boardEl.scrollLeft + rect.width / 2 - 120,
+          y: boardEl.scrollTop + rect.height / 2 - 60,
+        };
+      }
+
+      function toggleConnectMode() {
+        connectMode = !connectMode;
+        connectFromId = null;
+        const btn = document.getElementById('connect');
+        if (connectMode) {
+          document.body.classList.add('connect-mode');
+          btn.classList.add('active');
+          $("#modeHint").textContent = "💡 Mode: Connect. Click source node, then target. Press C to exit.";
+        } else {
+          document.body.classList.remove('connect-mode');
+          btn.classList.remove('active');
+          $("#modeHint").textContent = "💡 Mode: Select/Move. Press C to toggle connect mode.";
+        }
+      }
+
+      document.addEventListener("keydown", (e) => {
+        const typing = isTypingTarget(e.target);
+
+        if (!typing && (e.key === "Delete" || e.key === "Backspace")) {
+          e.preventDefault(); // avoid browser back
+          removeSelection();
+          return;
+        }
+        if (!typing && e.key.toLowerCase() === "c") {
+          toggleConnectMode();
+          return;
+        }
+        if (e.key.toLowerCase() === 'l' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          autoLayout('LR');
+        }
+      });
+
+      // click blank space to clear selection
+      boardEl.addEventListener("mousedown", (ev) => {
+        if (ev.target === boardEl || ev.target === edgesSvg) {
+          hideContextMenu();
+          selectedNodeId = null;
+          selectedEdgeId = null;
+          updateSelections();
+        }
+      });
+      // Allow dropping a .json file onto the board to import
+      boardEl.addEventListener('dragover', (e) => { e.preventDefault(); });
+      boardEl.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer?.files?.[0];
+        if (!file || !file.name.toLowerCase().endsWith('.json')) return;
+        try {
+          const text = await file.text();
+          const json = JSON.parse(text);
+          const validated = validateImported(json);
+          board = validated;
+          render();
+          markDirty();
+          setStatus(`Imported ${file.name}`);
+        } catch (err) {
+          console.error(err);
+          alert(`Import failed: ${err.message || err}`);
+          setStatus('Import failed.');
+        }
+      });
+
+      // Load existing board
+      async function loadBoard() {
+        try {
+          const res = await fetch("/api/board");
+          const data = await res.json();
+          board = data;
+          render();
+          boardNameEl.textContent = board.title || '';
+          lastSavedJSON = computeSnapshot();
+          updateSaveButton();
+          currentQuery = searchInput.value || '';
+          applySearchFilter();
+          setStatus("Loaded.");
+        } catch (e) {
+          setStatus("No saved board yet. Start adding nodes.");
+        }
+      }
+
+      async function saveBoard() {
+        saveBtn.disabled = true;
+        setStatus("Saving…");
+        try {
+          const res = await fetch("/api/board", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(board),
+          });
+          const data = await res.json();
+          board = data;
+          boardNameEl.textContent = board.title || '';
+          lastSavedJSON = computeSnapshot();
+          updateSaveButton();
+          setStatus(
+            "Saved at " + new Date(board.updatedAt).toLocaleTimeString()
+          );
+        } catch (e) {
+          saveBtn.disabled = false;
+          setStatus("Save failed.");
+          console.error(e);
+        }
+      }
+
+      function resetBoard() {
+        if (
+          !confirm(
+            "Clear all nodes/edges? This will overwrite the saved board."
+          )
+        )
+          return;
+        board = {
+          id: "board-1",
+          title: "My Evidence Board",
+          nodes: [],
+          edges: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        boardNameEl.textContent = board.title || '';
+        render();
+        saveBoard();
+      }
+
+      // Image upload handling
+      const fileInputEl = document.getElementById("fileInput");
+      const uploadBtnEl = document.getElementById("uploadImage");
+
+      uploadBtnEl.onclick = () => fileInputEl.click();
+
+      fileInputEl.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          setStatus("Uploading…");
+          const fd = new FormData();
+          fd.append("image", file);
+          const res = await fetch("/api/upload", { method: "POST", body: fd });
+          if (!res.ok) throw new Error("Upload failed");
+          const data = await res.json();
+          addNode("image", viewCenter(), {
+            imageUrl: data.url,
+            title: file.name,
+          });
+          markDirty();
+          setStatus("Uploaded.");
+        } catch (err) {
+          console.error(err);
+          alert(err.message || "Upload failed");
+          setStatus("Upload failed.");
+        } finally {
+          fileInputEl.value = "";
+        }
+      });
+      // End of image upload handling
+
+      loadBoard();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "papertrail",
+  "description": "PaperTrail — map your evidence, follow the story.",
+  "version": "1.0.0",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "start:dev": "nodemon"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "server.mjs",
+      "public",
+      "data"
+    ],
+    "ext": "mjs,js,json,html,css",
+    "signal": "SIGTERM"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
