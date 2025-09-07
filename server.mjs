@@ -13,11 +13,18 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const DATA_DIR = path.join(__dirname, "data");
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const BOARD_PATH = path.join(DATA_DIR, "board.json");
 
 // ensure data dir exists
 await fs.mkdir(DATA_DIR, { recursive: true });
+
+// create default board.json if missing
+try {
+  await fs.access(BOARD_PATH);
+} catch {
+  await fs.writeFile(BOARD_PATH, JSON.stringify(emptyBoard(), null, 2), "utf-8");
+}
 
 function emptyBoard() {
   const now = new Date().toISOString();
@@ -52,8 +59,9 @@ async function writeBoard(board) {
 }
 
 // Image Uploads
-const UPLOAD_DIR = path.join(__dirname, "public", "uploads");
+const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 await fs.mkdir(UPLOAD_DIR, { recursive: true });
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
@@ -195,5 +203,5 @@ app.post("/api/link-preview", async (req, res) => {
 
 const PORT = process.env.PORT || 5173;
 app.listen(PORT, () => {
-  console.log(`Evidence Board running at http://localhost:${PORT}`);
+  console.log(`PaperTrail running at http://localhost:${PORT}`);
 });
