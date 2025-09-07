@@ -217,6 +217,12 @@
         pointer-events: stroke; /* enable clicks on the line only */
         cursor: pointer;
       }
+      .edge-endpoint {
+        fill: red;
+        stroke: #b91c1c;
+        stroke-width: 1.2;
+        pointer-events: none;
+      }
       .edge.selected {
         stroke: var(--accent);
         stroke-width: 3;
@@ -1237,6 +1243,23 @@
           });
 
           g.appendChild(path);
+
+          // Add endpoint circles
+          const startCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          startCircle.setAttribute("cx", a1.x);
+          startCircle.setAttribute("cy", a1.y);
+          startCircle.setAttribute("r", "4");
+          startCircle.setAttribute("class", "edge-endpoint");
+
+          const endCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          endCircle.setAttribute("cx", a2.x);
+          endCircle.setAttribute("cy", a2.y);
+          endCircle.setAttribute("r", "4");
+          endCircle.setAttribute("class", "edge-endpoint");
+
+          g.appendChild(startCircle);
+          g.appendChild(endCircle);
+
           edgesSvg.appendChild(g);
         }
       }
