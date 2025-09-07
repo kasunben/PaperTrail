@@ -1,100 +1,187 @@
 {
   "id": "board-1",
-  "title": "Bike Theft – PaperTrail Demo",
-  "createdAt": "2025-09-07T09:00:00.000Z",
-  "updatedAt": "2025-09-07T21:02:50.967Z",
+  "title": "Sri Lanka Protests – 2022 (Demo)",
+  "createdAt": "2025-09-08T08:00:00.000Z",
+  "updatedAt": "2025-09-07T23:05:06.281Z",
   "nodes": [
     {
-      "id": "n-summary",
+      "id": "n-overview",
       "type": "text",
-      "x": 80,
-      "y": 80,
-      "w": 320,
+      "x": 19,
+      "y": 31,
+      "w": 380,
       "data": {
-        "title": "Incident Summary",
-        "text": "My bike was stolen on Sept 5 between 18:00–19:00 from front rack.",
-        "html": "<p>My bike was stolen on <strong>Sept 5</strong> between <strong>18:00–19:00</strong> from the front rack.</p><ul><li>Lock: U-lock (cut)</li><li>Model: Blue Trek FX 3</li></ul>",
+        "title": "Overview",
+        "text": "Public protests in 2022 over economic crisis, fuel/food shortages, and governance concerns.",
+        "html": "<p>Public protests in <strong>2022</strong> responding to the economic crisis, shortages, and governance concerns. Major gathering points included <em>Galle Face (GotaGoGama)</em>, with marches and demonstrations across Colombo and other districts.</p>",
         "tags": [
-          "timeline",
-          "clue"
+          "summary",
+          "context"
         ]
       }
     },
     {
-      "id": "n-timeline",
+      "id": "n-early-apr",
       "type": "text",
-      "x": 901,
-      "y": 456,
-      "w": 300,
-      "data": {
-        "title": "Timeline",
-        "text": "17:55 arrived; 18:40 discovered missing; 18:10–18:25 likely window.",
-        "html": "<ol><li>17:55 – arrived home</li><li>18:10–18:25 – likely window (neighbor’s note)</li><li>18:40 – discovered missing</li></ol>",
-        "tags": [
-          "timeline"
-        ]
-      }
-    },
-    {
-      "id": "n-cctv",
-      "type": "image",
-      "x": 620,
-      "y": 80,
-      "w": 320,
-      "data": {
-        "title": "CCTV still",
-        "imageUrl": "https://picsum.photos/seed/cctv-frame/640/360",
-        "descHtml": "",
-        "tags": [
-          "clue"
-        ]
-      }
-    },
-    {
-      "id": "n-closeup",
-      "type": "image",
-      "x": 80,
-      "y": 397,
-      "w": 300,
-      "data": {
-        "title": "Lock remnants",
-        "imageUrl": "https://picsum.photos/seed/lock-cut/640/360",
-        "descHtml": "Cut appears clean → <em>bolt cutters?</em>",
-        "tags": [
-          "clue"
-        ]
-      }
-    },
-    {
-      "id": "n-suspect",
-      "type": "text",
-      "x": 1074,
-      "y": 15,
-      "w": 300,
-      "data": {
-        "title": "Suspect notes",
-        "text": "Hoodie, dark backpack, reflective ankle strap.",
-        "html": "<p><strong>Appearance:</strong> hoodie, dark backpack, reflective ankle strap.</p><p>Possible courier? Rode away on a grey single-speed.</p>",
-        "tags": [
-          "suspect"
-        ]
-      }
-    },
-    {
-      "id": "n-map",
-      "type": "link",
-      "x": 468,
-      "y": 651,
+      "x": 546,
+      "y": 14,
       "w": 360,
       "data": {
-        "title": "Theft location (map)",
-        "linkUrl": "https://www.openstreetmap.org/",
-        "descHtml": "",
+        "title": "Early April: Nationwide Protests",
+        "text": "Initial large-scale gatherings and curfew announcements.",
+        "html": "<ul><li>Spontaneous protests in Colombo and suburbs</li><li>Curfew periods announced/adjusted</li><li>Momentum grows toward a central camp</li></ul>",
         "tags": [
-          "location"
+          "timeline",
+          "ts:2022-04-03T20:00",
+          "phase:early"
+        ]
+      }
+    },
+    {
+      "id": "n-gotagogama",
+      "type": "text",
+      "x": 1117,
+      "y": 17,
+      "w": 380,
+      "data": {
+        "title": "Galle Face – “GotaGoGama”",
+        "text": "Protest village forms at Galle Face Green (Colombo).",
+        "html": "<p>Protest village <strong>GotaGoGama</strong> established at Galle Face Green as a sustained, symbolic hub.</p><p>Facilities: tents, information desks, legal aid, medical tents.</p>",
+        "tags": [
+          "location",
+          "camp",
+          "ts:2022-04-09T10:00",
+          "colombo"
+        ]
+      }
+    },
+    {
+      "id": "n-june-fuel",
+      "type": "text",
+      "x": 559,
+      "y": 707,
+      "w": 360,
+      "data": {
+        "title": "June: Fuel/Power Pressure",
+        "text": "Fuel queues, power cuts, and escalating demonstrations.",
+        "html": "<p>Escalation with extended fuel queues and power cuts; protest actions spread, participation widens.</p>",
+        "tags": [
+          "timeline",
+          "economy",
+          "ts:2022-06-20T08:00"
+        ]
+      }
+    },
+    {
+      "id": "n-july9-march",
+      "type": "text",
+      "x": 1044,
+      "y": 836,
+      "w": 400,
+      "data": {
+        "title": "July 9: Mass March in Colombo",
+        "text": "Large crowds converge on central sites; major turning point.",
+        "html": "<p><strong>July 9</strong>: Large crowds converge on central Colombo locations. A major turning point day with nationwide attention.</p>",
+        "tags": [
+          "timeline",
+          "turning-point",
+          "ts:2022-07-09T15:00",
+          "colombo"
+        ]
+      }
+    },
+    {
+      "id": "n-pres-house",
+      "type": "image",
+      "x": 1724,
+      "y": 365,
+      "w": 360,
+      "data": {
+        "title": "Colombo: Central Precinct (illustrative)",
+        "imageUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fisland.lk%2Fwp-content%2Fuploads%2F2022%2F05%2Fgalleface.jpg&f=1&nofb=1&ipt=7b4b9746861c3167ab6d35f05b97ec8e3cd781e200b6273b8187a385d23d406c",
+        "descHtml": "Illustrative image placeholder for central Colombo area.",
+        "tags": [
+          "illustration",
+          "location",
+          "ts:2022-07-09T16:00"
+        ]
+      }
+    },
+    {
+      "id": "n-social",
+      "type": "link",
+      "x": 1530,
+      "y": 1047,
+      "w": 380,
+      "data": {
+        "title": "Social Media Compilation (example)",
+        "linkUrl": "https://www.youtube.com/",
+        "descHtml": "Example compilation placeholder for public footage from July events.",
+        "tags": [
+          "source",
+          "media",
+          "ts:2022-07-10T09:00"
         ],
         "preview": {
-          "url": "https://www.openstreetmap.org/",
+          "url": "https://www.youtube.com/",
+          "title": "YouTube",
+          "description": "Med YouTube kan du se populære videoer, kose deg med favorittmusikken din og laste opp ditt eget innhold – og dele det med familie, venner og resten av verden.",
+          "siteName": "www.youtube.com",
+          "image": "https://www.youtube.com/img/desktop/yt_1200.png",
+          "icon": "https://www.youtube.com/s/desktop/814d40a6/img/favicon.ico"
+        }
+      }
+    },
+    {
+      "id": "n-legal-aid",
+      "type": "text",
+      "x": 1204,
+      "y": 604,
+      "w": 380,
+      "data": {
+        "title": "Support & Legal Aid",
+        "text": "Volunteer legal/medical aid at Galle Face and around protest sites.",
+        "html": "<ul><li>Volunteer legal desks</li><li>Medical tents and water distribution</li><li>Coordination via community groups</li></ul>",
+        "tags": [
+          "support",
+          "camp",
+          "ts:2022-05-01T11:00"
+        ]
+      }
+    },
+    {
+      "id": "n-incidents",
+      "type": "text",
+      "x": 66,
+      "y": 310,
+      "w": 420,
+      "data": {
+        "title": "Notable Incidents (High Level)",
+        "text": "Clashes, curfews, and announcements across different dates.",
+        "html": "<p>Selected incidents across dates (high level). Add your own entries per report and tag them with <code>ts:YYYY-MM-DDTHH:mm</code> for filtering.</p>",
+        "tags": [
+          "incidents",
+          "ts:2022-05-09T14:00"
+        ]
+      }
+    },
+    {
+      "id": "n-maps",
+      "type": "link",
+      "x": 68,
+      "y": 555,
+      "w": 420,
+      "data": {
+        "title": "Map – Sri Lanka (OSM)",
+        "linkUrl": "https://www.openstreetmap.org/#map=7/7.87/80.77",
+        "descHtml": "Use as geographic reference for districts and routes.",
+        "tags": [
+          "map",
+          "reference",
+          "ts:2022-04-10T09:00"
+        ],
+        "preview": {
+          "url": "https://www.openstreetmap.org/#map=7/7.87/80.77",
           "title": "OpenStreetMap",
           "description": "OpenStreetMap is a map of the world, created by people like you and free to use under an open license.",
           "siteName": "OpenStreetMap",
@@ -104,101 +191,130 @@
       }
     },
     {
-      "id": "n-post",
+      "id": "n-reading",
       "type": "link",
-      "x": 1271,
-      "y": 574,
-      "w": 360,
+      "x": 184,
+      "y": 976,
+      "w": 420,
       "data": {
-        "title": "Neighborhood forum tip",
-        "linkUrl": "https://news.ycombinator.com/",
-        "descHtml": "Thread mentions similar thefts last week near the station.",
+        "title": "Background Reading (example source)",
+        "linkUrl": "https://www.bbc.com/",
+        "descHtml": "Placeholder link for international explainer/coverage.",
         "tags": [
-          "clue"
+          "source",
+          "background",
+          "ts:2022-04-15T12:00"
         ],
         "preview": {
-          "url": "https://news.ycombinator.com/",
-          "title": "Hacker News",
-          "description": "",
-          "siteName": "news.ycombinator.com",
+          "url": "https://www.bbc.com/",
+          "title": "BBC Home - Breaking News, World News, US News, Sports, Business, Innovation, Climate, Culture, Travel, Video &amp; Audio",
+          "description": "Visit BBC for trusted reporting on the latest world and US news, sports, business, climate, innovation, culture and much more.",
+          "siteName": "www.bbc.com",
           "image": null,
-          "icon": "https://news.ycombinator.com/y18.svg"
+          "icon": "https://static.files.bbci.co.uk/bbcdotcom/web/20250828-055926-c20c0c03f5-2.28.1-2/apple-touch-icon.png"
         }
+      }
+    },
+    {
+      "id": "n-photos",
+      "type": "image",
+      "x": 555,
+      "y": 255,
+      "w": 360,
+      "data": {
+        "title": "Galle Face (illustrative)",
+        "imageUrl": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Flankatruth.com%2Fen%2Fwp-content%2Fuploads%2F2022%2F04%2FGotagoogama-2022.04.11-1.jpg&f=1&nofb=1&ipt=219d0dcb6a2da4b703a8a391ed714a741c2d9c158523960090215b97e205d36c",
+        "descHtml": "Illustrative image placeholder for Galle Face area / camp vibe.",
+        "tags": [
+          "illustration",
+          "camp",
+          "ts:2022-04-20T10:00"
+        ]
       }
     },
     {
       "id": "n-hypothesis",
       "type": "text",
-      "x": 1466,
-      "y": 110,
-      "w": 360,
+      "x": 1723,
+      "y": -13,
+      "w": 420,
       "data": {
-        "title": "Hypothesis",
-        "text": "Same person targeting evening commuters with bolt cutters.",
-        "html": "<p><strong>Hypothesis:</strong> same person targeting evening commuters using bolt cutters; look for reflective strap in other reports.</p>",
+        "title": "Synthesis / Hypothesis",
+        "text": "Escalation correlates with fuel/power stress and key weekend mobilizations.",
+        "html": "<p><strong>Synthesis:</strong> escalation appears correlated with fuel/power stress and weekend mobilizations; activity coalesces at central hubs.</p><p>Use tags like <code>#ts:2022-07-09T15:00</code>, <code>#camp</code>, <code>#colombo</code> to filter views.</p>",
         "tags": [
-          "suspect",
-          "summary"
+          "summary",
+          "analysis"
         ]
-      }
-    },
-    {
-      "id": "n-daxcyk",
-      "type": "text",
-      "x": 794,
-      "y": 1095.5,
-      "w": 240,
-      "data": {
-        "text": "New note...",
-        "html": "Test",
-        "title": "Text",
-        "tags": []
       }
     }
   ],
   "edges": [
     {
       "id": "e1",
-      "sourceId": "n-summary",
-      "targetId": "n-cctv",
-      "label": "evidence",
-      "color": "red"
+      "sourceId": "n-overview",
+      "targetId": "n-early-apr",
+      "label": "early phase"
     },
     {
       "id": "e2",
-      "sourceId": "n-summary",
-      "targetId": "n-timeline",
-      "label": "when",
-      "dashed": true
+      "sourceId": "n-early-apr",
+      "targetId": "n-gotagogama",
+      "label": "camp forms"
     },
     {
       "id": "e3",
-      "sourceId": "n-cctv",
-      "targetId": "n-suspect",
-      "label": "appearance"
+      "sourceId": "n-gotagogama",
+      "targetId": "n-photos",
+      "label": "illustration"
     },
     {
       "id": "e4",
-      "sourceId": "n-closeup",
-      "targetId": "n-hypothesis",
-      "label": "tool inference"
+      "sourceId": "n-early-apr",
+      "targetId": "n-june-fuel",
+      "label": "escalation"
     },
     {
       "id": "e5",
-      "sourceId": "n-map",
-      "targetId": "n-hypothesis",
-      "label": "where"
+      "sourceId": "n-june-fuel",
+      "targetId": "n-july9-march",
+      "label": "build-up"
     },
     {
       "id": "e6",
-      "sourceId": "n-post",
-      "targetId": "n-hypothesis",
-      "label": "pattern"
+      "sourceId": "n-july9-march",
+      "targetId": "n-pres-house",
+      "label": "central sites"
     },
     {
-      "id": "e-ek91n7",
-      "sourceId": "n-cctv",
-      "targetId": "n-daxcyk"
+      "id": "e7",
+      "sourceId": "n-july9-march",
+      "targetId": "n-social",
+      "label": "public footage"
+    },
+    {
+      "id": "e8",
+      "sourceId": "n-gotagogama",
+      "targetId": "n-legal-aid",
+      "label": "support"
+    },
+    {
+      "id": "e9",
+      "sourceId": "n-legal-aid",
+      "targetId": "n-hypothesis",
+      "label": "context"
+    },
+    {
+      "id": "e10",
+      "sourceId": "n-reading",
+      "targetId": "n-hypothesis",
+      "label": "background"
+    },
+    {
+      "id": "e11",
+      "sourceId": "n-maps",
+      "targetId": "n-hypothesis",
+      "label": "geo ref"
     }
   ]
 }
