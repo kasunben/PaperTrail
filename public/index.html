@@ -691,11 +691,27 @@
           base.data.html = escapeHtml(base.data.text);
           base.data.title = payload.title ?? "Text";
         } else if (type === "image") {
-          base.data.imageUrl = payload.imageUrl ?? prompt("Image URL?", "");
+          // Ask for URL if not provided; cancel = no node
+          let url = payload.imageUrl;
+          if (url === undefined) {
+            url = prompt("Image URL?", "");
+          }
+          if (url === null) return null; // user cancelled
+          url = (url || "").trim();
+          if (!url) return null; // empty -> abort
+          base.data.imageUrl = url;
           base.data.title = payload.title ?? "Image";
           base.data.descHtml = payload.descHtml ?? ""; // optional description (rich)
         } else if (type === "link") {
-          base.data.linkUrl = payload.linkUrl ?? prompt("Link URL?", "https://");
+          // Ask for URL if not provided; cancel = no node
+          let url = payload.linkUrl;
+          if (url === undefined) {
+            url = prompt("Link URL?", "https://");
+          }
+          if (url === null) return null; // user cancelled
+          url = (url || "").trim();
+          if (!url) return null; // empty -> abort
+          base.data.linkUrl = url;
           base.data.title = payload.title ?? "Link";
           base.data.descHtml = payload.descHtml ?? ""; // optional description (rich)
         }
