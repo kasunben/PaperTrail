@@ -163,17 +163,24 @@
         margin-bottom: 0.35rem;
       }
       .node .ports {
-        margin-top: 0.35rem;
+        position: absolute;
+        top: 12px;  /* better vertical centering with 13px title */
+        left: 10px; /* balances with 20px title padding */
         display: flex;
-        gap: 0.35rem;
+        gap: 4px;
+        margin-top: 0;
+        align-items: center;
       }
       .node .port {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         background: #94a3b8;
-        border: 1px solid #1f2937;
         transition: background 0.2s, border-color 0.2s;
+        flex-shrink: 0;
+      }
+      .node .title {
+        padding-left: 18px;
       }
 
       body.connect-mode .node .port {
