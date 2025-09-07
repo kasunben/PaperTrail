@@ -1089,10 +1089,10 @@
             rich.addEventListener('blur', syncHtml);
           }
         }
-        // Toggle resizer visibility based on node type (only for text and image)
+        // Toggle resizer visibility based on node type (text, image, link are resizable)
         const resizerEl = el.querySelector('.resizer');
         if (resizerEl) {
-          resizerEl.style.display = (n.type === 'text' || n.type === 'image') ? '' : 'none';
+          resizerEl.style.display = (n.type === 'text' || n.type === 'image' || n.type === 'link') ? '' : 'none';
         }
       }
 
