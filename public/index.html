@@ -880,19 +880,28 @@
             const rich = el.querySelector('.rich');
             if (rich) { rich.focus(); }
             return; // no prompt
-          } else if (n.type === "link") {
-            const url = prompt(
-              "Edit link URL:",
-              n.data.linkUrl ?? "https://"
-            );
-            if (url !== null) n.data.linkUrl = url;
-          } else if (n.type === "image") {
+          }
+
+          if (n.type === "image") {
+            // Only trigger URL edit when the actual image is double-clicked
+            const imgEl = ev.target && ev.target.closest('img');
+            if (!imgEl || !el.contains(imgEl)) return; // ignore dblclicks elsewhere in the node
             const url = prompt("Edit image URL:", n.data.imageUrl ?? "");
             if (url !== null) n.data.imageUrl = url;
+            renderNode(n);
+            renderEdges();
+            markDirty();
+            return;
           }
-          renderNode(n);
-          renderEdges();
-          markDirty();
+
+          if (n.type === "link") {
+            const url = prompt("Edit link URL:", n.data.linkUrl ?? "https://");
+            if (url !== null) n.data.linkUrl = url;
+            renderNode(n);
+            renderEdges();
+            markDirty();
+            return;
+          }
         });
         }
 
