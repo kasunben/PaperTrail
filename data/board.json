@@ -1,8 +1,186 @@
 {
   "id": "board-1",
-  "title": "My Evidence Board",
-  "nodes": [],
-  "edges": [],
-  "createdAt": "2025-09-07T15:00:26.891Z",
-  "updatedAt": "2025-09-07T15:00:26.923Z"
+  "title": "Bike Theft – PaperTrail Demo",
+  "createdAt": "2025-09-07T09:00:00.000Z",
+  "updatedAt": "2025-09-07T15:05:40.667Z",
+  "nodes": [
+    {
+      "id": "n-summary",
+      "type": "text",
+      "x": 80,
+      "y": 80,
+      "w": 320,
+      "data": {
+        "title": "Incident Summary",
+        "text": "My bike was stolen on Sept 5 between 18:00–19:00 from front rack.",
+        "html": "<p>My bike was stolen on <strong>Sept 5</strong> between <strong>18:00–19:00</strong> from the front rack.</p><ul><li>Lock: U-lock (cut)</li><li>Model: Blue Trek FX 3</li></ul>",
+        "tags": [
+          "timeline",
+          "clue"
+        ]
+      }
+    },
+    {
+      "id": "n-timeline",
+      "type": "text",
+      "x": 901,
+      "y": 456,
+      "w": 300,
+      "data": {
+        "title": "Timeline",
+        "text": "17:55 arrived; 18:40 discovered missing; 18:10–18:25 likely window.",
+        "html": "<ol><li>17:55 – arrived home</li><li>18:10–18:25 – likely window (neighbor’s note)</li><li>18:40 – discovered missing</li></ol>",
+        "tags": [
+          "timeline"
+        ]
+      }
+    },
+    {
+      "id": "n-cctv",
+      "type": "image",
+      "x": 620,
+      "y": 80,
+      "w": 320,
+      "data": {
+        "title": "CCTV still",
+        "imageUrl": "https://picsum.photos/seed/cctv-frame/640/360",
+        "descHtml": "",
+        "tags": [
+          "clue"
+        ]
+      }
+    },
+    {
+      "id": "n-closeup",
+      "type": "image",
+      "x": 80,
+      "y": 397,
+      "w": 300,
+      "data": {
+        "title": "Lock remnants",
+        "imageUrl": "https://picsum.photos/seed/lock-cut/640/360",
+        "descHtml": "Cut appears clean → <em>bolt cutters?</em>",
+        "tags": [
+          "clue"
+        ]
+      }
+    },
+    {
+      "id": "n-suspect",
+      "type": "text",
+      "x": 1074,
+      "y": 15,
+      "w": 300,
+      "data": {
+        "title": "Suspect notes",
+        "text": "Hoodie, dark backpack, reflective ankle strap.",
+        "html": "<p><strong>Appearance:</strong> hoodie, dark backpack, reflective ankle strap.</p><p>Possible courier? Rode away on a grey single-speed.</p>",
+        "tags": [
+          "suspect"
+        ]
+      }
+    },
+    {
+      "id": "n-map",
+      "type": "link",
+      "x": 468,
+      "y": 651,
+      "w": 360,
+      "data": {
+        "title": "Theft location (map)",
+        "linkUrl": "https://www.openstreetmap.org/",
+        "descHtml": "",
+        "tags": [
+          "location"
+        ],
+        "preview": {
+          "url": "https://www.openstreetmap.org/",
+          "title": "OpenStreetMap",
+          "description": "OpenStreetMap is a map of the world, created by people like you and free to use under an open license.",
+          "siteName": "OpenStreetMap",
+          "image": "https://www.openstreetmap.org/assets/osm_logo_256-ed028f90468224a272961c380ecee0cfb73b8048b34f4b4b204b7f0d1097875d.png",
+          "icon": "https://www.openstreetmap.org/assets/apple-touch-icon-57x57-0af2b52ac2b1a8cb0aba42f17aa901bfdedb9174bd978f838e3b3e1dd8602f52.png"
+        }
+      }
+    },
+    {
+      "id": "n-post",
+      "type": "link",
+      "x": 1271,
+      "y": 574,
+      "w": 360,
+      "data": {
+        "title": "Neighborhood forum tip",
+        "linkUrl": "https://news.ycombinator.com/",
+        "descHtml": "Thread mentions similar thefts last week near the station.",
+        "tags": [
+          "clue"
+        ],
+        "preview": {
+          "url": "https://news.ycombinator.com/",
+          "title": "Hacker News",
+          "description": "",
+          "siteName": "news.ycombinator.com",
+          "image": null,
+          "icon": "https://news.ycombinator.com/y18.svg"
+        }
+      }
+    },
+    {
+      "id": "n-hypothesis",
+      "type": "text",
+      "x": 1466,
+      "y": 110,
+      "w": 360,
+      "data": {
+        "title": "Hypothesis",
+        "text": "Same person targeting evening commuters with bolt cutters.",
+        "html": "<p><strong>Hypothesis:</strong> same person targeting evening commuters using bolt cutters; look for reflective strap in other reports.</p>",
+        "tags": [
+          "suspect",
+          "summary"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "sourceId": "n-summary",
+      "targetId": "n-cctv",
+      "label": "evidence",
+      "color": "red"
+    },
+    {
+      "id": "e2",
+      "sourceId": "n-summary",
+      "targetId": "n-timeline",
+      "label": "when",
+      "dashed": true
+    },
+    {
+      "id": "e3",
+      "sourceId": "n-cctv",
+      "targetId": "n-suspect",
+      "label": "appearance"
+    },
+    {
+      "id": "e4",
+      "sourceId": "n-closeup",
+      "targetId": "n-hypothesis",
+      "label": "tool inference"
+    },
+    {
+      "id": "e5",
+      "sourceId": "n-map",
+      "targetId": "n-hypothesis",
+      "label": "where"
+    },
+    {
+      "id": "e6",
+      "sourceId": "n-post",
+      "targetId": "n-hypothesis",
+      "label": "pattern"
+    }
+  ]
 }
