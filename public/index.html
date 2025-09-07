@@ -65,7 +65,7 @@
         background: #f9fafb;
         color: #111;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        align-items: center;
+        align-items: flex-end;
         position: sticky;
         top: 0;
         z-index: 10;
@@ -101,13 +101,23 @@
         background-size: 16px 16px;
         background-position: -1px -1px;
       }
+      #boardSizer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;   /* will be expanded via JS */
+        height: 100%;  /* will be expanded via JS */
+        pointer-events: none;
+        visibility: hidden;
+      }
       /* SVG underlay for edges */
       svg#edges {
         position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
+        left: 0;
+        top: 0;
+        /* no fixed CSS width/height; we size via JS to content extent */
         pointer-events: auto;
+        overflow: visible;
       }
       .node {
         position: absolute;
@@ -399,6 +409,7 @@
     </div>
 
     <div class="board" id="board">
+      <div id="boardSizer"></div>
       <svg id="edges"></svg>
     </div>
      <div id="ctxMenu" class="context-menu"></div>
@@ -696,6 +707,7 @@
             n.h = Math.max(minH, Math.min(maxH, Math.round(startH + dy)));
             el.style.width = n.w + 'px';
             el.style.height = n.h + 'px';
+            updateBoardExtent();
             renderEdges();
           });
           window.addEventListener('mouseup', () => {
@@ -752,6 +764,7 @@
             n.y = ev.clientY - offY;
             el.style.left = n.x + "px";
             el.style.top = n.y + "px";
+            updateBoardExtent();
             renderEdges(); // update edge positions live
           });
           window.addEventListener("mouseup", () => {
@@ -766,6 +779,7 @@
           titleEl.addEventListener("input", () => {
             n.data.title = titleEl.textContent || "";
             markDirty();
+            updateBoardExtent();
             renderEdges(); // keep connections glued to borders as size changes
           });
         el.addEventListener("dblclick", (ev) => {
@@ -1052,11 +1066,34 @@
         return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
       }
 
+      function computeContentExtent(pad = 160) {
+        let maxX = 0, maxY = 0;
+        for (const n of board.nodes) {
+          const b = nodeBounds(n);
+          const w = b.w || 240;
+          const h = b.h || 100;
+          maxX = Math.max(maxX, b.x + w);
+          maxY = Math.max(maxY, b.y + h);
+        }
+        const rect = boardEl.getBoundingClientRect();
+        const w = Math.max(maxX + pad, rect.width);
+        const h = Math.max(maxY + pad, rect.height);
+        return { w, h };
+      }
+
+      function updateBoardExtent() {
+        const { w, h } = computeContentExtent(160);
+        const sizer = document.getElementById('boardSizer');
+        if (sizer) { sizer.style.width = w + 'px'; sizer.style.height = h + 'px'; }
+        edgesSvg.setAttribute('width', w);
+        edgesSvg.setAttribute('height', h);
+        edgesSvg.style.width = w + 'px';
+        edgesSvg.style.height = h + 'px';
+      }
+
       function renderEdges() {
         edgesSvg.innerHTML = "";
-        // ensure SVG size tracks board scroll size
-        edgesSvg.setAttribute("width", boardEl.scrollWidth);
-        edgesSvg.setAttribute("height", boardEl.scrollHeight);
+        updateBoardExtent();
         if (!visibleNodeIds) {
           visibleNodeIds = new Set(board.nodes.map(n=>n.id));
         }
