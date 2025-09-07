@@ -777,11 +777,28 @@
             if (!resizing) return;
             const dx = ev.clientX - startX;
             const dy = ev.clientY - startY;
-            const minW = 160, minH = 80, maxW = 640, maxH = 600;
-            n.w = Math.max(minW, Math.min(maxW, Math.round(startW + dx)));
-            n.h = Math.max(minH, Math.min(maxH, Math.round(startH + dy)));
-            el.style.width = n.w + 'px';
-            el.style.height = n.h + 'px';
+
+            const maxW = 640, maxH = 600;
+            const baseMinW = 160, baseMinH = 80;
+
+            // Desired width from drag, clamped to base min/max
+            let nextW = Math.max(baseMinW, Math.min(maxW, Math.round(startW + dx)));
+            // Apply width first to let text wrap and images scale, then measure content height
+            el.style.width = nextW + 'px';
+            el.style.height = 'auto';
+
+            // Content-required height (includes title, content, tags, ports, etc.)
+            const contentMinH = Math.ceil(el.scrollHeight);
+
+            // Desired height from drag, but never below content-required height
+            let nextH = Math.max(baseMinH, Math.min(maxH, Math.round(startH + dy)));
+            nextH = Math.max(nextH, contentMinH);
+
+            // Commit
+            n.w = nextW;
+            n.h = nextH;
+            el.style.height = nextH + 'px';
+
             updateBoardExtent();
             renderEdges();
           });
