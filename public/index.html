@@ -64,7 +64,7 @@
         padding: 0.5rem;
         background: #f9fafb;
         color: #111;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         align-items: flex-end;
         position: sticky;
         top: 0;
@@ -80,23 +80,39 @@
         border-radius: 0.4rem;
         cursor: pointer;
         font-weight: 500;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         transition: background 0.2s, box-shadow 0.2s;
         outline: none;
       }
-      .btn-icon { display:inline-flex; align-items:center; justify-content:center; padding: 0.45rem; }
-      .btn-icon svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
-      .btn-icon svg.filled { fill: currentColor; stroke: none; }
+      .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem;
+      }
+      .btn-icon svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .btn-icon svg.filled {
+        fill: currentColor;
+        stroke: none;
+      }
       .toolbar button:hover,
       .toolbar select:hover {
         background: #f3f4f6;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
       .toolbar button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .toolbar .spacer { flex: 1; }
+      .toolbar .spacer {
+        flex: 1;
+      }
       .board {
         position: relative;
         height: calc(100% - 48px - 34px);
@@ -109,8 +125,8 @@
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%;   /* will be expanded via JS */
-        height: 100%;  /* will be expanded via JS */
+        width: 100%; /* will be expanded via JS */
+        height: 100%; /* will be expanded via JS */
         pointer-events: none;
         visibility: hidden;
       }
@@ -164,7 +180,7 @@
       }
       .node .ports {
         position: absolute;
-        top: 12px;  /* better vertical centering with 13px title */
+        top: 12px; /* better vertical centering with 13px title */
         left: 10px; /* balances with 20px title padding */
         display: flex;
         gap: 4px;
@@ -191,11 +207,11 @@
         background: #ef4444;
         color: #fff;
         border-color: #b91c1c;
-        box-shadow: 0 2px 6px rgba(239,68,68,.3);
+        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
       }
       #connect.active:hover {
         background: #dc2626;
-        box-shadow: 0 3px 8px rgba(220,38,38,.35);
+        box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
       }
       .node.selected {
         outline: 2px solid var(--accent);
@@ -223,7 +239,10 @@
         border-bottom: 2px solid #9ca3af;
         box-sizing: border-box;
       }
-      .node:hover .resizer, .node:focus-within .resizer { display: block; }
+      .node:hover .resizer,
+      .node:focus-within .resizer {
+        display: block;
+      }
       .edge {
         stroke: red;
         stroke-width: 2;
@@ -243,8 +262,12 @@
         stroke: var(--accent);
         stroke-width: 3;
       }
-      .edge:hover { stroke-width: 3; }
-      .edge.dashed { stroke-dasharray: 6 6; }
+      .edge:hover {
+        stroke-width: 3;
+      }
+      .edge.dashed {
+        stroke-dasharray: 6 6;
+      }
       .edge-label {
         fill: #374151;
         font-size: 11px;
@@ -264,7 +287,7 @@
         background: #ffffff;
         border: 1px solid #d1d5db;
         border-radius: 0.5rem;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
         padding: 0.25rem;
         z-index: 1000;
         display: none;
@@ -298,9 +321,12 @@
         padding: 2px;
         gap: 2px;
         z-index: 5;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
-      .node:hover .rtb, .node:focus-within .rtb { display: flex; }
+      .node:hover .rtb,
+      .node:focus-within .rtb {
+        display: flex;
+      }
       .rtb button {
         border: 0;
         background: transparent;
@@ -311,19 +337,26 @@
         cursor: pointer;
         transition: background 0.15s ease-in-out;
       }
-      .rtb button:hover { background: #f3f4f6; }
+      .rtb button:hover {
+        background: #f3f4f6;
+      }
       .rich {
         outline: none;
         white-space: pre-wrap;
       }
-      .rich a { color: #93c5fd; text-decoration: underline; }
+      .rich a {
+        color: #93c5fd;
+        text-decoration: underline;
+      }
       /* Discoverable editable areas */
       .title[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
         padding-bottom: 2px;
       }
-      .node:hover .title[contenteditable="true"] { border-bottom-color: #d1d5db; }
+      .node:hover .title[contenteditable="true"] {
+        border-bottom-color: #d1d5db;
+      }
       .title[contenteditable="true"]:focus {
         outline: none;
         border-bottom-color: #60a5fa;
@@ -341,13 +374,15 @@
         background: #ffffff;
         border: 1px dashed #d1d5db;
         border-radius: 6px;
-        transition: border-color .15s ease, box-shadow .15s ease;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
       }
-      .node:hover .rich[contenteditable="true"] { border-color: #cbd5e1; }
+      .node:hover .rich[contenteditable="true"] {
+        border-color: #cbd5e1;
+      }
       .rich[contenteditable="true"]:focus {
         outline: none;
         border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(96,165,250,0.2);
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
         background: #fff;
       }
       .rich[contenteditable="true"]:empty:before {
@@ -362,29 +397,130 @@
         color: #9ca3af;
         margin-left: 6px;
         opacity: 0;
-        transition: opacity .15s ease;
+        transition: opacity 0.15s ease;
       }
       .node:hover .editable-hint::after,
-      .editable-hint:focus::after { opacity: 1; }
+      .editable-hint:focus::after {
+        opacity: 1;
+      }
       /* Tags */
-      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-      .chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: #e5e7eb; color: #111827; font-size: 11px; border: 1px solid #d1d5db; }
-      .chip button { border: 0; background: transparent; color: #9ca3af; cursor: pointer; font-size: 11px; padding: 0; }
-      .chip button:hover { color: #e5e7eb; }
-      .add-tag { margin-top: 6px; background: #f3f4f6; border: 1px dashed #d1d5db; color: #374151; border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
-      .node.dim { opacity: 0.35; filter: grayscale(0.3); }
-      .highlight { outline: 2px dashed var(--accent); }
-      .toolbar .search { min-width: 250px; cursor: text; }
-      .add-desc { margin-top: 6px; background: #ffffff; border: 1px dashed #d1d5db; color: #374151; border-radius: 12px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        color: #111827;
+        font-size: 11px;
+        border: 1px solid #d1d5db;
+      }
+      .chip button {
+        border: 0;
+        background: transparent;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 11px;
+        padding: 0;
+      }
+      .chip button:hover {
+        color: #e5e7eb;
+      }
+      .add-tag {
+        margin-top: 6px;
+        background: #f3f4f6;
+        border: 1px dashed #d1d5db;
+        color: #374151;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .node.dim {
+        opacity: 0.35;
+        filter: grayscale(0.3);
+      }
+      .highlight {
+        outline: 2px dashed var(--accent);
+      }
+      .toolbar .search {
+        min-width: 250px;
+        cursor: text;
+      }
+      .add-desc {
+        margin-top: 6px;
+        background: #ffffff;
+        border: 1px dashed #d1d5db;
+        color: #374151;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 11px;
+        cursor: pointer;
+      }
       /* Link preview card */
-      .link-card { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; padding: 8px; border: 1px solid #d1d5db; border-radius: 8px; background: #ffffff; }
-      .link-card .thumb { width: 56px; height: 56px; border-radius: 6px; background: #f3f4f6; object-fit: cover; display: block; }
-      .link-card .meta { min-width: 0; }
-      .link-card .title { font-weight: 600; color: #111827; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .link-card .desc { color: #374151; font-size: 12px; max-height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-      .link-card .site { color: #6b7280; font-size: 11px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .link-card .icon { width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; border-radius: 3px; }
-      .link-card a { color: #2563eb; text-decoration: none; }
+      .link-card {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #ffffff;
+      }
+      .link-card .thumb {
+        width: 56px;
+        height: 56px;
+        border-radius: 6px;
+        background: #f3f4f6;
+        object-fit: cover;
+        display: block;
+      }
+      .link-card .meta {
+        min-width: 0;
+      }
+      .link-card .title {
+        font-weight: 600;
+        color: #111827;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .link-card .desc {
+        color: #374151;
+        font-size: 12px;
+        max-height: 2.6em;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+      .link-card .site {
+        color: #6b7280;
+        font-size: 11px;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .link-card .icon {
+        width: 14px;
+        height: 14px;
+        vertical-align: -2px;
+        margin-right: 6px;
+        border-radius: 3px;
+      }
+      .link-card a {
+        color: #2563eb;
+        text-decoration: none;
+      }
       /* Status bar */
       .statusbar {
         position: fixed;
@@ -403,7 +539,9 @@
         z-index: 20;
         font-size: smaller;
       }
-      .statusbar #status { color: #000; }
+      .statusbar #status {
+        color: #000;
+      }
     </style>
   </head>
   <body>
@@ -411,28 +549,33 @@
       <div class="app-title">
         <div class="brand">PaperTrail</div>
         <div class="tagline">map your evidence, follow the story.</div>
-        <div class="board-name" id="boardName" contenteditable="true" data-placeholder="Untitled Board"></div>
+        <div
+          class="board-name"
+          id="boardName"
+          contenteditable="true"
+          data-placeholder="Untitled Board"
+        ></div>
       </div>
       <button id="addText" class="btn-icon" title="Add text">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="4" y="3" width="16" height="18" rx="2" ry="2"/>
-          <line x1="8" y1="9" x2="16" y2="9"/>
-          <line x1="8" y1="13" x2="16" y2="13"/>
-          <line x1="8" y1="17" x2="14" y2="17"/>
+          <rect x="4" y="3" width="16" height="18" rx="2" ry="2" />
+          <line x1="8" y1="9" x2="16" y2="9" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="14" y2="17" />
         </svg>
       </button>
       <button id="addImage" class="btn-icon" title="Add image (URL)">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="3" y="5" width="18" height="14" rx="2"/>
-          <path d="M7 15l3-3 3 3 4-4 3 3"/>
-          <circle cx="9" cy="9" r="1.5"/>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M7 15l3-3 3 3 4-4 3 3" />
+          <circle cx="9" cy="9" r="1.5" />
         </svg>
       </button>
       <button id="uploadImage" class="btn-icon" title="Upload image">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 15V5"/>
-          <path d="M8 9l4-4 4 4"/>
-          <path d="M4 19h16"/>
+          <path d="M12 15V5" />
+          <path d="M8 9l4-4 4 4" />
+          <path d="M4 19h16" />
         </svg>
       </button>
       <input
@@ -443,58 +586,68 @@
       />
       <button id="addLink" class="btn-icon" title="Add link">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M10 14l-2 2a4 4 0 0 1-6-6l2-2"/>
-          <path d="M14 10l2-2a4 4 0 0 1 6 6l-2 2"/>
-          <path d="M8 12l8-8" opacity="0.0"/>
+          <path d="M10 14l-2 2a4 4 0 0 1-6-6l2-2" />
+          <path d="M14 10l2-2a4 4 0 0 1 6 6l-2 2" />
+          <path d="M8 12l8-8" opacity="0.0" />
         </svg>
       </button>
       <button id="connect" class="btn-icon" title="Connect nodes (C)">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="6" cy="12" r="2"/>
-          <circle cx="18" cy="6" r="2"/>
-          <circle cx="18" cy="18" r="2"/>
-          <path d="M8 12h6"/>
-          <path d="M12 12L17 7"/>
-          <path d="M12 12l5 5"/>
+          <circle cx="6" cy="12" r="2" />
+          <circle cx="18" cy="6" r="2" />
+          <circle cx="18" cy="18" r="2" />
+          <path d="M8 12h6" />
+          <path d="M12 12L17 7" />
+          <path d="M12 12l5 5" />
         </svg>
       </button>
-      <input id="search" class="search" type="search" placeholder="Search… (use #tag)" />
+      <input
+        id="search"
+        class="search"
+        type="search"
+        placeholder="Search… (use #tag)"
+      />
       <button id="clearSearch" title="Clear search">✕</button>
       <div class="spacer"></div>
       <button id="autoLayout" class="btn-icon" title="Auto layout">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="4" y="4" width="6" height="6"/>
-          <rect x="14" y="4" width="6" height="6"/>
-          <rect x="4" y="14" width="6" height="6"/>
-          <rect x="14" y="14" width="6" height="6"/>
+          <rect x="4" y="4" width="6" height="6" />
+          <rect x="14" y="4" width="6" height="6" />
+          <rect x="4" y="14" width="6" height="6" />
+          <rect x="14" y="14" width="6" height="6" />
         </svg>
       </button>
       <button id="export" class="btn-icon" title="Export board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 5v10"/>
-          <path d="M8 9l4-4 4 4"/>
-          <path d="M4 19h16"/>
+          <path d="M12 5v10" />
+          <path d="M8 9l4-4 4 4" />
+          <path d="M4 19h16" />
         </svg>
       </button>
       <button id="importBtn" class="btn-icon" title="Import board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 19V9"/>
-          <path d="M8 15l4 4 4-4"/>
-          <path d="M4 5h16"/>
+          <path d="M12 19V9" />
+          <path d="M8 15l4 4 4-4" />
+          <path d="M4 5h16" />
         </svg>
       </button>
-      <input id="importFile" type="file" accept="application/json" style="display:none" />
+      <input
+        id="importFile"
+        type="file"
+        accept="application/json"
+        style="display: none"
+      />
       <button id="save" class="btn-icon" disabled title="Save">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <rect x="4" y="4" width="16" height="16" rx="2"/>
-          <rect x="8" y="4" width="8" height="6"/>
-          <rect x="9" y="14" width="6" height="6"/>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <rect x="8" y="4" width="8" height="6" />
+          <rect x="9" y="14" width="6" height="6" />
         </svg>
       </button>
       <button id="reset" class="btn-icon" title="Reset board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 12a9 9 0 1 0 3-6"/>
-          <path d="M3 4v6h6"/>
+          <path d="M3 12a9 9 0 1 0 3-6" />
+          <path d="M3 4v6h6" />
         </svg>
       </button>
     </div>
@@ -503,10 +656,12 @@
       <div id="boardSizer"></div>
       <svg id="edges"></svg>
     </div>
-     <div id="ctxMenu" class="context-menu"></div>
-     <div class="statusbar">
+    <div id="ctxMenu" class="context-menu"></div>
+    <div class="statusbar">
       <span id="status"></span>
-      <span class="hint" id="modeHint">💡 Mode: Select/Move. Press C to toggle connect mode.</span>
+      <span class="hint" id="modeHint"
+        >💡 Mode: Select/Move. Press C to toggle connect mode.</span
+      >
     </div>
 
     <script>
@@ -523,31 +678,79 @@
       const exportBtn = document.getElementById("export");
       const importBtn = document.getElementById("importBtn");
       const importFile = document.getElementById("importFile");
-      const searchInput = document.getElementById('search');
+      const searchInput = document.getElementById("search");
       let lastSavedJSON = null;
 
-      const boardNameEl = document.getElementById('boardName');
+      // --- Unified status & mode controller ---
+      const ui = {
+        connectMode: false,
+        status: { text: "", timer: null, sticky: false },
+      };
+      function renderStatusBar() {
+        const modeText = ui.connectMode
+          ? "💡 Mode: Connect"
+          : "💡 Mode: Select/Move (press C to connect)";
+        document.getElementById('modeHint').textContent = modeText;
+        statusEl.textContent = ui.status.text || '';
+      }
+      function setConnectMode(on) {
+        ui.connectMode = !!on;
+        document.body.classList.toggle("connect-mode", ui.connectMode);
+        document
+          .getElementById("connect")
+          .classList.toggle("active", ui.connectMode);
+        renderStatusBar();
+      }
+      // Show a transient status message; use {sticky:true} to persist until changed
+      function showStatus(msg, opts = {}) {
+        const { sticky = false, ttl = 2200 } = opts;
+        // Avoid flicker: ignore if message unchanged
+        if (ui.status.text === msg && ui.status.sticky === sticky) return;
+        ui.status.text = msg;
+        ui.status.sticky = sticky;
+        statusEl.textContent = ui.status.text;
+        if (ui.status.timer) {
+          clearTimeout(ui.status.timer);
+          ui.status.timer = null;
+        }
+        if (!sticky) {
+          ui.status.timer = setTimeout(() => {
+            ui.status.text = "";
+            ui.status.sticky = false;
+            renderStatusBar();
+          }, ttl);
+        }
+      }
+      // Back-compat wrappers so existing calls keep working
+      function setStatus(msg) {
+        showStatus(msg);
+      }
+
+      const boardNameEl = document.getElementById("boardName");
       // Keep single-line feel: prevent Enter/Return from inserting new lines
-      boardNameEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); boardNameEl.blur(); }
+      boardNameEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          boardNameEl.blur();
+        }
       });
       // Update model on input and enable Save
-      boardNameEl.addEventListener('input', () => {
-        board.title = (boardNameEl.textContent || '').trim();
+      boardNameEl.addEventListener("input", () => {
+        board.title = (boardNameEl.textContent || "").trim();
         markDirty();
       });
       // On blur, ensure a non-empty title for display (model can be empty if desired)
-      boardNameEl.addEventListener('blur', () => {
+      boardNameEl.addEventListener("blur", () => {
         if (!boardNameEl.textContent || !boardNameEl.textContent.trim()) {
-          boardNameEl.textContent = 'Untitled Board';
+          boardNameEl.textContent = "Untitled Board";
         }
       });
 
       function isTypingTarget(el) {
         if (!el) return false;
         if (el.isContentEditable) return true;
-        const tag = (el.tagName || '').toUpperCase();
-        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+        const tag = (el.tagName || "").toUpperCase();
+        return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       }
 
       function computeSnapshot() {
@@ -571,7 +774,7 @@
         const menu = ctxMenu;
 
         // Build menu dynamically based on target type
-        if (ctxTarget && ctxTarget.type === 'edge') {
+        if (ctxTarget && ctxTarget.type === "edge") {
           menu.innerHTML = `
             <button data-action="label">Edit label</button>
             <button data-action="dashed">Toggle dashed</button>
@@ -579,8 +782,8 @@
             <button data-action="delete">Delete</button>
           `;
         } else {
-          const node = board.nodes.find(n => n.id === target.id);
-          if (node && node.type === 'link') {
+          const node = board.nodes.find((n) => n.id === target.id);
+          if (node && node.type === "link") {
             menu.innerHTML = `
               <button data-action="edit-link-url">Edit link URL…</button>
               <button data-action="delete">Delete</button>
@@ -596,8 +799,10 @@
         // constrain within window
         const mw = menu.offsetWidth || 160;
         const mh = menu.offsetHeight || 44;
-        const vw = window.innerWidth; const vh = window.innerHeight;
-        let px = x, py = y;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let px = x,
+          py = y;
         if (px + mw > vw) px = vw - mw - 8;
         if (py + mh > vh) py = vh - mh - 8;
         menu.style.left = px + "px";
@@ -620,17 +825,23 @@
         if (ev.key === "Escape") hideContextMenu();
       });
       // Context menu actions (delegated)
-      ctxMenu.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('button');
+      ctxMenu.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("button");
         if (!btn) return;
-        const action = btn.getAttribute('data-action');
-        if (!ctxTarget) { hideContextMenu(); return; }
+        const action = btn.getAttribute("data-action");
+        if (!ctxTarget) {
+          hideContextMenu();
+          return;
+        }
 
-        if (ctxTarget.type === 'node') {
-          const node = board.nodes.find(n => n.id === ctxTarget.id);
-          if (!node) { hideContextMenu(); return; }
+        if (ctxTarget.type === "node") {
+          const node = board.nodes.find((n) => n.id === ctxTarget.id);
+          if (!node) {
+            hideContextMenu();
+            return;
+          }
 
-          if (action === 'delete') {
+          if (action === "delete") {
             selectedNodeId = ctxTarget.id;
             selectedEdgeId = null;
             hideContextMenu();
@@ -638,10 +849,10 @@
             return;
           }
 
-          if (action === 'edit-link-url' && node.type === 'link') {
-            const val = prompt('Link URL:', node.data.linkUrl || 'https://');
+          if (action === "edit-link-url" && node.type === "link") {
+            const val = prompt("Link URL:", node.data.linkUrl || "https://");
             if (val !== null) {
-              const url = (val || '').trim();
+              const url = (val || "").trim();
               if (url) {
                 node.data.linkUrl = url;
                 // Invalidate previous preview so it refetches
@@ -659,32 +870,39 @@
         }
 
         // Edge actions
-        const edge = board.edges.find(e => e.id === ctxTarget.id);
-        if (!edge) { hideContextMenu(); return; }
+        const edge = board.edges.find((e) => e.id === ctxTarget.id);
+        if (!edge) {
+          hideContextMenu();
+          return;
+        }
 
-        if (action === 'delete') {
+        if (action === "delete") {
           selectedEdgeId = edge.id;
           selectedNodeId = null;
           hideContextMenu();
           removeSelection();
-        } else if (action === 'label') {
-          const val = prompt('Edge label:', edge.label || '');
+        } else if (action === "label") {
+          const val = prompt("Edge label:", edge.label || "");
           if (val !== null) {
             edge.label = val.trim();
             hideContextMenu();
             markDirty();
             renderEdges();
           }
-        } else if (action === 'dashed') {
+        } else if (action === "dashed") {
           edge.dashed = !edge.dashed;
           hideContextMenu();
           markDirty();
           renderEdges();
-        } else if (action === 'color') {
-          const val = prompt('Stroke color (e.g. #f87171 or red). Leave blank to reset:', edge.color || '');
+        } else if (action === "color") {
+          const val = prompt(
+            "Stroke color (e.g. #f87171 or red). Leave blank to reset:",
+            edge.color || ""
+          );
           if (val === null) return;
           const v = val.trim();
-          if (v === '') delete edge.color; else edge.color = v;
+          if (v === "") delete edge.color;
+          else edge.color = v;
           hideContextMenu();
           markDirty();
           renderEdges();
@@ -700,7 +918,7 @@
         updatedAt: new Date().toISOString(),
       };
       // Initialize board name display from default board.title
-      boardNameEl.textContent = board.title || '';
+      boardNameEl.textContent = board.title || "";
 
       let selectedNodeId = null;
       let selectedEdgeId = null;
@@ -709,10 +927,6 @@
 
       const genId = (p = "id") =>
         p + "-" + Math.random().toString(36).slice(2, 8);
-
-      function setStatus(msg) {
-        statusEl.textContent = msg;
-      }
 
       function addNode(type, at = { x: 100, y: 100 }, payload = {}) {
         const id = genId("n");
@@ -822,69 +1036,80 @@
           boardEl.appendChild(el);
 
           // add resize handle
-          const resizer = document.createElement('div');
-          resizer.className = 'resizer';
+          const resizer = document.createElement("div");
+          resizer.className = "resizer";
           el.appendChild(resizer);
 
           let resizing = false;
-          let startW = 0, startH = 0, startX = 0, startY = 0;
-          resizer.addEventListener('mousedown', (ev) => {
+          let startW = 0,
+            startH = 0,
+            startX = 0,
+            startY = 0;
+          resizer.addEventListener("mousedown", (ev) => {
             ev.stopPropagation();
             resizing = true;
-            startX = ev.clientX; startY = ev.clientY;
-            startW = el.offsetWidth; startH = el.offsetHeight;
-            document.body.style.userSelect = 'none';
+            startX = ev.clientX;
+            startY = ev.clientY;
+            startW = el.offsetWidth;
+            startH = el.offsetHeight;
+            document.body.style.userSelect = "none";
           });
-          window.addEventListener('mousemove', (ev) => {
+          window.addEventListener("mousemove", (ev) => {
             if (!resizing) return;
             const dx = ev.clientX - startX;
             const dy = ev.clientY - startY;
 
-            const maxW = 640, maxH = 600;
-            const baseMinW = 160, baseMinH = 80;
+            const maxW = 640,
+              maxH = 600;
+            const baseMinW = 160,
+              baseMinH = 80;
 
             // Desired width from drag, clamped to base min/max
-            let nextW = Math.max(baseMinW, Math.min(maxW, Math.round(startW + dx)));
+            let nextW = Math.max(
+              baseMinW,
+              Math.min(maxW, Math.round(startW + dx))
+            );
             // Apply width first to let text wrap and images scale, then measure content height
-            el.style.width = nextW + 'px';
-            el.style.height = 'auto';
+            el.style.width = nextW + "px";
+            el.style.height = "auto";
 
             // Content-required height (includes title, content, tags, ports, etc.)
             const contentMinH = Math.ceil(el.scrollHeight);
 
             // Desired height from drag, but never below content-required height
-            let nextH = Math.max(baseMinH, Math.min(maxH, Math.round(startH + dy)));
+            let nextH = Math.max(
+              baseMinH,
+              Math.min(maxH, Math.round(startH + dy))
+            );
             nextH = Math.max(nextH, contentMinH);
 
             // Commit
             n.w = nextW;
             n.h = nextH;
-            el.style.height = nextH + 'px';
+            el.style.height = nextH + "px";
 
             updateBoardExtent();
             renderEdges();
           });
-          window.addEventListener('mouseup', () => {
+          window.addEventListener("mouseup", () => {
             if (!resizing) return;
             resizing = false;
-            document.body.style.userSelect = '';
+            document.body.style.userSelect = "";
             markDirty();
           });
 
           // select on click
           el.addEventListener("mousedown", (ev) => {
-            if ((ev.target && ev.target.closest('.resizer'))) return;
+            if (ev.target && ev.target.closest(".resizer")) return;
             // if connect mode, handle port click like connection
             if (connectMode) {
               if (!connectFromId) {
                 connectFromId = n.id;
-                setStatus("Selected source. Click a target node.");
+                showStatus('Source selected. Pick a target.', { ttl: 2200 });
               } else {
                 addEdge(connectFromId, n.id);
                 connectFromId = null;
-                setStatus(
-                  "Connected. Click another pair or press C to exit connect mode."
-                );
+                showStatus('Connected.', { ttl: 1800 });
               }
               ev.stopPropagation();
               return;
@@ -900,14 +1125,14 @@
             selectedNodeId = n.id;
             updateSelections();
             // show menu at mouse position
-            showContextMenu(ev.clientX, ev.clientY, { type: 'node', id: n.id });
+            showContextMenu(ev.clientX, ev.clientY, { type: "node", id: n.id });
           });
           // drag
           let dragging = false,
             offX = 0,
             offY = 0;
           el.addEventListener("mousedown", (ev) => {
-            if ((ev.target && ev.target.closest('.resizer'))) return;
+            if (ev.target && ev.target.closest(".resizer")) return;
             dragging = true;
             offX = ev.clientX - n.x;
             offY = ev.clientY - n.y;
@@ -936,42 +1161,61 @@
             updateBoardExtent();
             renderEdges(); // keep connections glued to borders as size changes
           });
-        el.addEventListener("dblclick", (ev) => {
-          if (n.type === "text") {
-            // Focus the rich editor instead of opening a prompt
-            const rich = el.querySelector('.rich');
-            if (rich) { rich.focus(); }
-            return; // no prompt
-          }
+          el.addEventListener("dblclick", (ev) => {
+            if (n.type === "text") {
+              // Focus the rich editor instead of opening a prompt
+              const rich = el.querySelector(".rich");
+              if (rich) {
+                rich.focus();
+              }
+              return; // no prompt
+            }
 
-          if (n.type === "image") {
-            // Only trigger URL edit when the actual image is double-clicked
-            const imgEl = ev.target && ev.target.closest('img');
-            if (!imgEl || !el.contains(imgEl)) return; // ignore dblclicks elsewhere in the node
-            const url = prompt("Edit image URL:", n.data.imageUrl ?? "");
-            if (url !== null) n.data.imageUrl = url;
-            renderNode(n);
-            renderEdges();
-            markDirty();
-            return;
-          }
-        });
+            if (n.type === "image") {
+              // Only trigger URL edit when the actual image is double-clicked
+              const imgEl = ev.target && ev.target.closest("img");
+              if (!imgEl || !el.contains(imgEl)) return; // ignore dblclicks elsewhere in the node
+              const url = prompt("Edit image URL:", n.data.imageUrl ?? "");
+              if (url !== null) n.data.imageUrl = url;
+              renderNode(n);
+              renderEdges();
+              markDirty();
+              return;
+            }
+          });
         }
 
         el.style.left = n.x + "px";
         el.style.top = n.y + "px";
-        if (n.w) el.style.width = n.w + 'px'; else el.style.removeProperty('width');
-        if (n.h) el.style.height = n.h + 'px'; else el.style.removeProperty('height');
+        if (n.w) el.style.width = n.w + "px";
+        else el.style.removeProperty("width");
+        if (n.h) el.style.height = n.h + "px";
+        else el.style.removeProperty("height");
         el.classList.toggle("selected", selectedNodeId === n.id);
 
         const titleEl = el.querySelector(".title");
-        titleEl.setAttribute('data-placeholder', n.type === 'text' ? 'Text title' : n.type === 'image' ? 'Image title' : 'Link title');
+        titleEl.setAttribute(
+          "data-placeholder",
+          n.type === "text"
+            ? "Text title"
+            : n.type === "image"
+            ? "Image title"
+            : "Link title"
+        );
         // Preserve existing title; allow empty to show placeholder
-        titleEl.textContent = (typeof n.data.title === 'string') ? n.data.title : (n.type === 'text' ? 'Text' : n.type === 'image' ? 'Image' : 'Link');
+        titleEl.textContent =
+          typeof n.data.title === "string"
+            ? n.data.title
+            : n.type === "text"
+            ? "Text"
+            : n.type === "image"
+            ? "Image"
+            : "Link";
 
         const contentEl = el.querySelector(".content");
         if (n.type === "text") {
-          const html = n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
+          const html =
+            n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
           contentEl.innerHTML = `
             <div class="rtb" role="toolbar" aria-label="Text formatting">
               <button data-cmd="bold" title="Bold">B</button>
@@ -989,8 +1233,10 @@
             ? `<img src="${escapeAttr(n.data.imageUrl)}" alt="">` +
               (() => {
                 const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
-                const wrapDisplay = hasDesc ? '' : 'style="display:none"';
-                const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+                const wrapDisplay = hasDesc ? "" : 'style="display:none"';
+                const addBtn = hasDesc
+                  ? ""
+                  : `<button class="add-desc" type="button">+ Add description</button>`;
                 return `
                   ${addBtn}
                   <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
@@ -1002,19 +1248,21 @@
                     <button data-action="link" title="Insert link">🔗</button>
                     <button data-action="clear" title="Clear formatting">⨯</button>
                   </div>
-                  <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${n.data.descHtml ?? ''}</div>
+                  <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${
+                  n.data.descHtml ?? ""
+                }</div>
                 `;
               })()
             : `<em>No image</em>`;
           // Wire up Add description toggler
-          const addDescBtn = el.querySelector('.add-desc');
+          const addDescBtn = el.querySelector(".add-desc");
           if (addDescBtn) {
-            addDescBtn.addEventListener('click', (ev) => {
+            addDescBtn.addEventListener("click", (ev) => {
               ev.stopPropagation();
-              const rtb = el.querySelector('.rtb');
+              const rtb = el.querySelector(".rtb");
               const rich = el.querySelector('.rich[data-field="descHtml"]');
-              if (rtb) rtb.style.display = '';
-              if (rich) rich.style.display = '';
+              if (rtb) rtb.style.display = "";
+              if (rich) rich.style.display = "";
               addDescBtn.remove();
             });
           }
@@ -1025,8 +1273,10 @@
             contentEl.innerHTML = `<em>No link</em>`;
           } else if (n.data.preview) {
             const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
-            const wrapDisplay = hasDesc ? '' : 'style="display:none"';
-            const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+            const wrapDisplay = hasDesc ? "" : 'style="display:none"';
+            const addBtn = hasDesc
+              ? ""
+              : `<button class="add-desc" type="button">+ Add description</button>`;
             contentEl.innerHTML =
               renderLinkCard(n.data.preview, u) +
               `${addBtn}
@@ -1043,10 +1293,14 @@
           } else {
             // initial minimal view while loading
             const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
-            const wrapDisplay = hasDesc ? '' : 'style="display:none"';
-            const addBtn = hasDesc ? '' : `<button class="add-desc" type="button">+ Add description</button>`;
+            const wrapDisplay = hasDesc ? "" : 'style="display:none"';
+            const addBtn = hasDesc
+              ? ""
+              : `<button class="add-desc" type="button">+ Add description</button>`;
             contentEl.innerHTML =
-              `<a href="${escapeAttr(u)}" target="_blank" rel="noopener">${escapeHtml(u)}</a>` +
+              `<a href="${escapeAttr(
+                u
+              )}" target="_blank" rel="noopener">${escapeHtml(u)}</a>` +
               `<div style="margin-top:6px;color:#9ca3af;font-size:12px;">Loading preview…</div>` +
               `${addBtn}
                <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
@@ -1071,92 +1325,104 @@
             })();
           }
           // Wire up Add description toggler for Link
-          const addDescBtnL = el.querySelector('.add-desc');
+          const addDescBtnL = el.querySelector(".add-desc");
           if (addDescBtnL) {
-            addDescBtnL.addEventListener('click', (ev) => {
+            addDescBtnL.addEventListener("click", (ev) => {
               ev.stopPropagation();
-              const rtb = el.querySelector('.rtb');
+              const rtb = el.querySelector(".rtb");
               const rich = el.querySelector('.rich[data-field="descHtml"]');
-              if (rtb) rtb.style.display = '';
-              if (rich) rich.style.display = '';
+              if (rtb) rtb.style.display = "";
+              if (rich) rich.style.display = "";
               addDescBtnL.remove();
             });
           }
         }
 
         // Tags UI (common to all types)
-        let tagsWrap = el.querySelector('.tags');
+        let tagsWrap = el.querySelector(".tags");
         if (!tagsWrap) {
-          tagsWrap = document.createElement('div');
-          tagsWrap.className = 'tags';
-          el.querySelector('.content').appendChild(tagsWrap);
+          tagsWrap = document.createElement("div");
+          tagsWrap.className = "tags";
+          el.querySelector(".content").appendChild(tagsWrap);
         }
         renderTagChips(n, tagsWrap);
 
-        let addTagBtn = el.querySelector('.add-tag');
+        let addTagBtn = el.querySelector(".add-tag");
         if (!addTagBtn) {
-          addTagBtn = document.createElement('button');
-          addTagBtn.className = 'add-tag';
-          addTagBtn.textContent = '+ tag';
-          el.querySelector('.content').appendChild(addTagBtn);
-          addTagBtn.addEventListener('click', (ev) => {
+          addTagBtn = document.createElement("button");
+          addTagBtn.className = "add-tag";
+          addTagBtn.textContent = "+ tag";
+          el.querySelector(".content").appendChild(addTagBtn);
+          addTagBtn.addEventListener("click", (ev) => {
             ev.stopPropagation();
-            const input = prompt('Add tags (comma separated or single #tag):');
+            const input = prompt("Add tags (comma separated or single #tag):");
             if (!input) return;
-            const parts = input.split(',').map(s=>normalizeTag(s)).filter(Boolean);
+            const parts = input
+              .split(",")
+              .map((s) => normalizeTag(s))
+              .filter(Boolean);
             const tags = ensureTags(n);
-            for (const t of parts) { if (!tags.includes(t)) tags.push(t); }
+            for (const t of parts) {
+              if (!tags.includes(t)) tags.push(t);
+            }
             renderTagChips(n, tagsWrap);
             markDirty();
           });
         }
         // Attach rich text toolbar listeners (Text uses data.html; Image/Link use data.descHtml)
         {
-          const rtb = el.querySelector('.rtb');
-          const rich = el.querySelector('.rich');
+          const rtb = el.querySelector(".rtb");
+          const rich = el.querySelector(".rich");
           if (rtb && rich) {
-            const field = (n.type === 'text') ? 'html' : 'descHtml';
-            const isOptionalDesc = field === 'descHtml' && (n.type === 'image' || n.type === 'link');
+            const field = n.type === "text" ? "html" : "descHtml";
+            const isOptionalDesc =
+              field === "descHtml" && (n.type === "image" || n.type === "link");
 
             function ensureAddDescButton() {
               if (!isOptionalDesc) return;
-              let addBtn = el.querySelector('.add-desc');
+              let addBtn = el.querySelector(".add-desc");
               if (!addBtn) {
-                addBtn = document.createElement('button');
-                addBtn.className = 'add-desc';
-                addBtn.type = 'button';
-                addBtn.textContent = '+ Add description';
-                addBtn.addEventListener('click', (ev) => {
+                addBtn = document.createElement("button");
+                addBtn.className = "add-desc";
+                addBtn.type = "button";
+                addBtn.textContent = "+ Add description";
+                addBtn.addEventListener("click", (ev) => {
                   ev.stopPropagation();
-                  if (rtb) rtb.style.display = '';
-                  if (rich) rich.style.display = '';
+                  if (rtb) rtb.style.display = "";
+                  if (rich) rich.style.display = "";
                   addBtn.remove();
                   rich.focus();
                 });
-                el.querySelector('.content').insertBefore(addBtn, rtb);
+                el.querySelector(".content").insertBefore(addBtn, rtb);
               }
             }
 
             function maybeCollapseIfEmpty() {
               if (!isOptionalDesc) return;
-              const plain = (rich.textContent || '').trim();
+              const plain = (rich.textContent || "").trim();
               const has = plain.length > 0;
               if (!has) {
                 // clear stored value and collapse UI
-                n.data.descHtml = '';
-                if (rtb) rtb.style.display = 'none';
-                if (rich) { rich.style.display = 'none'; rich.innerHTML = ''; }
+                n.data.descHtml = "";
+                if (rtb) rtb.style.display = "none";
+                if (rich) {
+                  rich.style.display = "none";
+                  rich.innerHTML = "";
+                }
                 ensureAddDescButton();
               }
             }
 
             // Keep focus inside editor when clicking toolbar
-            rtb.addEventListener('mousedown', (ev) => { ev.preventDefault(); rich.focus(); });
-            rtb.addEventListener('click', (ev) => {
-              const btn = ev.target.closest('button');
+            rtb.addEventListener("mousedown", (ev) => {
+              ev.preventDefault();
+              rich.focus();
+            });
+            rtb.addEventListener("click", (ev) => {
+              const btn = ev.target.closest("button");
               if (!btn) return;
-              const cmd = btn.getAttribute('data-cmd');
-              const act = btn.getAttribute('data-action');
+              const cmd = btn.getAttribute("data-cmd");
+              const act = btn.getAttribute("data-action");
               rich.focus();
               if (cmd) {
                 document.execCommand(cmd, false, null);
@@ -1164,21 +1430,21 @@
                 markDirty();
                 renderEdges();
                 maybeCollapseIfEmpty();
-              } else if (act === 'link') {
-                const url = prompt('Link URL', 'https://');
-                if (url) document.execCommand('createLink', false, url);
+              } else if (act === "link") {
+                const url = prompt("Link URL", "https://");
+                if (url) document.execCommand("createLink", false, url);
                 n.data[field] = rich.innerHTML;
                 markDirty();
                 maybeCollapseIfEmpty();
-              } else if (act === 'clear') {
-                document.execCommand('removeFormat');
-                const a = rich.querySelector('a');
+              } else if (act === "clear") {
+                document.execCommand("removeFormat");
+                const a = rich.querySelector("a");
                 if (a) {
-                  const t = document.createTextNode(a.textContent || '');
+                  const t = document.createTextNode(a.textContent || "");
                   a.replaceWith(t);
                 }
-                rich.innerHTML = '';
-                n.data[field] = '';
+                rich.innerHTML = "";
+                n.data[field] = "";
                 markDirty();
                 maybeCollapseIfEmpty();
               }
@@ -1189,14 +1455,17 @@
               markDirty();
               maybeCollapseIfEmpty();
             };
-            rich.addEventListener('input', syncHtml);
-            rich.addEventListener('blur', syncHtml);
+            rich.addEventListener("input", syncHtml);
+            rich.addEventListener("blur", syncHtml);
           }
         }
         // Toggle resizer visibility based on node type (text, image, link are resizable)
-        const resizerEl = el.querySelector('.resizer');
+        const resizerEl = el.querySelector(".resizer");
         if (resizerEl) {
-          resizerEl.style.display = (n.type === 'text' || n.type === 'image' || n.type === 'link') ? '' : 'none';
+          resizerEl.style.display =
+            n.type === "text" || n.type === "image" || n.type === "link"
+              ? ""
+              : "none";
         }
       }
 
@@ -1221,49 +1490,72 @@
         if (Math.abs(dx) > Math.abs(dy)) {
           // left/right
           if (dx >= 0) {
-            return { x: b.x + b.w, y: cy, side: 'right' };
+            return { x: b.x + b.w, y: cy, side: "right" };
           } else {
-            return { x: b.x, y: cy, side: 'left' };
+            return { x: b.x, y: cy, side: "left" };
           }
         } else {
           // top/bottom
           if (dy >= 0) {
-            return { x: cx, y: b.y + b.h, side: 'bottom' };
+            return { x: cx, y: b.y + b.h, side: "bottom" };
           } else {
-            return { x: cx, y: b.y, side: 'top' };
+            return { x: cx, y: b.y, side: "top" };
           }
         }
       }
 
       // Smooth cubic path between two anchors, with curvature adaptive to distance
       function smoothCubic(a, b) {
-        const x1 = a.x, y1 = a.y, x2 = b.x, y2 = b.y;
+        const x1 = a.x,
+          y1 = a.y,
+          x2 = b.x,
+          y2 = b.y;
         const dx = Math.abs(x2 - x1);
         const dy = Math.abs(y2 - y1);
-        const d  = Math.max(dx, dy);
-        const c  = Math.min(160, Math.max(40, d * 0.6)); // curvature
+        const d = Math.max(dx, dy);
+        const c = Math.min(160, Math.max(40, d * 0.6)); // curvature
 
-        let c1x = x1, c1y = y1, c2x = x2, c2y = y2;
+        let c1x = x1,
+          c1y = y1,
+          c2x = x2,
+          c2y = y2;
 
         // Push control points outward from each side
         switch (a.side) {
-          case 'right':  c1x += c; break;
-          case 'left':   c1x -= c; break;
-          case 'top':    c1y -= c; break;
-          case 'bottom': c1y += c; break;
+          case "right":
+            c1x += c;
+            break;
+          case "left":
+            c1x -= c;
+            break;
+          case "top":
+            c1y -= c;
+            break;
+          case "bottom":
+            c1y += c;
+            break;
         }
         switch (b.side) {
-          case 'right':  c2x -= c; break;
-          case 'left':   c2x += c; break;
-          case 'top':    c2y += c; break;
-          case 'bottom': c2y -= c; break;
+          case "right":
+            c2x -= c;
+            break;
+          case "left":
+            c2x += c;
+            break;
+          case "top":
+            c2y += c;
+            break;
+          case "bottom":
+            c2y -= c;
+            break;
         }
 
         return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
       }
 
       function computeContentExtent(pad = 160) {
-        let maxX = 0, maxY = 0;
+        let maxX = 0,
+          maxY = 0;
         for (const n of board.nodes) {
           const b = nodeBounds(n);
           const w = b.w || 240;
@@ -1279,19 +1571,22 @@
 
       function updateBoardExtent() {
         const { w, h } = computeContentExtent(160);
-        const sizer = document.getElementById('boardSizer');
-        if (sizer) { sizer.style.width = w + 'px'; sizer.style.height = h + 'px'; }
-        edgesSvg.setAttribute('width', w);
-        edgesSvg.setAttribute('height', h);
-        edgesSvg.style.width = w + 'px';
-        edgesSvg.style.height = h + 'px';
+        const sizer = document.getElementById("boardSizer");
+        if (sizer) {
+          sizer.style.width = w + "px";
+          sizer.style.height = h + "px";
+        }
+        edgesSvg.setAttribute("width", w);
+        edgesSvg.setAttribute("height", h);
+        edgesSvg.style.width = w + "px";
+        edgesSvg.style.height = h + "px";
       }
 
       function renderEdges() {
         edgesSvg.innerHTML = "";
         updateBoardExtent();
         if (!visibleNodeIds) {
-          visibleNodeIds = new Set(board.nodes.map(n=>n.id));
+          visibleNodeIds = new Set(board.nodes.map((n) => n.id));
         }
 
         for (const e of board.edges) {
@@ -1304,10 +1599,13 @@
           const a1 = anchorPoint(s, tc.cx, tc.cy);
           const a2 = anchorPoint(t, sc.cx, sc.cy);
           const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-          g.setAttribute('data-id', e.id);
+          g.setAttribute("data-id", e.id);
 
           // Path
-          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
           path.setAttribute("d", smoothCubic(a1, a2));
           let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
           if (e.dashed) cls += " dashed";
@@ -1324,10 +1622,13 @@
           if (e.label) {
             const tx = (a1.x + a2.x) / 2;
             const ty = (a1.y + a2.y) / 2 - 2; // closer to the curve
-            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute('x', tx);
-            text.setAttribute('y', ty);
-            text.setAttribute('class', 'edge-label');
+            const text = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "text"
+            );
+            text.setAttribute("x", tx);
+            text.setAttribute("y", ty);
+            text.setAttribute("class", "edge-label");
             text.textContent = e.label;
 
             // Click/ctx on label behave like the edge
@@ -1344,7 +1645,10 @@
               selectedNodeId = null;
               selectedEdgeId = e.id;
               updateSelections();
-              showContextMenu(ev.clientX, ev.clientY, { type: 'edge', id: e.id });
+              showContextMenu(ev.clientX, ev.clientY, {
+                type: "edge",
+                id: e.id,
+              });
               return false;
             });
             g.appendChild(text);
@@ -1364,20 +1668,26 @@
             selectedNodeId = null;
             selectedEdgeId = e.id;
             updateSelections();
-            showContextMenu(ev.clientX, ev.clientY, { type: 'edge', id: e.id });
+            showContextMenu(ev.clientX, ev.clientY, { type: "edge", id: e.id });
             return false;
           });
 
           g.appendChild(path);
 
           // Add endpoint circles
-          const startCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          const startCircle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
           startCircle.setAttribute("cx", a1.x);
           startCircle.setAttribute("cy", a1.y);
           startCircle.setAttribute("r", "4");
           startCircle.setAttribute("class", "edge-endpoint");
 
-          const endCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          const endCircle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
           endCircle.setAttribute("cx", a2.x);
           endCircle.setAttribute("cy", a2.y);
           endCircle.setAttribute("r", "4");
@@ -1424,19 +1734,27 @@
         return escapeHtml(s);
       }
 
-      function ensureTags(n) { if (!n.data) n.data = {}; if (!Array.isArray(n.data.tags)) n.data.tags = []; return n.data.tags; }
-      function normalizeTag(t) { return (t||'').toString().trim().replace(/^#+/, '').toLowerCase(); }
+      function ensureTags(n) {
+        if (!n.data) n.data = {};
+        if (!Array.isArray(n.data.tags)) n.data.tags = [];
+        return n.data.tags;
+      }
+      function normalizeTag(t) {
+        return (t || "").toString().trim().replace(/^#+/, "").toLowerCase();
+      }
       function renderTagChips(n, hostEl) {
         const tags = ensureTags(n);
-        hostEl.innerHTML = '';
-        for (let i=0;i<tags.length;i++) {
+        hostEl.innerHTML = "";
+        for (let i = 0; i < tags.length; i++) {
           const tag = tags[i];
-          const chip = document.createElement('span');
-          chip.className = 'chip';
-          chip.innerHTML = `<span>#${escapeHtml(tag)}</span> <button title="Remove tag" data-i="${i}">✕</button>`;
-          chip.querySelector('button').addEventListener('click', (ev) => {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.innerHTML = `<span>#${escapeHtml(
+            tag
+          )}</span> <button title="Remove tag" data-i="${i}">✕</button>`;
+          chip.querySelector("button").addEventListener("click", (ev) => {
             ev.stopPropagation();
-            tags.splice(i,1);
+            tags.splice(i, 1);
             renderTagChips(n, hostEl);
             markDirty();
           });
@@ -1445,19 +1763,21 @@
       }
 
       function plainTextFromHtml(html) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html || '';
-        return (tmp.textContent || tmp.innerText || '').trim();
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html || "";
+        return (tmp.textContent || tmp.innerText || "").trim();
       }
 
-      let currentQuery = '';
+      let currentQuery = "";
       let visibleNodeIds = null; // Set<string>
 
       function parseQuery(q) {
-        const parts = (q||'').trim().split(/\\s+/).filter(Boolean);
-        const tags = []; const terms = [];
+        const parts = (q || "").trim().split(/\\s+/).filter(Boolean);
+        const tags = [];
+        const terms = [];
         for (const p of parts) {
-          if (p.startsWith('#')) tags.push(normalizeTag(p)); else terms.push(p.toLowerCase());
+          if (p.startsWith("#")) tags.push(normalizeTag(p));
+          else terms.push(p.toLowerCase());
         }
         return { tags, terms };
       }
@@ -1466,16 +1786,20 @@
         if (!q || (!q.tags.length && !q.terms.length)) return true;
         const tags = ensureTags(n);
         // tag logic: all query tags must be present
-        for (const t of q.tags) { if (!tags.map(normalizeTag).includes(t)) return false; }
+        for (const t of q.tags) {
+          if (!tags.map(normalizeTag).includes(t)) return false;
+        }
         if (!q.terms.length) return true;
         const hay = [
-          n.data?.title || '',
-          n.data?.text || '',
-          plainTextFromHtml(n.data?.html || ''),
-          n.data?.linkUrl || '',
-          tags.join(' ')
-        ].join(' ').toLowerCase();
-        return q.terms.every(term => hay.includes(term));
+          n.data?.title || "",
+          n.data?.text || "",
+          plainTextFromHtml(n.data?.html || ""),
+          n.data?.linkUrl || "",
+          tags.join(" "),
+        ]
+          .join(" ")
+          .toLowerCase();
+        return q.terms.every((term) => hay.includes(term));
       }
 
       function applySearchFilter() {
@@ -1485,8 +1809,8 @@
           const el = document.getElementById(n.id);
           const match = nodeMatches(n, q);
           if (el) {
-            el.style.display = match ? '' : 'none';
-            el.classList.toggle('dim', !match && currentQuery.length>0);
+            el.style.display = match ? "" : "none";
+            el.classList.toggle("dim", !match && currentQuery.length > 0);
           }
           if (match) visibleNodeIds.add(n.id);
         }
@@ -1494,29 +1818,39 @@
       }
 
       function slugify(s) {
-        return (s || "board").toString().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+        return (s || "board")
+          .toString()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-_]/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
       }
 
       function exportBoard() {
         const data = JSON.stringify(board, null, 2);
         const blob = new Blob([data], { type: "application/json" });
         const ts = new Date().toISOString().replace(/[:.]/g, "-");
-        const name = `${slugify(board.title || 'board')}-${ts}.json`;
+        const name = `${slugify(board.title || "board")}-${ts}.json`;
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = name; document.body.appendChild(a); a.click();
-        URL.revokeObjectURL(url); a.remove();
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        a.remove();
         setStatus(`Exported ${name}`);
       }
 
       async function fetchLinkPreview(url) {
         try {
-          const res = await fetch('/api/link-preview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url })
+          const res = await fetch("/api/link-preview", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
           });
-          if (!res.ok) throw new Error('Failed');
+          if (!res.ok) throw new Error("Failed");
           return await res.json();
         } catch (e) {
           return null;
@@ -1524,18 +1858,24 @@
       }
 
       function renderLinkCard(preview, href) {
-        const title = escapeHtml(preview?.title || href || 'Link');
-        const desc  = escapeHtml(preview?.description || '');
-        const site  = escapeHtml(preview?.siteName || (href ? new URL(href).hostname : ''));
-        const icon  = preview?.icon ? `<img class="icon" src="${escapeAttr(preview.icon)}" alt="">` : '';
-        const img   = preview?.image ? `<img class="thumb" src="${escapeAttr(preview.image)}" alt="">` : `<div class="thumb"></div>`;
-        const safeHref = escapeAttr(href || preview?.url || '#');
+        const title = escapeHtml(preview?.title || href || "Link");
+        const desc = escapeHtml(preview?.description || "");
+        const site = escapeHtml(
+          preview?.siteName || (href ? new URL(href).hostname : "")
+        );
+        const icon = preview?.icon
+          ? `<img class="icon" src="${escapeAttr(preview.icon)}" alt="">`
+          : "";
+        const img = preview?.image
+          ? `<img class="thumb" src="${escapeAttr(preview.image)}" alt="">`
+          : `<div class="thumb"></div>`;
+        const safeHref = escapeAttr(href || preview?.url || "#");
         return `
           <a href="${safeHref}" target="_blank" rel="noopener" class="link-card">
             ${img}
             <div class="meta">
               <div class="title">${title}</div>
-              ${desc ? `<div class="desc">${desc}</div>` : ''}
+              ${desc ? `<div class="desc">${desc}</div>` : ""}
               <div class="site">${icon}${site}</div>
             </div>
           </a>
@@ -1543,36 +1883,52 @@
       }
 
       function validateImported(json) {
-        if (!json || typeof json !== 'object') throw new Error('File is not a JSON object');
-        if (!Array.isArray(json.nodes) || !Array.isArray(json.edges)) throw new Error('Missing nodes/edges arrays');
+        if (!json || typeof json !== "object")
+          throw new Error("File is not a JSON object");
+        if (!Array.isArray(json.nodes) || !Array.isArray(json.edges))
+          throw new Error("Missing nodes/edges arrays");
         // Minimal normalization: ensure required fields exist
-        json.id = json.id || 'board-1';
-        json.title = json.title || 'Imported Board';
+        json.id = json.id || "board-1";
+        json.title = json.title || "Imported Board";
         json.createdAt = json.createdAt || new Date().toISOString();
         json.updatedAt = new Date().toISOString();
         json.nodes = json.nodes.map((n, i) => ({
           id: n.id || `n_imp_${i}`,
-          type: n.type || 'text',
+          type: n.type || "text",
           x: Number.isFinite(n.x) ? n.x : 100 + i * 20,
           y: Number.isFinite(n.y) ? n.y : 100 + i * 20,
-          w: n.w, h: n.h,
-          data: n.data || {}
+          w: n.w,
+          h: n.h,
+          data: n.data || {},
         }));
-        json.edges = json.edges.filter(e => e && e.sourceId && e.targetId).map((e, i) => ({ id: e.id || `e_imp_${i}`, sourceId: e.sourceId, targetId: e.targetId }));
+        json.edges = json.edges
+          .filter((e) => e && e.sourceId && e.targetId)
+          .map((e, i) => ({
+            id: e.id || `e_imp_${i}`,
+            sourceId: e.sourceId,
+            targetId: e.targetId,
+          }));
         return json;
       }
 
       // --- Auto-layout (simple layered layout, dagre-like) ---
       function buildGraph() {
-        const nodes = board.nodes.map(n => ({ id: n.id }));
-        const edges = board.edges.map(e => ({ from: e.sourceId, to: e.targetId }));
+        const nodes = board.nodes.map((n) => ({ id: n.id }));
+        const edges = board.edges.map((e) => ({
+          from: e.sourceId,
+          to: e.targetId,
+        }));
         const adj = new Map();
         const indeg = new Map();
-        for (const n of nodes) { adj.set(n.id, []); indeg.set(n.id, 0); }
+        for (const n of nodes) {
+          adj.set(n.id, []);
+          indeg.set(n.id, 0);
+        }
         for (const e of edges) {
           if (!adj.has(e.from)) adj.set(e.from, []);
           adj.get(e.from).push(e.to);
-          if (indeg.has(e.to)) indeg.set(e.to, indeg.get(e.to) + 1); else indeg.set(e.to, 1);
+          if (indeg.has(e.to)) indeg.set(e.to, indeg.get(e.to) + 1);
+          else indeg.set(e.to, 1);
         }
         return { nodes, edges, adj, indeg };
       }
@@ -1581,7 +1937,8 @@
         const { nodes, adj, indeg } = buildGraph();
         const q = [];
         const indegCopy = new Map(indeg);
-        for (const n of nodes) if ((indegCopy.get(n.id) || 0) === 0) q.push(n.id);
+        for (const n of nodes)
+          if ((indegCopy.get(n.id) || 0) === 0) q.push(n.id);
         const layers = [];
         const placed = new Set();
         // Kahn-like layering: nodes with indegree==0 form layer 0, then peel
@@ -1591,8 +1948,9 @@
           layers.push(current);
           const next = [];
           for (const id of current) {
-            placed.add(id); visitedCount++;
-            const outs = (adj.get(id) || []);
+            placed.add(id);
+            visitedCount++;
+            const outs = adj.get(id) || [];
             for (const v of outs) {
               indegCopy.set(v, (indegCopy.get(v) || 0) - 1);
               if (indegCopy.get(v) === 0) next.push(v);
@@ -1602,22 +1960,23 @@
         }
         // Any remaining nodes are in cycles; place them in subsequent layers by a simple BFS from any unplaced
         if (visitedCount < nodes.length) {
-          const rest = nodes.map(n=>n.id).filter(id=>!placed.has(id));
+          const rest = nodes.map((n) => n.id).filter((id) => !placed.has(id));
           // group into chunks of up to 5 per layer to avoid stacking all in one
           const chunk = 5;
-          for (let i=0;i<rest.length;i+=chunk) layers.push(rest.slice(i, i+chunk));
+          for (let i = 0; i < rest.length; i += chunk)
+            layers.push(rest.slice(i, i + chunk));
         }
         return layers;
       }
 
-      function autoLayout(direction = 'LR') {
+      function autoLayout(direction = "LR") {
         if (!board.nodes.length) return;
         // Ensure DOM sizes are measured before layout
         renderNodes();
         // Build layered structure
         const layers = topoLayers();
         const layerGap = 180; // distance between layers
-        const nodeGap = 80;   // distance between nodes within a layer
+        const nodeGap = 80; // distance between nodes within a layer
 
         // Precompute sizes
         const size = new Map();
@@ -1626,33 +1985,42 @@
           size.set(n.id, { w: b.w || 240, h: b.h || 100 });
         }
 
-        if (direction === 'LR') {
+        if (direction === "LR") {
           // Layers progress left-to-right; within each layer, nodes are stacked vertically
           let x = 80;
           for (const layer of layers) {
             // compute max width in this layer
-            let maxW = 0; for (const id of layer) { maxW = Math.max(maxW, (size.get(id)?.w || 240)); }
+            let maxW = 0;
+            for (const id of layer) {
+              maxW = Math.max(maxW, size.get(id)?.w || 240);
+            }
             // vertical placement centered around the board's current view
             let y = 80;
             for (const id of layer) {
-              const n = board.nodes.find(nn => nn.id === id);
+              const n = board.nodes.find((nn) => nn.id === id);
               if (!n) continue;
               const wh = size.get(id) || { w: 240, h: 100 };
-              n.x = x; n.y = y;
+              n.x = x;
+              n.y = y;
               y += wh.h + nodeGap;
             }
             x += maxW + layerGap;
           }
-        } else { // TB top-to-bottom
+        } else {
+          // TB top-to-bottom
           let y = 80;
           for (const layer of layers) {
-            let maxH = 0; for (const id of layer) { maxH = Math.max(maxH, (size.get(id)?.h || 100)); }
+            let maxH = 0;
+            for (const id of layer) {
+              maxH = Math.max(maxH, size.get(id)?.h || 100);
+            }
             let x = 80;
             for (const id of layer) {
-              const n = board.nodes.find(nn => nn.id === id);
+              const n = board.nodes.find((nn) => nn.id === id);
               if (!n) continue;
               const wh = size.get(id) || { w: 240, h: 100 };
-              n.x = x; n.y = y;
+              n.x = x;
+              n.y = y;
               x += wh.w + nodeGap;
             }
             y += maxH + layerGap;
@@ -1660,8 +2028,11 @@
         }
         render();
         markDirty();
-        setStatus('Auto-layout applied');
+        setStatus("Auto-layout applied");
       }
+
+      // Ensure status bar hint is rendered on first load
+      renderStatusBar();
 
       // Toolbar wiring
       $("#addText").onclick = () =>
@@ -1669,10 +2040,10 @@
       $("#addImage").onclick = () => addNode("image", viewCenter());
       $("#addLink").onclick = () => addNode("link", viewCenter());
       $("#connect").onclick = toggleConnectMode;
-      document.getElementById('autoLayout').onclick = () => autoLayout('LR');
+      document.getElementById("autoLayout").onclick = () => autoLayout("LR");
       exportBtn.onclick = exportBoard;
       importBtn.onclick = () => importFile.click();
-      importFile.addEventListener('change', async (e) => {
+      importFile.addEventListener("change", async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
@@ -1687,29 +2058,31 @@
         } catch (err) {
           console.error(err);
           alert(`Import failed: ${err.message || err}`);
-          setStatus('Import failed.');
+          setStatus("Import failed.");
         } finally {
-          importFile.value = '';
+          importFile.value = "";
         }
       });
       // Search wiring (debounced + clear)
       let searchTimer = null;
-      const clearSearchBtn = document.getElementById('clearSearch');
-      const updateClearBtn = () => { clearSearchBtn.disabled = !searchInput.value; };
+      const clearSearchBtn = document.getElementById("clearSearch");
+      const updateClearBtn = () => {
+        clearSearchBtn.disabled = !searchInput.value;
+      };
       updateClearBtn();
 
-      searchInput.addEventListener('input', (e) => {
-        currentQuery = e.target.value || '';
+      searchInput.addEventListener("input", (e) => {
+        currentQuery = e.target.value || "";
         if (searchTimer) clearTimeout(searchTimer);
         searchTimer = setTimeout(() => applySearchFilter(), 150);
         updateClearBtn();
       });
 
       // Allow Esc to clear search without triggering global handlers
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          searchInput.value = '';
-          currentQuery = '';
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          searchInput.value = "";
+          currentQuery = "";
           applySearchFilter();
           updateClearBtn();
           e.stopPropagation();
@@ -1717,9 +2090,9 @@
       });
 
       // Clear button
-      clearSearchBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        currentQuery = '';
+      clearSearchBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        currentQuery = "";
         applySearchFilter();
         updateClearBtn();
         searchInput.focus();
@@ -1738,16 +2111,7 @@
       function toggleConnectMode() {
         connectMode = !connectMode;
         connectFromId = null;
-        const btn = document.getElementById('connect');
-        if (connectMode) {
-          document.body.classList.add('connect-mode');
-          btn.classList.add('active');
-          $("#modeHint").textContent = "💡 Mode: Connect. Click source node, then target. Press C to exit.";
-        } else {
-          document.body.classList.remove('connect-mode');
-          btn.classList.remove('active');
-          $("#modeHint").textContent = "💡 Mode: Select/Move. Press C to toggle connect mode.";
-        }
+        setConnectMode(connectMode);
       }
 
       document.addEventListener("keydown", (e) => {
@@ -1762,9 +2126,9 @@
           toggleConnectMode();
           return;
         }
-        if (e.key.toLowerCase() === 'l' && (e.metaKey || e.ctrlKey)) {
+        if (e.key.toLowerCase() === "l" && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
-          autoLayout('LR');
+          autoLayout("LR");
         }
       });
 
@@ -1778,11 +2142,13 @@
         }
       });
       // Allow dropping a .json file onto the board to import
-      boardEl.addEventListener('dragover', (e) => { e.preventDefault(); });
-      boardEl.addEventListener('drop', async (e) => {
+      boardEl.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+      boardEl.addEventListener("drop", async (e) => {
         e.preventDefault();
         const file = e.dataTransfer?.files?.[0];
-        if (!file || !file.name.toLowerCase().endsWith('.json')) return;
+        if (!file || !file.name.toLowerCase().endsWith(".json")) return;
         try {
           const text = await file.text();
           const json = JSON.parse(text);
@@ -1794,7 +2160,7 @@
         } catch (err) {
           console.error(err);
           alert(`Import failed: ${err.message || err}`);
-          setStatus('Import failed.');
+          setStatus("Import failed.");
         }
       });
 
@@ -1805,14 +2171,16 @@
           const data = await res.json();
           board = data;
           render();
-          boardNameEl.textContent = board.title || '';
+          boardNameEl.textContent = board.title || "";
           lastSavedJSON = computeSnapshot();
           updateSaveButton();
-          currentQuery = searchInput.value || '';
+          currentQuery = searchInput.value || "";
           applySearchFilter();
           setStatus("Loaded.");
+          renderStatusBar();
         } catch (e) {
           setStatus("No saved board yet. Start adding nodes.");
+          renderStatusBar();
         }
       }
 
@@ -1827,7 +2195,7 @@
           });
           const data = await res.json();
           board = data;
-          boardNameEl.textContent = board.title || '';
+          boardNameEl.textContent = board.title || "";
           lastSavedJSON = computeSnapshot();
           updateSaveButton();
           setStatus(
@@ -1855,7 +2223,7 @@
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        boardNameEl.textContent = board.title || '';
+        boardNameEl.textContent = board.title || "";
         render();
         saveBoard();
       }
