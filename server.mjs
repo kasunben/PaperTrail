@@ -6,6 +6,8 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import fetch from "node-fetch";
 import sharp from "sharp";
+import archiver from "archiver";
+import unzipper from "unzipper";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -364,6 +366,156 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
   } catch (e) {
     console.error("/api/upload error", e);
     return res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+// --- Export current board as ZIP (board.json + uploads/)
+app.get("/api/board/export", async (req, res) => {
+  try {
+    const b = await readBoard();
+    const base = (b.title || b.id || "board")
+      .toString()
+      .replace(/[^a-z0-9-_]+/gi, "_");
+    const name = `${base}-${b.id || "board"}.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
+
+    const archive = archiver("zip", { zlib: { level: 9 } });
+    archive.on("error", (err) => {
+      throw err;
+    });
+    archive.pipe(res);
+
+    // board.json at zip root
+    archive.file(boardJsonPath(DATA_DIR, b.id), { name: "board.json" });
+
+    // uploads/ if present
+    try {
+      await fs.access(boardUploadsDir(DATA_DIR, b.id));
+      archive.directory(boardUploadsDir(DATA_DIR, b.id), "uploads");
+    } catch {
+      /* no uploads yet */
+    }
+
+    await archive.finalize();
+  } catch (e) {
+    console.error("export error", e);
+    if (!res.headersSent) res.status(500).json({ error: "Export failed" });
+  }
+});
+
+// --- Import board from ZIP (expects board.json at root; optional uploads/)
+const importUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+
+app.post("/api/board/importZip", importUpload.single("bundle"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file" });
+
+    // Create a temp workspace
+    const tmpDir = path.join(
+      DATA_DIR,
+      ".import-" + crypto.randomBytes(4).toString("hex")
+    );
+    await fs.mkdir(tmpDir, { recursive: true });
+
+    const tmpZip = tmpDir + ".zip";
+    await fs.writeFile(tmpZip, req.file.buffer);
+
+    // Extract (unzipper enforces extraction under tmpDir)
+    await new Promise((resolve, reject) => {
+      const s = unzipper.Extract({ path: tmpDir });
+      s.on("close", resolve);
+      s.on("error", reject);
+      import("node:fs").then(({ createReadStream }) =>
+        createReadStream(tmpZip).pipe(s)
+      );
+    });
+
+    // Locate board.json (root or single inner folder)
+    async function findBoardJson(root) {
+      const entries = await fs.readdir(root, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
+      }
+      const dirs = entries.filter((e) => e.isDirectory());
+      if (dirs.length === 1) {
+        const inner = path.join(root, dirs[0].name);
+        try {
+          await fs.access(path.join(inner, "board.json"));
+          return path.join(inner, "board.json");
+        } catch {}
+      }
+      return null;
+    }
+
+    const bj = await findBoardJson(tmpDir);
+    if (!bj) {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      return res.status(400).json({ error: "board.json not found in zip" });
+    }
+
+    // Read + sanitize board.json
+    let parsed;
+    try {
+      parsed = JSON.parse(await fs.readFile(bj, "utf-8"));
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      return res.status(400).json({ error: "Invalid board.json" });
+    }
+
+    const clean = sanitizeBoard(parsed);
+    const targetId =
+      clean.id && typeof clean.id === "string" && clean.id.trim()
+        ? clean.id.trim()
+        : "board-1";
+
+    // Write board.json into the per-board directory
+    const targetDir = boardDir(DATA_DIR, targetId);
+    await fs.mkdir(targetDir, { recursive: true });
+    await fs.writeFile(
+      boardJsonPath(DATA_DIR, targetId),
+      JSON.stringify(clean, null, 2),
+      "utf-8"
+    );
+
+    // Copy uploads if present
+    async function copyUploads(fromDir) {
+      const up = path.join(fromDir, "uploads");
+      try {
+        await fs.access(up);
+      } catch {
+        return;
+      }
+      const dest = boardUploadsDir(DATA_DIR, targetId);
+      await fs.mkdir(dest, { recursive: true });
+      const files = await fs.readdir(up);
+      for (const f of files) {
+        const src = path.join(up, f);
+        const dst = path.join(dest, f);
+        try {
+          await fs.copyFile(src, dst);
+        } catch {}
+      }
+    }
+    await copyUploads(path.dirname(bj));
+    if (path.dirname(bj) !== tmpDir) await copyUploads(tmpDir);
+
+    // Cleanup + switch current board
+    await fs.rm(tmpDir, { recursive: true, force: true });
+    currentBoardId = targetId;
+
+    const saved = await readBoard();
+    res.json(saved);
+  } catch (e) {
+    console.error("importZip error", e);
+    res.status(500).json({ error: "Import failed" });
   }
 });
 

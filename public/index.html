@@ -727,7 +727,7 @@
       <input
         id="importFile"
         type="file"
-        accept="application/json"
+        accept="application/zip,application/x-zip-compressed,.zip,application/json"
         style="display: none"
       />
       <button id="save" class="btn-icon" disabled title="Save">
@@ -1931,19 +1931,9 @@
       }
 
       function exportBoard() {
-        const data = JSON.stringify(board, null, 2);
-        const blob = new Blob([data], { type: "application/json" });
-        const ts = new Date().toISOString().replace(/[:.]/g, "-");
-        const name = `${slugify(board.title || "board")}-${ts}.json`;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        a.remove();
-        setStatus(`Exported ${name}`);
+        // Let the server stream a ZIP (includes board.json and uploads/)
+        setStatus("Preparing export…");
+        window.location.href = "/api/board/export";
       }
 
       async function fetchLinkPreview(url) {
@@ -2151,14 +2141,28 @@
         const file = e.target.files?.[0];
         if (!file) return;
         try {
-          const text = await file.text();
-          const json = JSON.parse(text);
-          const validated = validateImported(json);
-          board = validated;
-          render();
-          // Mark dirty so Save enables (import not yet persisted to server)
-          markDirty();
-          setStatus(`Imported ${file.name}`);
+          if (/\.zip$/i.test(file.name)) {
+            setStatus("Importing zip…");
+            const fd = new FormData();
+            fd.append("bundle", file);
+            const res = await fetch("/api/board/importZip", { method: "POST", body: fd });
+            if (!res.ok) throw new Error(`Import failed (${res.status})`);
+            const json = await res.json();
+            board = json;
+            render();
+            // Save button should enable as the in-memory board differs from lastSavedJSON
+            markDirty();
+            setStatus(`Imported ${file.name}`);
+          } else {
+            // Legacy JSON import (client-side only until user clicks Save)
+            const text = await file.text();
+            const json = JSON.parse(text);
+            const validated = validateImported(json);
+            board = validated;
+            render();
+            markDirty();
+            setStatus(`Imported ${file.name}`);
+          }
         } catch (err) {
           console.error(err);
           alert(`Import failed: ${err.message || err}`);
