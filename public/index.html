@@ -1261,7 +1261,12 @@
           let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
           if (e.dashed) cls += " dashed";
           path.setAttribute("class", cls);
-          if (e.color) path.setAttribute('stroke', e.color); else path.removeAttribute('stroke');
+          if (e.color) {
+            // Use inline style so it overrides the .edge CSS rule
+            path.style.stroke = e.color;
+          } else {
+            path.style.stroke = null; // fall back to CSS (.edge { stroke: red; })
+          }
           path.dataset.id = e.id;
 
           // Label (optional)
