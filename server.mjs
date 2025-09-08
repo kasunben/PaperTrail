@@ -5,21 +5,43 @@ import crypto from "crypto";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import fetch from "node-fetch";
+import sharp from "sharp";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /** Helpers */
-function sanitizeUrl(u) {
+function sanitizeUrl(u, opts = { allowRelative: true }) {
   if (!u || typeof u !== "string") return "";
+  const s = u.trim();
+
+  // 1) Absolute http/https URLs
   try {
-    const url = new URL(u, "http://localhost"); // allow relative; normalize
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.href
-      : "";
+    const abs = new URL(s);
+    if (abs.protocol === "http:" || abs.protocol === "https:") {
+      return abs.href;
+    }
+    return ""; // reject javascript:, data:, etc.
   } catch {
-    return "";
+    // not absolute; continue
   }
+
+  // 2) Site-relative URLs (begin with "/")
+  if (opts.allowRelative && s.startsWith("/")) {
+    try {
+      // Use a throwaway base only for parsing; then reconstruct a relative URL
+      const parsed = new URL(s, "http://x");
+      const rel = parsed.pathname + parsed.search + parsed.hash;
+      // Allow only known safe prefixes under our app
+      const allowed = ["/uploads/", "/assets/"]; // extend if needed
+      if (allowed.some((p) => rel.startsWith(p))) return rel;
+      return "";
+    } catch {
+      return "";
+    }
+  }
+
+  return ""; // anything else is rejected
 }
 
 function stripDangerousHtml(html) {
@@ -202,21 +224,8 @@ const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 await fs.mkdir(UPLOAD_DIR, { recursive: true });
 app.use("/uploads", express.static(UPLOAD_DIR));
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || "";
-    const base = path
-      .basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9-_\\.]/g, "_");
-    const stamp =
-      Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
-    cb(null, `${base}-${stamp}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// API
 app.get("/api/board", async (_req, res) => {
   const board = await readBoard();
   res.json(board);
@@ -236,14 +245,53 @@ app.post("/api/board", async (req, res) => {
   }
 });
 
-app.post("/api/upload", upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({
-    url: "/uploads/" + req.file.filename,
-    name: req.file.originalname,
-    size: req.file.size,
-    type: req.file.mimetype,
-  });
+app.post("/api/upload", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    if (!/^image\//i.test(req.file.mimetype || "")) {
+      return res.status(400).json({ error: "Only image uploads are allowed" });
+    }
+
+    const buf = req.file.buffer;
+    // Generate a stable name based on content hash + short stamp
+    const hash = crypto.createHash("sha1").update(buf).digest("hex").slice(0, 12);
+    const stamp = Date.now().toString(36).slice(-6);
+    const safeBase = (req.file.originalname || "upload")
+      .replace(/\.[^.]+$/, "")
+      .replace(/[^a-zA-Z0-9-_\.]/g, "_")
+      .slice(0, 40) || "img";
+
+    const fileName = `${safeBase}-${hash}-${stamp}.webp`;
+    const outPath = path.join(UPLOAD_DIR, fileName);
+    const thumbName = `${safeBase}-${hash}-${stamp}.thumb.webp`;
+    const thumbPath = path.join(UPLOAD_DIR, thumbName);
+
+    // Transcode to WebP (auto-rotate by EXIF) and make a thumbnail
+    const img = sharp(buf).rotate();
+    const info = await img
+      .webp({ quality: 75 })
+      .withMetadata({ exif: undefined, icc: undefined }) // strip metadata
+      .toFile(outPath);
+
+    await sharp(buf)
+      .rotate()
+      .resize({ width: 320, withoutEnlargement: true })
+      .webp({ quality: 70 })
+      .withMetadata({ exif: undefined, icc: undefined }) // strip metadata
+      .toFile(thumbPath);
+
+    return res.json({
+      url: "/uploads/" + fileName,
+      thumbUrl: "/uploads/" + thumbName,
+      width: info.width,
+      height: info.height,
+      type: "image/webp",
+      originalName: req.file.originalname,
+    });
+  } catch (e) {
+    console.error("/api/upload error", e);
+    return res.status(500).json({ error: "Upload failed" });
+  }
 });
 
 // --- Link preview endpoint ---

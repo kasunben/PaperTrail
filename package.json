@@ -1,7 +1,7 @@
 {
   "name": "papertrail",
   "description": "PaperTrail — map your evidence, follow the story.",
-  "version": "1.0.0-alpha.24",
+  "version": "1.0.0-alpha.25",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
@@ -22,7 +22,8 @@
   "dependencies": {
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^3.3.2",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
