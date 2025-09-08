@@ -4,3 +4,4 @@ node_modules/*
 
 /data/uploads/**
 /data/.import-*.zip
+/data/.probe-*.zip

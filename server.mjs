@@ -369,6 +369,80 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
   }
 });
 
+// --- Probe a ZIP: read board.json and report metadata, no writes
+const probeUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+app.post("/api/board/probeZip", probeUpload.single("bundle"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file" });
+
+    const tmpDir = path.join(DATA_DIR, ".probe-" + crypto.randomBytes(4).toString("hex"));
+    await fs.mkdir(tmpDir, { recursive: true });
+    const tmpZip = tmpDir + ".zip";
+    await fs.writeFile(tmpZip, req.file.buffer);
+
+    // Extract into tmpDir
+    await new Promise((resolve, reject) => {
+      const s = unzipper.Extract({ path: tmpDir });
+      s.on("close", resolve);
+      s.on("error", reject);
+      import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
+    });
+
+    // Locate board.json (root or single inner folder)
+    async function findBoardJson(root) {
+      const entries = await fs.readdir(root, { withFileTypes: true });
+      for (const e of entries) {
+        if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
+      }
+      const dirs = entries.filter((e) => e.isDirectory());
+      if (dirs.length === 1) {
+        const inner = path.join(root, dirs[0].name);
+        try {
+          await fs.access(path.join(inner, "board.json"));
+          return path.join(inner, "board.json");
+        } catch {}
+      }
+      return null;
+    }
+
+    const bj = await findBoardJson(tmpDir);
+    if (!bj) {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      return res.status(400).json({ error: "board.json not found in zip" });
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(await fs.readFile(bj, "utf-8")); } catch { parsed = null; }
+    if (!parsed || typeof parsed !== "object") {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+      return res.status(400).json({ error: "Invalid board.json" });
+    }
+
+    // Detect uploads next to board.json
+    let hasUploads = false;
+    try {
+      const up = path.join(path.dirname(bj), "uploads");
+      await fs.access(up);
+      const list = await fs.readdir(up);
+      hasUploads = list.length > 0;
+    } catch {}
+
+    await fs.rm(tmpDir, { recursive: true, force: true });
+
+    return res.json({
+      boardId: (parsed.id && typeof parsed.id === "string" && parsed.id.trim()) ? parsed.id.trim() : "board-1",
+      title: typeof parsed.title === "string" ? parsed.title : "",
+      hasUploads,
+    });
+  } catch (e) {
+    console.error("probeZip error", e);
+    return res.status(500).json({ error: "Probe failed" });
+  }
+});
+
 // --- Export current board as ZIP (board.json + uploads/)
 app.get("/api/board/export", async (req, res) => {
   try {

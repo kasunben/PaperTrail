@@ -2142,6 +2142,18 @@
         if (!file) return;
         try {
           if (/\.zip$/i.test(file.name)) {
+            // Probe first
+            const probeFd = new FormData();
+            probeFd.append("bundle", file);
+            const probeRes = await fetch("/api/board/probeZip", { method: "POST", body: probeFd });
+            if (!probeRes.ok) throw new Error(`Probe failed (${probeRes.status})`);
+            const meta = await probeRes.json();
+
+            if (meta.boardId === board.id) {
+              const ok = confirm(`You're importing the SAME board (ID: ${meta.boardId}).\nTitle: ${meta.title || "(untitled)"}\nReplace the current board with the imported one?`);
+              if (!ok) { setStatus("Import cancelled."); importFile.value = ""; return; }
+            }
+
             setStatus("Importing zip…");
             const fd = new FormData();
             fd.append("bundle", file);
@@ -2150,14 +2162,16 @@
             const json = await res.json();
             board = json;
             render();
-            // Save button should enable as the in-memory board differs from lastSavedJSON
             markDirty();
             setStatus(`Imported ${file.name}`);
           } else {
-            // Legacy JSON import (client-side only until user clicks Save)
             const text = await file.text();
             const json = JSON.parse(text);
             const validated = validateImported(json);
+            if (validated.id === board.id) {
+              const ok = confirm(`You're importing the SAME board (ID: ${validated.id}). Replace the current board with the imported one?`);
+              if (!ok) { setStatus("Import cancelled."); importFile.value = ""; return; }
+            }
             board = validated;
             render();
             markDirty();
