@@ -112,6 +112,43 @@
       .toolbar .spacer {
         flex: 1;
       }
+      .toolbar .search {
+        min-width: 250px;
+        cursor: text;
+      }
+      .search-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+      }
+      .search-wrap input.search {
+        flex: 1 1 auto;
+        width: 100%;
+        padding-right: 1.8em; /* reserve space */
+        box-sizing: border-box;
+      }
+      #clearSearch {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        right: 6px;
+        background: transparent;
+        border: none;
+        font-size: 12px;
+        line-height: 1;
+        padding: 0 2px 0 0;
+        cursor: pointer;
+        color: #6b7280;
+      }
+
+      #clearSearch:hover {
+        color: #111;
+      }
+
+      #clearSearch:disabled {
+        display: none;
+      }
       /* Responsive toolbar */
       @media (max-width: 640px) {
         .toolbar {
@@ -145,15 +182,17 @@
           width: 16px;
           height: 16px;
         }
-
         /* Search gets its own row when wrapping */
-        .toolbar .search {
+        .search-wrap {
           flex: 1 1 100%;
           min-width: 0;
           order: 10;
+          position: relative;
+          display: flex;
+          align-items: center;
         }
-        #clearSearch {
-          order: 11;
+        .search-wrap input.search {
+          width: 100%;
         }
         /* Right-side controls come after search */
         #autoLayout,
@@ -503,10 +542,6 @@
       .highlight {
         outline: 2px dashed var(--accent);
       }
-      .toolbar .search {
-        min-width: 250px;
-        cursor: text;
-      }
       .add-desc {
         margin-top: 6px;
         background: #ffffff;
@@ -657,13 +692,15 @@
           <path d="M12 12l5 5" />
         </svg>
       </button>
-      <input
-        id="search"
-        class="search"
-        type="search"
-        placeholder="Search… (use #tag)"
-      />
-      <button id="clearSearch" title="Clear search">✕</button>
+      <div class="search-wrap">
+        <input
+          id="search"
+          class="search"
+          type="search"
+          placeholder="Search… (use #tag)"
+        />
+        <button id="clearSearch" title="Clear search">✕</button>
+      </div>
       <div class="spacer"></div>
       <button id="autoLayout" class="btn-icon" title="Auto layout">
         <svg viewBox="0 0 24 24" aria-hidden="true">
