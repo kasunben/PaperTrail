@@ -1,7 +1,7 @@
 {
   "name": "papertrail",
   "description": "PaperTrail — map your evidence, follow the story.",
-  "version": "1.0.0-alpha.25",
+  "version": "1.0.0-alpha.26",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",

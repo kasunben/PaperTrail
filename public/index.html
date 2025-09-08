@@ -2315,23 +2315,21 @@
       }
 
       function resetBoard() {
-        if (
-          !confirm(
-            "Clear all nodes/edges? This will overwrite the saved board."
-          )
-        )
-          return;
+        if (!confirm("Clear all nodes/edges? This will NOT save automatically.")) return;
+        const now = new Date().toISOString();
         board = {
-          id: "board-1",
+          id: board.id || "board-1",
           title: "My Evidence Board",
           nodes: [],
           edges: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: board.createdAt || now,
+          updatedAt: now,
         };
         boardNameEl.textContent = board.title || "";
         render();
-        saveBoard();
+        // Mark as dirty so user can decide to Save manually
+        markDirty();
+        setStatus("Board reset. Click Save to persist.");
       }
 
       // Image upload handling
