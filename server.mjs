@@ -9,7 +9,142 @@ import fetch from "node-fetch";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/** Helpers */
+function sanitizeUrl(u) {
+  if (!u || typeof u !== "string") return "";
+  try {
+    const url = new URL(u, "http://localhost"); // allow relative; normalize
+    return url.protocol === "http:" || url.protocol === "https:"
+      ? url.href
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function stripDangerousHtml(html) {
+  if (!html || typeof html !== "string") return "";
+  // remove dangerous elements
+  let out = html
+    .replace(/<\/(script|style|iframe|object|embed|link|meta)[^>]*>/gi, "")
+    .replace(/<(script|style|iframe|object|embed|link|meta)[^>]*>/gi, "");
+  // remove event handlers + inline styles
+  out = out
+    .replace(/\son[a-z]+\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/(href|src)\s*=\s*(['"])([^'"]*)\2/gi, (m, a, q, v) => {
+      const safe = sanitizeUrl(v);
+      return safe ? `${a}=${q}${safe}${q}` : "";
+    })
+    .replace(/\sstyle\s*=\s*("[^"]*"|'[^']*')/gi, "");
+  if (out.length > 20000) out = out.slice(0, 20000);
+  return out;
+}
+
+function normalizeTags(arr) {
+  if (!Array.isArray(arr)) return [];
+  const out = [];
+  for (let t of arr) {
+    if (typeof t !== "string") continue;
+    t = t.trim().replace(/^#+/, "").toLowerCase();
+    if (t && out.length < 64 && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+function sanitizeNode(node, i = 0) {
+  const n = {
+    id: typeof node.id === "string" ? node.id : `n_${i}`,
+    type: ["text", "image", "link", "imageText"].includes(node.type)
+      ? node.type
+      : "text",
+    x: Number.isFinite(node.x) ? node.x : 100 + i * 20,
+    y: Number.isFinite(node.y) ? node.y : 100 + i * 20,
+    w: Number.isFinite(node.w) ? node.w : undefined,
+    h: Number.isFinite(node.h) ? node.h : undefined,
+    data: typeof node.data === "object" && node.data ? { ...node.data } : {},
+  };
+  const d = n.data;
+  if (typeof d.title === "string") d.title = d.title.slice(0, 512);
+  if (typeof d.text === "string") d.text = d.text.slice(0, 8000);
+  if (typeof d.html === "string") d.html = stripDangerousHtml(d.html);
+  if (typeof d.descHtml === "string")
+    d.descHtml = stripDangerousHtml(d.descHtml);
+  if (typeof d.linkUrl === "string") d.linkUrl = sanitizeUrl(d.linkUrl);
+  if (typeof d.imageUrl === "string") d.imageUrl = sanitizeUrl(d.imageUrl);
+  d.tags = normalizeTags(d.tags);
+  return n;
+}
+
+function sanitizeEdge(edge, i = 0) {
+  const e = {
+    id: typeof edge.id === "string" ? edge.id : `e_${i}`,
+    sourceId: String(edge.sourceId || ""),
+    targetId: String(edge.targetId || ""),
+  };
+  if (!e.sourceId || !e.targetId || e.sourceId === e.targetId) return null;
+  if (typeof edge.label === "string") e.label = edge.label.slice(0, 256);
+  if (edge.dashed) e.dashed = true;
+  if (typeof edge.color === "string") {
+    const hex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+    const named =
+      /^(?:red|blue|green|black|white|gray|grey|orange|purple|yellow|pink|teal|cyan|magenta|brown)$/i;
+    const ok = hex.test(edge.color) || named.test(edge.color);
+    if (ok) e.color = edge.color;
+  }
+  return e;
+}
+
+function sanitizeBoard(incoming) {
+  const out = {
+    id: "board-1",
+    title:
+      typeof incoming.title === "string"
+        ? incoming.title.slice(0, 256)
+        : "My Evidence Board",
+    createdAt: incoming.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    nodes: [],
+    edges: [],
+  };
+  const nodes = Array.isArray(incoming.nodes)
+    ? incoming.nodes.slice(0, 5000)
+    : [];
+  out.nodes = nodes.map(sanitizeNode);
+  const edges = Array.isArray(incoming.edges)
+    ? incoming.edges.slice(0, 20000)
+    : [];
+  for (let i = 0; i < edges.length; i++) {
+    const e = sanitizeEdge(edges[i], i);
+    if (!e) continue;
+    if (!out.nodes.find((n) => n.id === e.sourceId)) continue;
+    if (!out.nodes.find((n) => n.id === e.targetId)) continue;
+    out.edges.push(e);
+  }
+  return out;
+}
+/** end of Helpers */
+
 const app = express();
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "no-referrer-when-downgrade");
+  // Relax CSP for inline scripts (quick fix)
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https: http:",
+      "connect-src 'self'",
+      "frame-ancestors 'self'"
+    ].join("; ")
+  );
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -23,7 +158,11 @@ await fs.mkdir(DATA_DIR, { recursive: true });
 try {
   await fs.access(BOARD_PATH);
 } catch {
-  await fs.writeFile(BOARD_PATH, JSON.stringify(emptyBoard(), null, 2), "utf-8");
+  await fs.writeFile(
+    BOARD_PATH,
+    JSON.stringify(emptyBoard(), null, 2),
+    "utf-8"
+  );
 }
 
 function emptyBoard() {
@@ -34,7 +173,7 @@ function emptyBoard() {
     nodes: [],
     edges: [],
     createdAt: now,
-    updatedAt: now
+    updatedAt: now,
   };
 }
 
@@ -67,10 +206,13 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname) || "";
-    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_\\.]/g, "_");
-    const stamp = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    const base = path
+      .basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9-_\\.]/g, "_");
+    const stamp =
+      Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
     cb(null, `${base}-${stamp}${ext}`);
-  }
+  },
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -81,17 +223,17 @@ app.get("/api/board", async (_req, res) => {
 });
 
 app.post("/api/board", async (req, res) => {
-  const incoming = req.body;
-  if (!incoming || typeof incoming !== "object") {
-    return res.status(400).json({ error: "Invalid board payload" });
+  try {
+    if (!req.body || typeof req.body !== "object") {
+      return res.status(400).json({ error: "Invalid board payload" });
+    }
+    const clean = sanitizeBoard(req.body);
+    const saved = await writeBoard(clean);
+    res.json(saved);
+  } catch (err) {
+    console.error("save board error", err);
+    res.status(500).json({ error: "Save failed" });
   }
-  // extremely light validation
-  incoming.id = "board-1";
-  if (!Array.isArray(incoming.nodes) || !Array.isArray(incoming.edges)) {
-    return res.status(400).json({ error: "nodes and edges must be arrays" });
-  }
-  const saved = await writeBoard(incoming);
-  res.json(saved);
 });
 
 app.post("/api/upload", upload.single("image"), (req, res) => {
@@ -100,7 +242,7 @@ app.post("/api/upload", upload.single("image"), (req, res) => {
     url: "/uploads/" + req.file.filename,
     name: req.file.originalname,
     size: req.file.size,
-    type: req.file.mimetype
+    type: req.file.mimetype,
   });
 });
 
@@ -126,16 +268,18 @@ app.post("/api/link-preview", async (req, res) => {
       redirect: "follow",
       signal: controller.signal,
       headers: {
-        "user-agent": "EvidenceBoard/1.0 (+https://local)"
-      }
-    }).catch(err => {
+        "user-agent": "EvidenceBoard/1.0 (+https://local)",
+      },
+    }).catch((err) => {
       clearTimeout(to);
       throw err;
     });
     clearTimeout(to);
 
     if (!resp || !resp.ok) {
-      return res.status(502).json({ error: `Upstream error: ${resp ? resp.status : 'no-response'}` });
+      return res.status(502).json({
+        error: `Upstream error: ${resp ? resp.status : "no-response"}`,
+      });
     }
 
     const contentType = resp.headers.get("content-type") || "";
@@ -146,7 +290,7 @@ app.post("/api/link-preview", async (req, res) => {
         description: "",
         siteName: parsed.hostname,
         image: null,
-        icon: new URL("/favicon.ico", parsed).toString()
+        icon: new URL("/favicon.ico", parsed).toString(),
       });
     }
 
@@ -159,41 +303,74 @@ app.post("/api/link-preview", async (req, res) => {
     };
     const abs = (u) => {
       if (!u) return null;
-      try { return new URL(u, parsed).toString(); } catch { return null; }
+      try {
+        return new URL(u, parsed).toString();
+      } catch {
+        return null;
+      }
     };
 
     // Title
     const ogTitle =
-      pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-      pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
-    const title = ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
+      pick(
+        /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i
+      ) ||
+      pick(
+        /<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i
+      );
+    const title =
+      ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
 
     // Description
     const ogDesc =
-      pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-      pick(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-      pick(/<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i);
+      pick(
+        /<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i
+      ) ||
+      pick(
+        /<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i
+      ) ||
+      pick(
+        /<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i
+      );
 
     // Site name
     const siteName =
-      pick(/<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-      parsed.hostname;
+      pick(
+        /<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i
+      ) || parsed.hostname;
 
     // Image
-    const ogImg = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+    const ogImg = pick(
+      /<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
+    );
 
     // Icon
     const iconHref =
-      pick(/<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i) ||
-      pick(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i);
+      pick(
+        /<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i
+      ) ||
+      pick(
+        /<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i
+      );
+
+    const cleanTitle = String(title || "")
+      .replace(/[\\r\\n\\t]+/g, " ")
+      .slice(0, 256);
+    const cleanDesc = String(ogDesc || "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/[\\r\\n\\t]+/g, " ")
+      .slice(0, 512);
+    const cleanSite = String(siteName || "")
+      .replace(/[\\r\\n\\t]+/g, " ")
+      .slice(0, 128);
 
     res.json({
       url: parsed.toString(),
-      title,
-      description: ogDesc || "",
-      siteName,
+      title: cleanTitle,
+      description: cleanDesc,
+      siteName: cleanSite,
       image: abs(ogImg),
-      icon: abs(iconHref) || new URL("/favicon.ico", parsed).toString()
+      icon: abs(iconHref) || new URL("/favicon.ico", parsed).toString(),
     });
   } catch (err) {
     console.error("/api/link-preview error", err);
