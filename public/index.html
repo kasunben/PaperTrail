@@ -570,9 +570,17 @@
             <button data-action="delete">Delete</button>
           `;
         } else {
-          menu.innerHTML = `
-            <button data-action="delete">Delete</button>
-          `;
+          const node = board.nodes.find(n => n.id === target.id);
+          if (node && node.type === 'link') {
+            menu.innerHTML = `
+              <button data-action="edit-link-url">Edit link URL…</button>
+              <button data-action="delete">Delete</button>
+            `;
+          } else {
+            menu.innerHTML = `
+              <button data-action="delete">Delete</button>
+            `;
+          }
         }
 
         menu.style.display = "block";
@@ -610,12 +618,34 @@
         if (!ctxTarget) { hideContextMenu(); return; }
 
         if (ctxTarget.type === 'node') {
+          const node = board.nodes.find(n => n.id === ctxTarget.id);
+          if (!node) { hideContextMenu(); return; }
+
           if (action === 'delete') {
             selectedNodeId = ctxTarget.id;
             selectedEdgeId = null;
             hideContextMenu();
             removeSelection();
+            return;
           }
+
+          if (action === 'edit-link-url' && node.type === 'link') {
+            const val = prompt('Link URL:', node.data.linkUrl || 'https://');
+            if (val !== null) {
+              const url = (val || '').trim();
+              if (url) {
+                node.data.linkUrl = url;
+                // Invalidate previous preview so it refetches
+                delete node.data.preview;
+                hideContextMenu();
+                markDirty();
+                renderNode(node);
+                renderEdges();
+              }
+            }
+            return;
+          }
+          hideContextMenu();
           return;
         }
 
@@ -911,15 +941,6 @@
             if (!imgEl || !el.contains(imgEl)) return; // ignore dblclicks elsewhere in the node
             const url = prompt("Edit image URL:", n.data.imageUrl ?? "");
             if (url !== null) n.data.imageUrl = url;
-            renderNode(n);
-            renderEdges();
-            markDirty();
-            return;
-          }
-
-          if (n.type === "link") {
-            const url = prompt("Edit link URL:", n.data.linkUrl ?? "https://");
-            if (url !== null) n.data.linkUrl = url;
             renderNode(n);
             renderEdges();
             markDirty();
