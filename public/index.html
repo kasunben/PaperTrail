@@ -112,9 +112,64 @@
       .toolbar .spacer {
         flex: 1;
       }
+      /* Responsive toolbar */
+      @media (max-width: 640px) {
+        .toolbar {
+          flex-wrap: wrap;
+          gap: 6px;
+          padding: 0.5rem 0.5rem 0.35rem;
+        }
+        .app-title {
+          flex: 1 1 100%;
+          margin-right: 0;
+        }
+        .app-title .brand {
+          font-size: 15px;
+        }
+        .app-title .tagline {
+          font-size: 10px;
+        }
+        .app-title .board-name {
+          max-width: 100%;
+          font-size: 12px;
+        }
+
+        .toolbar .spacer {
+          display: none;
+        }
+
+        .btn-icon {
+          padding: 0.35rem;
+        }
+        .btn-icon svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        /* Search gets its own row when wrapping */
+        .toolbar .search {
+          flex: 1 1 100%;
+          min-width: 0;
+          order: 10;
+        }
+        #clearSearch {
+          order: 11;
+        }
+        /* Right-side controls come after search */
+        #autoLayout,
+        #export,
+        #importBtn,
+        #save,
+        #reset {
+          order: 12;
+        }
+      }
+      /* Board Styles */
       .board {
         position: relative;
-        height: calc(100% - 48px - 34px);
+        height: calc(
+          100% - 24px
+        ); /* refined by JS to subtract toolbar height */
         overflow: auto;
         background-image: radial-gradient(var(--muted) 1px, transparent 1px);
         background-size: 16px 16px;
@@ -672,6 +727,7 @@
        * Board = { id, title, nodes: Node[], edges: Edge[], createdAt, updatedAt }
        */
       const $ = (sel) => document.querySelector(sel);
+      const toolbarEl = $(".toolbar");
       const boardEl = $("#board");
       const edgesSvg = $("#edges");
       const statusEl = $("#status");
@@ -682,6 +738,14 @@
       const searchInput = document.getElementById("search");
       let lastSavedJSON = null;
 
+      function adjustBoardHeight() {
+        const tb = toolbarEl ? toolbarEl.offsetHeight : 0;
+        // 24px = status bar height
+        boardEl.style.height = `calc(100% - ${tb}px - 24px)`;
+        updateBoardExtent();
+      }
+      window.addEventListener("resize", adjustBoardHeight);
+
       // --- Unified status & mode controller ---
       const ui = {
         connectMode: false,
@@ -691,8 +755,8 @@
         const modeText = ui.connectMode
           ? "💡 Mode: Connect"
           : "💡 Mode: Select/Move (press C to connect)";
-        document.getElementById('modeHint').textContent = modeText;
-        statusEl.textContent = ui.status.text || '';
+        document.getElementById("modeHint").textContent = modeText;
+        statusEl.textContent = ui.status.text || "";
       }
       function setConnectMode(on) {
         ui.connectMode = !!on;
@@ -1106,11 +1170,11 @@
             if (connectMode) {
               if (!connectFromId) {
                 connectFromId = n.id;
-                showStatus('Source selected. Pick a target.', { ttl: 2200 });
+                showStatus("Source selected. Pick a target.", { ttl: 2200 });
               } else {
                 addEdge(connectFromId, n.id);
                 connectFromId = null;
-                showStatus('Connected.', { ttl: 1800 });
+                showStatus("Connected.", { ttl: 1800 });
               }
               ev.stopPropagation();
               return;
@@ -1716,6 +1780,7 @@
         renderNodes();
         renderEdges();
         applySearchFilter();
+        adjustBoardHeight();
       }
 
       function escapeHtml(s) {
@@ -2034,6 +2099,7 @@
 
       // Ensure status bar hint is rendered on first load
       renderStatusBar();
+      adjustBoardHeight();
 
       // Toolbar wiring
       $("#addText").onclick = () =>
@@ -2182,6 +2248,8 @@
         } catch (e) {
           setStatus("No saved board yet. Start adding nodes.");
           renderStatusBar();
+        } finally {
+          adjustBoardHeight();
         }
       }
 
