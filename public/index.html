@@ -1107,6 +1107,40 @@
           const rich = el.querySelector('.rich');
           if (rtb && rich) {
             const field = (n.type === 'text') ? 'html' : 'descHtml';
+            const isOptionalDesc = field === 'descHtml' && (n.type === 'image' || n.type === 'link');
+
+            function ensureAddDescButton() {
+              if (!isOptionalDesc) return;
+              let addBtn = el.querySelector('.add-desc');
+              if (!addBtn) {
+                addBtn = document.createElement('button');
+                addBtn.className = 'add-desc';
+                addBtn.type = 'button';
+                addBtn.textContent = '+ Add description';
+                addBtn.addEventListener('click', (ev) => {
+                  ev.stopPropagation();
+                  if (rtb) rtb.style.display = '';
+                  if (rich) rich.style.display = '';
+                  addBtn.remove();
+                  rich.focus();
+                });
+                el.querySelector('.content').insertBefore(addBtn, rtb);
+              }
+            }
+
+            function maybeCollapseIfEmpty() {
+              if (!isOptionalDesc) return;
+              const plain = (rich.textContent || '').trim();
+              const has = plain.length > 0;
+              if (!has) {
+                // clear stored value and collapse UI
+                n.data.descHtml = '';
+                if (rtb) rtb.style.display = 'none';
+                if (rich) { rich.style.display = 'none'; rich.innerHTML = ''; }
+                ensureAddDescButton();
+              }
+            }
+
             // Keep focus inside editor when clicking toolbar
             rtb.addEventListener('mousedown', (ev) => { ev.preventDefault(); rich.focus(); });
             rtb.addEventListener('click', (ev) => {
@@ -1120,24 +1154,32 @@
                 n.data[field] = rich.innerHTML;
                 markDirty();
                 renderEdges();
+                maybeCollapseIfEmpty();
               } else if (act === 'link') {
                 const url = prompt('Link URL', 'https://');
                 if (url) document.execCommand('createLink', false, url);
                 n.data[field] = rich.innerHTML;
                 markDirty();
+                maybeCollapseIfEmpty();
               } else if (act === 'clear') {
                 document.execCommand('removeFormat');
-                // Also unwrap a single link if present for simplicity
                 const a = rich.querySelector('a');
                 if (a) {
                   const t = document.createTextNode(a.textContent || '');
                   a.replaceWith(t);
                 }
-                n.data[field] = rich.innerHTML;
+                rich.innerHTML = '';
+                n.data[field] = '';
                 markDirty();
+                maybeCollapseIfEmpty();
               }
             });
-            const syncHtml = () => { n.data[field] = rich.innerHTML; markDirty(); };
+
+            const syncHtml = () => {
+              n.data[field] = rich.innerHTML;
+              markDirty();
+              maybeCollapseIfEmpty();
+            };
             rich.addEventListener('input', syncHtml);
             rich.addEventListener('blur', syncHtml);
           }
