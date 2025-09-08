@@ -1932,8 +1932,13 @@
 
       function exportBoard() {
         // Let the server stream a ZIP (includes board.json and uploads/)
-        setStatus("Preparing export…");
+        showStatus("Export in progress…", { sticky: true });
+        // Trigger the download
         window.location.href = "/api/board/export";
+        // After a short delay, update the message to guide user
+        setTimeout(() => {
+          showStatus("Export initiated. Please check your downloads folder once it completes.", { sticky: true });
+        }, 500);
       }
 
       async function fetchLinkPreview(url) {
