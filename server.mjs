@@ -10,6 +10,11 @@ import sharp from "sharp";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Per-board storage helpers
+function boardDir(root, id) { return path.join(root, id); }
+function boardJsonPath(root, id) { return path.join(boardDir(root, id), 'board.json'); }
+function boardUploadsDir(root, id) { return path.join(boardDir(root, id), 'uploads'); }
+
 /** Helpers */
 function sanitizeUrl(u, opts = { allowRelative: true }) {
   if (!u || typeof u !== "string") return "";
@@ -170,21 +175,53 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
-const BOARD_PATH = path.join(DATA_DIR, "board.json");
-
-// ensure data dir exists
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 await fs.mkdir(DATA_DIR, { recursive: true });
 
-// create default board.json if missing
+// Detect and migrate old layout if needed: data/board.json and data/uploads -> data/board-1/{board.json,uploads}
+let currentBoardId = 'board-1';
+const OLD_BOARD_PATH = path.join(DATA_DIR, 'board.json');
+const OLD_UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+const NEW_BOARD_JSON = boardJsonPath(DATA_DIR, currentBoardId);
+
 try {
-  await fs.access(BOARD_PATH);
+  await fs.access(OLD_BOARD_PATH);
+  // Old layout detected; migrate
+  let oldBoard = emptyBoard();
+  try { oldBoard = JSON.parse(await fs.readFile(OLD_BOARD_PATH, 'utf-8')); } catch {}
+  const migratedId = (oldBoard && typeof oldBoard.id === 'string' && oldBoard.id.trim()) ? oldBoard.id.trim() : currentBoardId;
+  currentBoardId = migratedId;
+  const targetDir = boardDir(DATA_DIR, currentBoardId);
+  await fs.mkdir(targetDir, { recursive: true });
+  const targetJson = boardJsonPath(DATA_DIR, currentBoardId);
+  // Move board.json
+  await fs.rename(OLD_BOARD_PATH, targetJson).catch(async () => {
+    // If rename fails (cross-device), write instead
+    await fs.writeFile(targetJson, JSON.stringify(oldBoard || emptyBoard(), null, 2), 'utf-8');
+    await fs.unlink(OLD_BOARD_PATH).catch(() => {});
+  });
+  // Move uploads dir if present
+  try {
+    await fs.access(OLD_UPLOADS_DIR);
+    const targetUploads = boardUploadsDir(DATA_DIR, currentBoardId);
+    await fs.mkdir(targetUploads, { recursive: true });
+    // simple move: read filenames and rename into new dir
+    const files = await fs.readdir(OLD_UPLOADS_DIR);
+    for (const f of files) {
+      await fs.rename(path.join(OLD_UPLOADS_DIR, f), path.join(targetUploads, f)).catch(() => {});
+    }
+    // try remove old dir
+    try { await fs.rmdir(OLD_UPLOADS_DIR); } catch {}
+  } catch {}
 } catch {
-  await fs.writeFile(
-    BOARD_PATH,
-    JSON.stringify(emptyBoard(), null, 2),
-    "utf-8"
-  );
+  // No old single-file layout; ensure new layout exists
+  const defaultJson = boardJsonPath(DATA_DIR, currentBoardId);
+  try {
+    await fs.access(defaultJson);
+  } catch {
+    await fs.mkdir(boardDir(DATA_DIR, currentBoardId), { recursive: true });
+    await fs.writeFile(defaultJson, JSON.stringify(emptyBoard(), null, 2), 'utf-8');
+  }
 }
 
 function emptyBoard() {
@@ -201,28 +238,62 @@ function emptyBoard() {
 
 async function readBoard() {
   try {
-    const raw = await fs.readFile(BOARD_PATH, "utf-8");
-    return JSON.parse(raw);
+    const p = boardJsonPath(DATA_DIR, currentBoardId);
+    const raw = await fs.readFile(p, 'utf-8');
+    const b = JSON.parse(raw);
+    // If the on-disk board has a different id, honor it
+    if (b && typeof b.id === 'string' && b.id.trim()) {
+      currentBoardId = b.id.trim();
+    }
+    return b;
   } catch (e) {
-    // return an empty board if file missing or malformed
-    return emptyBoard();
+    // return an empty board if file missing or malformed (and create it)
+    const b = emptyBoard();
+    await ensureBoardFiles(b);
+    return b;
   }
+}
+
+async function ensureBoardFiles(board) {
+  const id = (board && typeof board.id === 'string' && board.id.trim()) ? board.id.trim() : 'board-1';
+  await fs.mkdir(boardDir(DATA_DIR, id), { recursive: true });
+  await fs.mkdir(boardUploadsDir(DATA_DIR, id), { recursive: true });
+  const p = boardJsonPath(DATA_DIR, id);
+  try { await fs.access(p); } catch { await fs.writeFile(p, JSON.stringify(board, null, 2), 'utf-8'); }
 }
 
 async function writeBoard(board) {
   const now = new Date().toISOString();
+  const id = (board && typeof board.id === 'string' && board.id.trim()) ? board.id.trim() : 'board-1';
+  board.id = id;
   board.updatedAt = now;
 
-  const tmp = BOARD_PATH + "." + crypto.randomBytes(4).toString("hex") + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(board, null, 2), "utf-8");
-  await fs.rename(tmp, BOARD_PATH);
+  await fs.mkdir(boardDir(DATA_DIR, id), { recursive: true });
+  await fs.mkdir(boardUploadsDir(DATA_DIR, id), { recursive: true });
+
+  const p = boardJsonPath(DATA_DIR, id);
+  const tmp = p + '.' + crypto.randomBytes(4).toString('hex') + '.tmp';
+  await fs.writeFile(tmp, JSON.stringify(board, null, 2), 'utf-8');
+  await fs.rename(tmp, p);
+
+  currentBoardId = id;
   return board;
 }
 
-// Image Uploads
-const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
-await fs.mkdir(UPLOAD_DIR, { recursive: true });
-app.use("/uploads", express.static(UPLOAD_DIR));
+app.get(/^\/uploads\/(.+)$/, async (req, res) => {
+  try {
+    const relRaw = req.params[0] || '';
+    // Normalize and prevent directory traversal
+    const rel = path.posix.normalize('/' + relRaw).replace(/^\/+/, '');
+    if (rel.includes('..')) return res.status(400).end();
+
+    const base = boardUploadsDir(DATA_DIR, currentBoardId);
+    const filePath = path.join(base, rel);
+    return res.sendFile(filePath);
+  } catch (e) {
+    return res.status(404).end();
+  }
+});
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -261,10 +332,12 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
       .replace(/[^a-zA-Z0-9-_\.]/g, "_")
       .slice(0, 40) || "img";
 
+    const UP_DIR = boardUploadsDir(DATA_DIR, currentBoardId);
+    await fs.mkdir(UP_DIR, { recursive: true });
     const fileName = `${safeBase}-${hash}-${stamp}.webp`;
-    const outPath = path.join(UPLOAD_DIR, fileName);
+    const outPath = path.join(UP_DIR, fileName);
     const thumbName = `${safeBase}-${hash}-${stamp}.thumb.webp`;
-    const thumbPath = path.join(UPLOAD_DIR, thumbName);
+    const thumbPath = path.join(UP_DIR, thumbName);
 
     // Transcode to WebP (auto-rotate by EXIF) and make a thumbnail
     const img = sharp(buf).rotate();

@@ -2,7 +2,7 @@
   "id": "board-1",
   "title": "Sri Lanka Protests – 2022 (Demo)",
   "createdAt": "2025-09-08T08:00:00.000Z",
-  "updatedAt": "2025-09-07T23:05:06.281Z",
+  "updatedAt": "2025-09-08T22:08:38.040Z",
   "nodes": [
     {
       "id": "n-overview",
@@ -32,7 +32,7 @@
         "html": "<ul><li>Spontaneous protests in Colombo and suburbs</li><li>Curfew periods announced/adjusted</li><li>Momentum grows toward a central camp</li></ul>",
         "tags": [
           "timeline",
-          "ts:2022-04-03T20:00",
+          "ts:2022-04-03t20:00",
           "phase:early"
         ]
       }
@@ -50,7 +50,7 @@
         "tags": [
           "location",
           "camp",
-          "ts:2022-04-09T10:00",
+          "ts:2022-04-09t10:00",
           "colombo"
         ]
       }
@@ -68,7 +68,7 @@
         "tags": [
           "timeline",
           "economy",
-          "ts:2022-06-20T08:00"
+          "ts:2022-06-20t08:00"
         ]
       }
     },
@@ -85,7 +85,7 @@
         "tags": [
           "timeline",
           "turning-point",
-          "ts:2022-07-09T15:00",
+          "ts:2022-07-09t15:00",
           "colombo"
         ]
       }
@@ -93,8 +93,8 @@
     {
       "id": "n-pres-house",
       "type": "image",
-      "x": 1724,
-      "y": 365,
+      "x": 1557,
+      "y": 351,
       "w": 360,
       "data": {
         "title": "Colombo: Central Precinct (illustrative)",
@@ -103,7 +103,7 @@
         "tags": [
           "illustration",
           "location",
-          "ts:2022-07-09T16:00"
+          "ts:2022-07-09t16:00"
         ]
       }
     },
@@ -120,7 +120,7 @@
         "tags": [
           "source",
           "media",
-          "ts:2022-07-10T09:00"
+          "ts:2022-07-10t09:00"
         ],
         "preview": {
           "url": "https://www.youtube.com/",
@@ -135,8 +135,8 @@
     {
       "id": "n-legal-aid",
       "type": "text",
-      "x": 1204,
-      "y": 604,
+      "x": 1053,
+      "y": 537,
       "w": 380,
       "data": {
         "title": "Support & Legal Aid",
@@ -145,7 +145,7 @@
         "tags": [
           "support",
           "camp",
-          "ts:2022-05-01T11:00"
+          "ts:2022-05-01t11:00"
         ]
       }
     },
@@ -161,7 +161,7 @@
         "html": "<p>Selected incidents across dates (high level). Add your own entries per report and tag them with <code>ts:YYYY-MM-DDTHH:mm</code> for filtering.</p>",
         "tags": [
           "incidents",
-          "ts:2022-05-09T14:00"
+          "ts:2022-05-09t14:00"
         ]
       }
     },
@@ -178,7 +178,7 @@
         "tags": [
           "map",
           "reference",
-          "ts:2022-04-10T09:00"
+          "ts:2022-04-10t09:00"
         ],
         "preview": {
           "url": "https://www.openstreetmap.org/#map=7/7.87/80.77",
@@ -203,7 +203,7 @@
         "tags": [
           "source",
           "background",
-          "ts:2022-04-15T12:00"
+          "ts:2022-04-15t12:00"
         ],
         "preview": {
           "url": "https://www.bbc.com/",
@@ -228,7 +228,7 @@
         "tags": [
           "illustration",
           "camp",
-          "ts:2022-04-20T10:00"
+          "ts:2022-04-20t10:00"
         ]
       }
     },
@@ -253,68 +253,62 @@
     {
       "id": "e1",
       "sourceId": "n-overview",
-      "targetId": "n-early-apr",
-      "label": "early phase"
+      "targetId": "n-early-apr"
     },
     {
       "id": "e2",
       "sourceId": "n-early-apr",
-      "targetId": "n-gotagogama",
-      "label": "camp forms"
+      "targetId": "n-gotagogama"
     },
     {
       "id": "e3",
       "sourceId": "n-gotagogama",
-      "targetId": "n-photos",
-      "label": "illustration"
+      "targetId": "n-photos"
     },
     {
       "id": "e4",
       "sourceId": "n-early-apr",
-      "targetId": "n-june-fuel",
-      "label": "escalation"
+      "targetId": "n-june-fuel"
     },
     {
       "id": "e5",
       "sourceId": "n-june-fuel",
-      "targetId": "n-july9-march",
-      "label": "build-up"
+      "targetId": "n-july9-march"
     },
     {
       "id": "e6",
       "sourceId": "n-july9-march",
-      "targetId": "n-pres-house",
-      "label": "central sites"
+      "targetId": "n-pres-house"
     },
     {
       "id": "e7",
       "sourceId": "n-july9-march",
-      "targetId": "n-social",
-      "label": "public footage"
+      "targetId": "n-social"
     },
     {
       "id": "e8",
       "sourceId": "n-gotagogama",
-      "targetId": "n-legal-aid",
-      "label": "support"
+      "targetId": "n-legal-aid"
     },
     {
       "id": "e9",
       "sourceId": "n-legal-aid",
-      "targetId": "n-hypothesis",
-      "label": "context"
+      "targetId": "n-hypothesis"
     },
     {
       "id": "e10",
       "sourceId": "n-reading",
-      "targetId": "n-hypothesis",
-      "label": "background"
+      "targetId": "n-hypothesis"
     },
     {
       "id": "e11",
       "sourceId": "n-maps",
-      "targetId": "n-hypothesis",
-      "label": "geo ref"
+      "targetId": "n-hypothesis"
+    },
+    {
+      "id": "e-cpsv4z",
+      "sourceId": "n-overview",
+      "targetId": "n-legal-aid"
     }
   ]
 }
