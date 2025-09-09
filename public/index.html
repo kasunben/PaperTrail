@@ -334,7 +334,7 @@
       .node .title {
         padding-left: 18px;
       }
-
+      .node-link .content .rich { margin-top: 5px;}
       body.connect-mode .node .port {
         background: #ef4444; /* red */
         border-color: #b91c1c;
@@ -628,8 +628,9 @@
         font-size: 12px;
         max-height: 2.6em;
         overflow: hidden;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
+        display: -webkit-box; /* legacy clamp layout */
+        line-clamp: 2;        /* standard property */
+        -webkit-line-clamp: 2; /* vendor fallback */
         -webkit-box-orient: vertical;
       }
       .link-card .site {
@@ -1173,7 +1174,7 @@
         let el = document.getElementById(n.id);
         if (!el) {
           el = document.createElement("div");
-          el.className = "node";
+          el.className = "node node-" + n.type;
           el.id = n.id;
           el.innerHTML = `
             <div class="title editable-hint" contenteditable="true" data-placeholder="Untitled"></div>
@@ -1339,6 +1340,11 @@
         if (n.h) el.style.height = n.h + "px";
         else el.style.removeProperty("height");
         el.classList.toggle("selected", selectedNodeId === n.id);
+        // Ensure node type class is correct (in case type changed)
+        el.classList.forEach(c => {
+          if (c.startsWith("node-") && c !== "node") el.classList.remove(c);
+        });
+        el.classList.add("node-" + n.type);
 
         const titleEl = el.querySelector(".title");
         titleEl.setAttribute(
