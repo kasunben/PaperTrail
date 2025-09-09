@@ -12,6 +12,8 @@ import unzipper from "unzipper";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const schemaVersion = 1;
+
 // Per-board storage helpers
 function boardDir(root, id) { return path.join(root, id); }
 function boardJsonPath(root, id) { return path.join(boardDir(root, id), 'board.json'); }
@@ -149,6 +151,7 @@ function sanitizeBoard(incoming) {
     if (!out.nodes.find((n) => n.id === e.targetId)) continue;
     out.edges.push(e);
   }
+  out.schemaVersion = schemaVersion;
   return out;
 }
 /** end of Helpers */
@@ -229,6 +232,7 @@ try {
 function emptyBoard() {
   const now = new Date().toISOString();
   return {
+    schemaVersion: schemaVersion,
     id: "board-1",
     title: "My Evidence Board",
     nodes: [],
@@ -269,6 +273,7 @@ async function writeBoard(board) {
   const id = (board && typeof board.id === 'string' && board.id.trim()) ? board.id.trim() : 'board-1';
   board.id = id;
   board.updatedAt = now;
+  board.schemaVersion = schemaVersion;
 
   await fs.mkdir(boardDir(DATA_DIR, id), { recursive: true });
   await fs.mkdir(boardUploadsDir(DATA_DIR, id), { recursive: true });
