@@ -483,6 +483,9 @@
         text-decoration: underline;
       }
       /* Discoverable editable areas */
+      .title[contenteditable="false"] {
+        cursor: pointer; /* single-click selects; dblclick enables editing */
+      }
       .title[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
@@ -1177,7 +1180,7 @@
           el.className = "node node-" + n.type;
           el.id = n.id;
           el.innerHTML = `
-            <div class="title editable-hint" contenteditable="true" data-placeholder="Untitled"></div>
+            <div class="title editable-hint" contenteditable="false" data-placeholder="Untitled"></div>
             <div class="content"></div>
             <div class="ports"><div class="port"></div></div>
           `;
@@ -1308,6 +1311,39 @@
             markDirty();
             updateBoardExtent();
             renderEdges(); // keep connections glued to borders as size changes
+          });
+          // Make title editable only after a double-click
+          let _preEditTitle = null;
+          function placeCaretAtEnd(node){
+            const r = document.createRange();
+            r.selectNodeContents(node);
+            r.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(r);
+          }
+          titleEl.addEventListener("dblclick", (ev) => {
+            ev.stopPropagation();
+            _preEditTitle = titleEl.textContent;
+            titleEl.setAttribute("contenteditable", "true");
+            // focus at end
+            setTimeout(() => { titleEl.focus(); placeCaretAtEnd(titleEl); }, 0);
+          });
+          // Press Enter to commit, Esc to cancel
+          titleEl.addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter") {
+              ev.preventDefault();
+              titleEl.blur();
+            } else if (ev.key === "Escape") {
+              ev.preventDefault();
+              if (_preEditTitle != null) titleEl.textContent = _preEditTitle;
+              titleEl.blur();
+            }
+          });
+          titleEl.addEventListener("blur", () => {
+            // When leaving edit mode, lock it back
+            titleEl.setAttribute("contenteditable", "false");
+            _preEditTitle = null;
           });
           el.addEventListener("dblclick", (ev) => {
             if (n.type === "text") {
