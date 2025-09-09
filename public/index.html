@@ -405,6 +405,13 @@
       .edge.dashed {
         stroke-dasharray: 6 6;
       }
+      .edge.ghost {
+        stroke: #9ca3af; /* muted */
+        stroke-width: 2;
+        fill: none;
+        stroke-dasharray: 6 6;
+        pointer-events: none; /* don't block clicks */
+      }
       .edge-label {
         fill: #374151;
         font-size: 11px;
@@ -945,6 +952,51 @@
       let lastSavedJSON = null;
       let APP_VERSION = "—"; // populated from /api/version
 
+      // Ghost edge state
+      let ghostPath = null; // SVGPathElement
+      let lastMouse = { x: 0, y: 0 };
+
+      function ensureGhostPath() {
+        if (!ghostPath) {
+          ghostPath = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          ghostPath.setAttribute("class", "edge ghost");
+          edgesSvg.appendChild(ghostPath);
+        } else if (!edgesSvg.contains(ghostPath)) {
+          edgesSvg.appendChild(ghostPath);
+        }
+      }
+      function hideGhost() {
+        if (ghostPath) ghostPath.setAttribute("d", "");
+      }
+      function boardPointFromClient(ev) {
+        const rect = boardEl.getBoundingClientRect();
+        return {
+          x: boardEl.scrollLeft + (ev.clientX - rect.left),
+          y: boardEl.scrollTop + (ev.clientY - rect.top),
+        };
+      }
+      function renderGhostEdge() {
+        if (!connectMode || !connectFromId) {
+          hideGhost();
+          return;
+        }
+        const src = board.nodes.find((n) => n.id === connectFromId);
+        if (!src) {
+          hideGhost();
+          return;
+        }
+        // Use the same smooth cubic logic as permanent edges
+        const mx = lastMouse.x,
+          my = lastMouse.y;
+        const a1 = anchorPoint(src, mx, my);
+        const a2 = mouseAnchor(src, mx, my);
+        ensureGhostPath();
+        ghostPath.setAttribute("d", smoothCubic(a1, a2));
+      }
+
       function adjustBoardHeight() {
         const tb = toolbarEl ? toolbarEl.offsetHeight : 0;
         // 24px = status bar height
@@ -952,6 +1004,16 @@
         updateBoardExtent();
       }
       window.addEventListener("resize", adjustBoardHeight);
+
+      boardEl.addEventListener("mousemove", (ev) => {
+        lastMouse = boardPointFromClient(ev);
+        if (connectMode && connectFromId) renderGhostEdge();
+      });
+      // Also update when moving over the SVG layer (useful when pointer leaves node area)
+      edgesSvg.addEventListener("mousemove", (ev) => {
+        lastMouse = boardPointFromClient(ev);
+        if (connectMode && connectFromId) renderGhostEdge();
+      });
 
       // Unified status & mode controller
       const ui = {
@@ -1386,9 +1448,11 @@
               if (!connectFromId) {
                 connectFromId = n.id;
                 showStatus("Source selected. Pick a target.", { ttl: 2200 });
+                renderGhostEdge();
               } else {
                 addEdge(connectFromId, n.id);
                 connectFromId = null;
+                hideGhost();
                 showStatus("Connected.", { ttl: 1800 });
               }
               ev.stopPropagation();
@@ -1825,6 +1889,39 @@
         }
       }
 
+      function oppositeSide(side) {
+        switch (side) {
+          case "left":
+            return "right";
+          case "right":
+            return "left";
+          case "top":
+            return "bottom";
+          case "bottom":
+            return "top";
+          default:
+            return "right";
+        }
+      }
+
+      // Build a synthetic “target” anchor at the mouse so the curve bends nicely.
+      // We pick the side opposite to where the mouse is relative to the source node,
+      // so control points push outward (pleasant S-curve).
+      function mouseAnchor(fromNode, mx, my) {
+        const b = nodeBounds(fromNode);
+        const cx = b.x + (b.w || 0) / 2;
+        const cy = b.y + (b.h || 0) / 2;
+        const dx = mx - cx;
+        const dy = my - cy;
+        let side;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          side = dx >= 0 ? "left" : "right"; // opposite of mouse horizontal side
+        } else {
+          side = dy >= 0 ? "top" : "bottom"; // opposite of mouse vertical side
+        }
+        return { x: mx, y: my, side };
+      }
+
       // Smooth cubic path between two anchors, with curvature adaptive to distance
       function smoothCubic(a, b) {
         const x1 = a.x,
@@ -2018,6 +2115,12 @@
           g.appendChild(endCircle);
 
           edgesSvg.appendChild(g);
+        }
+        // Re-draw ghost on top if we're mid-connection
+        if (connectMode && connectFromId) {
+          renderGhostEdge();
+        } else {
+          hideGhost();
         }
       }
 
@@ -2396,8 +2499,24 @@
         if (e.target === aboutModal) closeAbout();
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && aboutModal.classList.contains("show"))
-          closeAbout();
+        if (e.key === "Escape") {
+          if (aboutModal.classList.contains("show")) closeAbout();
+          if (connectMode && connectFromId) {
+            connectFromId = null;
+            hideGhost();
+            showStatus("Connect cancelled");
+          }
+        }
+      });
+
+      boardEl.addEventListener("mousedown", (ev) => {
+        if (!ev.target || ev.target === boardEl) {
+          if (connectMode && connectFromId) {
+            connectFromId = null;
+            hideGhost();
+            showStatus("Connect cancelled");
+          }
+        }
       });
       importFile.addEventListener("change", async (e) => {
         const file = e.target.files?.[0];
