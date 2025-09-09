@@ -1775,125 +1775,125 @@
         edgesSvg.style.height = h + "px";
       }
 
-function renderEdges() {
-  edgesSvg.innerHTML = "";
-  updateBoardExtent();
-  if (!visibleNodeIds) {
-    visibleNodeIds = new Set(board.nodes.map((n) => n.id));
-  }
+      function renderEdges() {
+        edgesSvg.innerHTML = "";
+        updateBoardExtent();
+        if (!visibleNodeIds) {
+          visibleNodeIds = new Set(board.nodes.map((n) => n.id));
+        }
 
-  for (const e of board.edges) {
-    const s = board.nodes.find((n) => n.id === e.sourceId);
-    const t = board.nodes.find((n) => n.id === e.targetId);
-    if (!s || !t) continue;
-    if (!visibleNodeIds.has(s.id) || !visibleNodeIds.has(t.id)) continue;
-    const sc = centerOf(s);
-    const tc = centerOf(t);
-    const a1 = anchorPoint(s, tc.cx, tc.cy);
-    const a2 = anchorPoint(t, sc.cx, sc.cy);
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("data-id", e.id);
+        for (const e of board.edges) {
+          const s = board.nodes.find((n) => n.id === e.sourceId);
+          const t = board.nodes.find((n) => n.id === e.targetId);
+          if (!s || !t) continue;
+          if (!visibleNodeIds.has(s.id) || !visibleNodeIds.has(t.id)) continue;
+          const sc = centerOf(s);
+          const tc = centerOf(t);
+          const a1 = anchorPoint(s, tc.cx, tc.cy);
+          const a2 = anchorPoint(t, sc.cx, sc.cy);
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.setAttribute("data-id", e.id);
 
-    // Path
-    const path = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
-    path.setAttribute("d", smoothCubic(a1, a2));
-    let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
-    if (e.dashed) cls += " dashed";
-    path.setAttribute("class", cls);
-    if (e.color) {
-      // Use inline style so it overrides the .edge CSS rule
-      path.style.stroke = e.color;
-    } else {
-      path.style.stroke = null; // fall back to CSS (.edge { stroke: red; })
-    }
-    path.dataset.id = e.id;
+          // Path
+          const path = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path"
+          );
+          path.setAttribute("d", smoothCubic(a1, a2));
+          let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
+          if (e.dashed) cls += " dashed";
+          path.setAttribute("class", cls);
+          if (e.color) {
+            // Use inline style so it overrides the .edge CSS rule
+            path.style.stroke = e.color;
+          } else {
+            path.style.stroke = null; // fall back to CSS (.edge { stroke: red; })
+          }
+          path.dataset.id = e.id;
 
-    // Label (optional)
-    if (e.label) {
-      const tx = (a1.x + a2.x) / 2;
-      const ty = (a1.y + a2.y) / 2 - 2; // closer to the curve
-      const text = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "text"
-      );
-      text.setAttribute("x", tx);
-      text.setAttribute("y", ty);
-      text.setAttribute("class", "edge-label");
-      text.textContent = e.label;
+          // Label (optional)
+          if (e.label) {
+            const tx = (a1.x + a2.x) / 2;
+            const ty = (a1.y + a2.y) / 2 - 2; // closer to the curve
+            const text = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "text"
+            );
+            text.setAttribute("x", tx);
+            text.setAttribute("y", ty);
+            text.setAttribute("class", "edge-label");
+            text.textContent = e.label;
 
-      // Click/ctx on label behave like the edge
-      text.addEventListener("click", (ev) => {
-        selectedNodeId = null;
-        selectedEdgeId = e.id;
-        updateSelections();
-        ev.stopPropagation();
-        return false;
-      });
-      text.addEventListener("contextmenu", (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        selectedNodeId = null;
-        selectedEdgeId = e.id;
-        updateSelections();
-        showContextMenu(ev.clientX, ev.clientY, {
-          type: "edge",
-          id: e.id,
-        });
-        return false;
-      });
-      g.appendChild(text);
-    }
+            // Click/ctx on label behave like the edge
+            text.addEventListener("click", (ev) => {
+              selectedNodeId = null;
+              selectedEdgeId = e.id;
+              updateSelections();
+              ev.stopPropagation();
+              return false;
+            });
+            text.addEventListener("contextmenu", (ev) => {
+              ev.preventDefault();
+              ev.stopPropagation();
+              selectedNodeId = null;
+              selectedEdgeId = e.id;
+              updateSelections();
+              showContextMenu(ev.clientX, ev.clientY, {
+                type: "edge",
+                id: e.id,
+              });
+              return false;
+            });
+            g.appendChild(text);
+          }
 
-    // Events on path
-    path.addEventListener("click", (ev) => {
-      selectedNodeId = null;
-      selectedEdgeId = e.id;
-      updateSelections();
-      ev.stopPropagation();
-      return false;
-    });
-    path.addEventListener("contextmenu", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      selectedNodeId = null;
-      selectedEdgeId = e.id;
-      updateSelections();
-      showContextMenu(ev.clientX, ev.clientY, { type: "edge", id: e.id });
-      return false;
-    });
+          // Events on path
+          path.addEventListener("click", (ev) => {
+            selectedNodeId = null;
+            selectedEdgeId = e.id;
+            updateSelections();
+            ev.stopPropagation();
+            return false;
+          });
+          path.addEventListener("contextmenu", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            selectedNodeId = null;
+            selectedEdgeId = e.id;
+            updateSelections();
+            showContextMenu(ev.clientX, ev.clientY, { type: "edge", id: e.id });
+            return false;
+          });
 
-    g.appendChild(path);
+          g.appendChild(path);
 
-    // Add endpoint circles
-    const startCircle = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
-    startCircle.setAttribute("cx", a1.x);
-    startCircle.setAttribute("cy", a1.y);
-    startCircle.setAttribute("r", "4");
-    startCircle.setAttribute("class", "edge-endpoint");
+          // Add endpoint circles
+          const startCircle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          startCircle.setAttribute("cx", a1.x);
+          startCircle.setAttribute("cy", a1.y);
+          startCircle.setAttribute("r", "4");
+          startCircle.setAttribute("class", "edge-endpoint");
 
-    const endCircle = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
-    endCircle.setAttribute("cx", a2.x);
-    endCircle.setAttribute("cy", a2.y);
-    endCircle.setAttribute("r", "4");
-    endCircle.setAttribute("class", "edge-endpoint");
+          const endCircle = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+          endCircle.setAttribute("cx", a2.x);
+          endCircle.setAttribute("cy", a2.y);
+          endCircle.setAttribute("r", "4");
+          endCircle.setAttribute("class", "edge-endpoint");
 
-    g.appendChild(startCircle);
-    g.appendChild(endCircle);
+          g.appendChild(startCircle);
+          g.appendChild(endCircle);
 
-    edgesSvg.appendChild(g);
-  }
-  // draw temporary connecting edge last so it stays on top
-  renderTempConnect();
-}
+          edgesSvg.appendChild(g);
+        }
+        // draw temporary connecting edge last so it stays on top
+        renderTempConnect();
+      }
 
       function updateSelections() {
         // nodes
