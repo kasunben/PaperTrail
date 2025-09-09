@@ -334,7 +334,9 @@
       .node .title {
         padding-left: 18px;
       }
-      .node-link .content .rich { margin-top: 5px;}
+      .node-link .content .rich {
+        margin-top: 5px;
+      }
       body.connect-mode .node .port {
         background: #ef4444; /* red */
         border-color: #b91c1c;
@@ -632,7 +634,7 @@
         max-height: 2.6em;
         overflow: hidden;
         display: -webkit-box; /* legacy clamp layout */
-        line-clamp: 2;        /* standard property */
+        line-clamp: 2; /* standard property */
         -webkit-line-clamp: 2; /* vendor fallback */
         -webkit-box-orient: vertical;
       }
@@ -675,6 +677,63 @@
       }
       .statusbar #status {
         color: #000;
+      }
+      /* About modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .modal-backdrop.show {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        width: min(560px, 90vw);
+        max-height: 80vh;
+        overflow: auto;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      }
+      .modal header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .modal header h3 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .modal header button {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6b7280;
+      }
+      .modal header button:hover {
+        color: #111827;
+      }
+      .modal .body {
+        padding: 0 25px 25px;
+        font-size: smaller;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .kv div {
+        padding: 2px 0;
       }
     </style>
   </head>
@@ -786,6 +845,13 @@
           <path d="M3 4v6h6" />
         </svg>
       </button>
+      <button id="infoBtn" class="btn-icon" title="About / Info">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="8" r="1.4" />
+          <path d="M12 11v5" stroke-linecap="round" />
+        </svg>
+      </button>
     </div>
     <div class="board" id="board">
       <div id="boardSizer"></div>
@@ -797,6 +863,65 @@
       <span class="hint" id="modeHint"
         >💡 Mode: Select/Move. Press C to toggle connect mode.</span
       >
+    </div>
+    <div
+      id="aboutModal"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="aboutTitle"
+    >
+      <div class="modal">
+        <header>
+          <h3 id="aboutTitle">
+            PaperTrail — map your evidence, follow the story
+          </h3>
+          <button type="button" id="aboutClose" aria-label="Close">✕</button>
+        </header>
+        <div class="body">
+          <p>
+            <em>PaperTrail</em> is a lightweight visual evidence board for
+            organizing ideas, documents, images, and links. It lets you pin down
+            pieces of information, connect them freely, and uncover patterns.
+            Whether you’re researching, investigating, or just making sense of
+            complex projects, PaperTrail helps you create a clear trail of
+            evidence you can return to and share.
+          </p>
+          <p>
+            At this stage, PaperTrail is designed as a single-user,
+            single-workspace app. That means there is only one active board
+            available at a time. Features such as real-time collaboration,
+            multi-user access, or simultaneous editing are not yet supported.
+          </p>
+          <p>
+            If you want to manage multiple boards or workspaces, you can still
+            do so manually using the Import/Export features:
+          </p>
+          <ul>
+            <li>Export your current board as a .zip file to save it.</li>
+            <li>
+              Import a previously exported board to continue working on it.
+            </li>
+            <li>
+              You are responsible for organizing these exported files if you
+              wish to maintain multiple workspaces.
+            </li>
+          </ul>
+          <p>
+            This setup is lightweight and simple, making it ideal for solo use,
+            prototyping, or testing out ideas. Future versions of PaperTrail may
+            add multi-board support and collaboration features.
+          </p>
+          <div class="kv">
+            <div>App version</div>
+            <div id="aboutAppVersion">—</div>
+            <div>Schema version</div>
+            <div id="aboutSchemaVersion">—</div>
+            <div>Current board</div>
+            <div id="aboutBoardName">—</div>
+          </div>
+        </div>
+      </div>
     </div>
     <script>
       /** Types (informal)
@@ -814,7 +939,11 @@
       const importBtn = document.getElementById("importBtn");
       const importFile = document.getElementById("importFile");
       const searchInput = document.getElementById("search");
+      const infoBtn = document.getElementById("infoBtn");
+      const aboutModal = document.getElementById("aboutModal");
+      const aboutClose = document.getElementById("aboutClose");
       let lastSavedJSON = null;
+      let APP_VERSION = "—"; // populated from /api/version
 
       function adjustBoardHeight() {
         const tb = toolbarEl ? toolbarEl.offsetHeight : 0;
@@ -1314,7 +1443,7 @@
           });
           // Make title editable only after a double-click
           let _preEditTitle = null;
-          function placeCaretAtEnd(node){
+          function placeCaretAtEnd(node) {
             const r = document.createRange();
             r.selectNodeContents(node);
             r.collapse(false);
@@ -1327,7 +1456,10 @@
             _preEditTitle = titleEl.textContent;
             titleEl.setAttribute("contenteditable", "true");
             // focus at end
-            setTimeout(() => { titleEl.focus(); placeCaretAtEnd(titleEl); }, 0);
+            setTimeout(() => {
+              titleEl.focus();
+              placeCaretAtEnd(titleEl);
+            }, 0);
           });
           // Press Enter to commit, Esc to cancel
           titleEl.addEventListener("keydown", (ev) => {
@@ -1377,7 +1509,7 @@
         else el.style.removeProperty("height");
         el.classList.toggle("selected", selectedNodeId === n.id);
         // Ensure node type class is correct (in case type changed)
-        el.classList.forEach(c => {
+        el.classList.forEach((c) => {
           if (c.startsWith("node-") && c !== "node") el.classList.remove(c);
         });
         el.classList.add("node-" + n.type);
@@ -2223,6 +2355,32 @@
       renderStatusBar();
       adjustBoardHeight();
 
+      // Load app + schema version from server
+      (async () => {
+        try {
+          const r = await fetch("/api/version");
+          if (r.ok) {
+            const j = await r.json();
+            if (j && typeof j.version === "string") APP_VERSION = j.version;
+            if (j && typeof j.schemaVersion !== "undefined") {
+              if (!board.schemaVersion) board.schemaVersion = j.schemaVersion;
+            }
+          }
+        } catch {}
+      })();
+      function openAbout() {
+        document.getElementById("aboutAppVersion").textContent = APP_VERSION;
+        document.getElementById("aboutSchemaVersion").textContent = String(
+          board.schemaVersion || 1
+        );
+        document.getElementById("aboutBoardName").textContent =
+          board.title || "Untitled Board";
+        aboutModal.classList.add("show");
+      }
+      function closeAbout() {
+        aboutModal.classList.remove("show");
+      }
+
       // Toolbar wiring
       $("#addText").onclick = () =>
         addNode("text", viewCenter(), { text: "New note..." });
@@ -2232,6 +2390,15 @@
       document.getElementById("autoLayout").onclick = () => autoLayout("LR");
       exportBtn.onclick = exportBoard;
       importBtn.onclick = () => importFile.click();
+      infoBtn.addEventListener("click", openAbout);
+      aboutClose.addEventListener("click", closeAbout);
+      aboutModal.addEventListener("click", (e) => {
+        if (e.target === aboutModal) closeAbout();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && aboutModal.classList.contains("show"))
+          closeAbout();
+      });
       importFile.addEventListener("change", async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -2347,6 +2514,34 @@
           y: boardEl.scrollTop + rect.height / 2 - 60,
         };
       }
+
+      /** Info Button */
+      function openAbout() {
+        document.getElementById("aboutAppVersion").textContent = APP_VERSION;
+        document.getElementById("aboutSchemaVersion").textContent = String(
+          board.schemaVersion || 1
+        );
+        document.getElementById("aboutBoardName").textContent =
+          board.title || "Untitled Board";
+        aboutModal.classList.add("show");
+      }
+
+      function closeAbout() {
+        aboutModal.classList.remove("show");
+      }
+
+      infoBtn.addEventListener("click", openAbout);
+      aboutClose.addEventListener("click", closeAbout);
+      // Close when clicking the backdrop
+      aboutModal.addEventListener("click", (e) => {
+        if (e.target === aboutModal) closeAbout();
+      });
+      // Close on Esc
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && aboutModal.classList.contains("show"))
+          closeAbout();
+      });
+      /** end of Info Button */
 
       function toggleConnectMode() {
         connectMode = !connectMode;

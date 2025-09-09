@@ -183,6 +183,14 @@ app.use(express.static(path.join(__dirname, "public")));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 await fs.mkdir(DATA_DIR, { recursive: true });
 
+// Read app version from package.json once at startup
+let APP_VERSION = "0.0.0";
+try {
+  const pkgRaw = await fs.readFile(path.join(__dirname, 'package.json'), 'utf-8');
+  const pkg = JSON.parse(pkgRaw);
+  if (pkg && typeof pkg.version === 'string') APP_VERSION = pkg.version;
+} catch {}
+
 // Detect and migrate old layout if needed: data/board.json and data/uploads -> data/board-1/{board.json,uploads}
 let currentBoardId = 'board-1';
 const OLD_BOARD_PATH = path.join(DATA_DIR, 'board.json');
@@ -732,6 +740,11 @@ app.post("/api/link-preview", async (req, res) => {
     console.error("/api/link-preview error", err);
     res.status(500).json({ error: "Preview failed" });
   }
+});
+
+// Expose version + schema information for the client
+app.get('/api/version', (_req, res) => {
+  res.json({ version: APP_VERSION, schemaVersion });
 });
 
 const PORT = process.env.PORT || 5173;
