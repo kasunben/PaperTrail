@@ -1030,9 +1030,15 @@
       function setConnectMode(on) {
         ui.connectMode = !!on;
         document.body.classList.toggle("connect-mode", ui.connectMode);
-        document
-          .getElementById("connect")
-          .classList.toggle("active", ui.connectMode);
+        const connectBtn = document.getElementById("connect");
+        connectBtn.classList.toggle("active", ui.connectMode);
+
+        // Disable/enable other toolbar controls
+        document.querySelectorAll(".toolbar button").forEach((btn) => {
+          if (btn.id === "connect") return;
+          btn.disabled = ui.connectMode;
+        });
+
         renderStatusBar();
       }
 
