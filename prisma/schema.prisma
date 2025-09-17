@@ -1,0 +1,73 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Board {
+  id            String   @id
+  title         String
+  schemaVersion Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  nodes         Node[]
+  edges         Edge[]
+}
+
+model Node {
+  id       String  @id
+  boardId  String
+  type     String
+  x        Int
+  y        Int
+  w        Int?
+  h        Int?
+
+  // content fields expected by server.mjs
+  title    String?
+  text     String?
+  html     String?
+  descHtml String?
+  linkUrl  String?
+  imageUrl String?
+
+  board    Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tags     NodeTag[]
+
+  @@index([boardId])
+}
+
+model Edge {
+  id       String @id
+  boardId  String
+  sourceId String
+  targetId String
+  label    String?
+  dashed   Boolean @default(false)
+  color    String?
+
+  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@index([sourceId])
+  @@index([targetId])
+}
+
+model Tag {
+  id    String  @id
+  name  String  @unique
+  nodes NodeTag[]
+}
+
+model NodeTag {
+  nodeId String
+  tagId  String
+
+  node   Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([nodeId, tagId])
+}

@@ -18,10 +18,17 @@ This setup is lightweight and simple, making it ideal for solo use, prototyping,
 ```bash
 git clone git@github.com:kasunben/PaperTrail.git
 cd PaperTrail
+cp .env.example .env
 npm i
 ```
 
-Use `npm run start:dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
+**Sync Databse with Prisma schema.**
+
+```bash
+npx prisma db push
+```
+
+Use `npm run dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
 
 ## License
 

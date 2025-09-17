@@ -1,8 +1,13 @@
 .DS_Store
 node_modules
-node_modules/*
 
-/data/uploads/**
-/data/*/uploads/**
 /data/.import-*.zip
 /data/.probe-*.zip
+
+/generated/prisma
+/prisma/data/papertrail.db
+
+.env
+
+/data/uploads/*
+!/data/uploads/.gitkeep
