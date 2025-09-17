@@ -79,9 +79,11 @@ async function writeBoardToDb(cleanBoard) {
       update: { title, schemaVersion },
     });
 
-    await tx.nodeTag.deleteMany({ where: { node: { boardId: id } } });
-    await tx.node.deleteMany({ where: { boardId: id } });
-    await tx.edge.deleteMany({ where: { boardId: id } });
+    await Promise.all([
+      tx.nodeTag.deleteMany({ where: { node: { boardId: id } } }),
+      tx.node.deleteMany({ where: { boardId: id } }),
+      tx.edge.deleteMany({ where: { boardId: id } }),
+    ]);
 
     for (const n of nodes) {
       await tx.node.create({
