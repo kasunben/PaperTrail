@@ -51,18 +51,17 @@
 
     <style>
       :root {
-        --bg: #ffffff;
-        --panel: #111827;
-        --muted: #9ca3af;
-        --ink: #e5e7eb;
-        --accent: #60a5fa;
+        --color-bg: #ffffff;
+        --color-muted: #9ca3af;
+        --color-ink: #e5e7eb;
+        --color-accent: #60a5fa;
       }
       html,
       body {
         margin: 0;
         height: 100%;
-        background: var(--bg);
-        color: var(--ink);
+        background: var(--color-bg);
+        color: var(--color-ink);
         font: 14px/1.4 ui-sans-serif, system-ui;
       }
       .app-title {
@@ -254,7 +253,7 @@
           100% - 24px
         ); /* refined by JS to subtract toolbar height */
         overflow: auto;
-        background-image: radial-gradient(var(--muted) 1px, transparent 1px);
+        background-image: radial-gradient(var(--color-muted) 1px, transparent 1px);
         background-size: 16px 16px;
         background-position: -1px -1px;
       }
@@ -353,7 +352,7 @@
         box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
       }
       .node.selected {
-        outline: 2px solid var(--accent);
+        outline: 2px solid var(--color-accent);
       }
       /* Resize handle */
       .resizer {
@@ -397,7 +396,7 @@
         pointer-events: none;
       }
       .edge.selected {
-        stroke: var(--accent);
+        stroke: var(--color-accent);
         stroke-width: 3;
       }
       .edge:hover {
@@ -592,7 +591,7 @@
         filter: grayscale(0.3);
       }
       .highlight {
-        outline: 2px dashed var(--accent);
+        outline: 2px dashed var(--color-accent);
       }
       .add-desc {
         margin-top: 6px;
@@ -1896,21 +1895,6 @@
         }
       }
 
-      function oppositeSide(side) {
-        switch (side) {
-          case "left":
-            return "right";
-          case "right":
-            return "left";
-          case "top":
-            return "bottom";
-          case "bottom":
-            return "top";
-          default:
-            return "right";
-        }
-      }
-
       // Build a synthetic “target” anchor at the mouse so the curve bends nicely.
       // We pick the side opposite to where the mouse is relative to the source node,
       // so control points push outward (pleasant S-curve).
@@ -2247,16 +2231,6 @@
           if (match) visibleNodeIds.add(n.id);
         }
         renderEdges();
-      }
-
-      function slugify(s) {
-        return (s || "board")
-          .toString()
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-_]/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "");
       }
 
       function exportBoard() {

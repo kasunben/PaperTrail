@@ -8,18 +8,185 @@ import fetch from "node-fetch";
 import sharp from "sharp";
 import archiver from "archiver";
 import unzipper from "unzipper";
+import { PrismaClient } from "@prisma/client";
 
+// --- Prisma (SQLite) ---
+const prisma = new PrismaClient();
+
+// Handle Prisma connection errors and graceful shutdown
+async function connectPrisma() {
+  try {
+    await prisma.$connect();
+    console.log("Connected to the database.");
+  } catch (err) {
+    console.error("Failed to connect to the database:", err);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+async function gracefulShutdown(signal) {
+  console.log(`Received ${signal}. Closing database connection...`);
+  try {
+    await prisma.$disconnect();
+    console.log("Database connection closed.");
+  } catch (err) {
+    console.error("Error during disconnect:", err);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Immediately connect to the database on startup
+await connectPrisma();
+// --- Path Definitions ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// --- Constants / Variables ---
 const schemaVersion = 1;
 
-// Per-board storage helpers
-function boardDir(root, id) { return path.join(root, id); }
-function boardJsonPath(root, id) { return path.join(boardDir(root, id), 'board.json'); }
-function boardUploadsDir(root, id) { return path.join(boardDir(root, id), 'uploads'); }
+// --- Database Helpers ---
+async function readBoardFromDb(boardId) {
+  const b = await prisma.board.findUnique({
+    where: { id: boardId },
+    include: {
+      nodes: { include: { tags: { include: { tag: true } } } },
+      edges: true,
+    },
+  });
+  if (!b) return null;
+  return {
+    schemaVersion: b.schemaVersion ?? schemaVersion,
+    id: b.id,
+    title: b.title,
+    createdAt: (b.createdAt instanceof Date
+      ? b.createdAt
+      : new Date(b.createdAt)
+    ).toISOString(),
+    updatedAt: (b.updatedAt instanceof Date
+      ? b.updatedAt
+      : new Date(b.updatedAt)
+    ).toISOString(),
+    nodes: b.nodes.map((n) => ({
+      id: n.id,
+      type: n.type,
+      x: n.x,
+      y: n.y,
+      w: n.w ?? undefined,
+      h: n.h ?? undefined,
+      data: {
+        title: n.title ?? undefined,
+        text: n.text ?? undefined,
+        html: n.html ?? undefined,
+        descHtml: n.descHtml ?? undefined,
+        linkUrl: n.linkUrl ?? undefined,
+        imageUrl: n.imageUrl ?? undefined,
+        tags: n.tags.map((t) => t.tag.name),
+      },
+    })),
+    edges: b.edges.map((e) => ({
+      id: e.id,
+      sourceId: e.sourceId,
+      targetId: e.targetId,
+      label: e.label ?? undefined,
+      dashed: e.dashed || undefined,
+      color: e.color ?? undefined,
+    })),
+  };
+}
 
-/** Helpers */
+async function writeBoardToDb(cleanBoard) {
+  const { id, title, nodes, edges } = cleanBoard;
+  await prisma.$transaction(async (tx) => {
+    await tx.board.upsert({
+      where: { id },
+      create: { id, title, schemaVersion },
+      update: { title, schemaVersion },
+    });
+
+    await Promise.all([
+      tx.nodeTag.deleteMany({ where: { node: { boardId: id } } }),
+      tx.node.deleteMany({ where: { boardId: id } }),
+      tx.edge.deleteMany({ where: { boardId: id } }),
+    ]);
+
+    for (const n of nodes) {
+      await tx.node.create({
+        data: {
+          id: n.id,
+          boardId: id,
+          type: n.type,
+          x: Math.trunc(n.x),
+          y: Math.trunc(n.y),
+          w: Number.isFinite(n.w) ? Math.trunc(n.w) : null,
+          h: Number.isFinite(n.h) ? Math.trunc(n.h) : null,
+          title: n.data?.title ?? null,
+          text: n.data?.text ?? null,
+          html: n.data?.html ?? null,
+          descHtml: n.data?.descHtml ?? null,
+          linkUrl: n.data?.linkUrl ?? null,
+          imageUrl: n.data?.imageUrl ?? null,
+        },
+      });
+
+      const tags = Array.isArray(n.data?.tags) ? n.data.tags : [];
+      for (const raw of tags) {
+        const name = String(raw).trim().replace(/^#+/, "").toLowerCase();
+        if (!name) continue;
+        const tag = await tx.tag.upsert({
+          where: { name },
+          create: { id: `tag_${name}`, name },
+          update: {},
+        });
+        await tx.nodeTag.create({ data: { nodeId: n.id, tagId: tag.id } });
+      }
+    }
+
+    for (const e of edges) {
+      await tx.edge.create({
+        data: {
+          id: e.id,
+          boardId: id,
+          sourceId: e.sourceId,
+          targetId: e.targetId,
+          label: e.label ?? null,
+          dashed: !!e.dashed,
+          color: e.color ?? null,
+        },
+      });
+    }
+  });
+
+  return readBoardFromDb(id);
+}
+
+// --- Helpers ---
+
+// --- ID Helpers ---
+function genShortId(prefix = "b_") {
+  // ~8-char URL-safe id
+  const raw = crypto.randomBytes(6).toString("base64url");
+  const id = raw.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 8);
+  return prefix + id;
+}
+function isValidBoardId(v) {
+  return typeof v === "string" && /^[A-Za-z0-9_-]{3,32}$/.test(v);
+}
+function ensureBoardId(candidate, fallbackCurrent) {
+  if (isValidBoardId(candidate)) return candidate;
+  if (isValidBoardId(fallbackCurrent)) return fallbackCurrent;
+  return genShortId();
+}
+
+// Per-board storage helpers
+function boardUploadsDir(root, id) {
+  return path.join(root, "uploads", id);
+}
+
 function sanitizeUrl(u, opts = { allowRelative: true }) {
   if (!u || typeof u !== "string") return "";
   const s = u.trim();
@@ -125,9 +292,9 @@ function sanitizeEdge(edge, i = 0) {
   return e;
 }
 
-function sanitizeBoard(incoming) {
+function sanitizeBoard(incoming, fallbackId) {
   const out = {
-    id: "board-1",
+    id: ensureBoardId(incoming.id, fallbackId),
     title:
       typeof incoming.title === "string"
         ? incoming.title.slice(0, 256)
@@ -154,8 +321,8 @@ function sanitizeBoard(incoming) {
   out.schemaVersion = schemaVersion;
   return out;
 }
-/** end of Helpers */
 
+// --- App ---
 const app = express();
 
 app.use((req, res, next) => {
@@ -171,7 +338,7 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https: http:",
       "connect-src 'self'",
-      "frame-ancestors 'self'"
+      "frame-ancestors 'self'",
     ].join("; ")
   );
   next();
@@ -180,68 +347,88 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 await fs.mkdir(DATA_DIR, { recursive: true });
 
 // Read app version from package.json once at startup
 let APP_VERSION = "0.0.0";
 try {
-  const pkgRaw = await fs.readFile(path.join(__dirname, 'package.json'), 'utf-8');
+  const pkgRaw = await fs.readFile(
+    path.join(__dirname, "package.json"),
+    "utf-8"
+  );
   const pkg = JSON.parse(pkgRaw);
-  if (pkg && typeof pkg.version === 'string') APP_VERSION = pkg.version;
+  if (pkg && typeof pkg.version === "string") APP_VERSION = pkg.version;
 } catch {}
 
-// Detect and migrate old layout if needed: data/board.json and data/uploads -> data/board-1/{board.json,uploads}
-let currentBoardId = 'board-1';
-const OLD_BOARD_PATH = path.join(DATA_DIR, 'board.json');
-const OLD_UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
-const NEW_BOARD_JSON = boardJsonPath(DATA_DIR, currentBoardId);
+// Detect and migrate old layout into DB if needed (one-time)
+let currentBoardId = "";
+const OLD_BOARD_PATH = path.join(DATA_DIR, "board.json");
+const OLD_UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 
-try {
-  await fs.access(OLD_BOARD_PATH);
-  // Old layout detected; migrate
-  let oldBoard = emptyBoard();
-  try { oldBoard = JSON.parse(await fs.readFile(OLD_BOARD_PATH, 'utf-8')); } catch {}
-  const migratedId = (oldBoard && typeof oldBoard.id === 'string' && oldBoard.id.trim()) ? oldBoard.id.trim() : currentBoardId;
-  currentBoardId = migratedId;
-  const targetDir = boardDir(DATA_DIR, currentBoardId);
-  await fs.mkdir(targetDir, { recursive: true });
-  const targetJson = boardJsonPath(DATA_DIR, currentBoardId);
-  // Move board.json
-  await fs.rename(OLD_BOARD_PATH, targetJson).catch(async () => {
-    // If rename fails (cross-device), write instead
-    await fs.writeFile(targetJson, JSON.stringify(oldBoard || emptyBoard(), null, 2), 'utf-8');
-    await fs.unlink(OLD_BOARD_PATH).catch(() => {});
+async function importLegacyBoardIfAny() {
+  // If DB already has a board, skip
+  const existing = await prisma.board.findMany({
+    take: 1,
+    select: { id: true },
   });
-  // Move uploads dir if present
+  if (existing.length > 0) {
+    currentBoardId = existing[0].id;
+    return;
+  }
+
+  // If legacy JSON exists, import it
+  try {
+    await fs.access(OLD_BOARD_PATH);
+  } catch {
+    // No legacy file; ensure an empty board exists in DB
+    const empty = emptyBoard();
+    await writeBoardToDb(empty);
+    currentBoardId = empty.id;
+    return;
+  }
+
+  let legacy = emptyBoard();
+  try {
+    legacy = JSON.parse(await fs.readFile(OLD_BOARD_PATH, "utf-8"));
+  } catch {}
+
+  const clean = sanitizeBoard(legacy);
+  await writeBoardToDb(clean);
+  currentBoardId = clean.id;
+
+  // Move uploads/ into per-board dir structure (filesystem only)
   try {
     await fs.access(OLD_UPLOADS_DIR);
     const targetUploads = boardUploadsDir(DATA_DIR, currentBoardId);
     await fs.mkdir(targetUploads, { recursive: true });
-    // simple move: read filenames and rename into new dir
     const files = await fs.readdir(OLD_UPLOADS_DIR);
     for (const f of files) {
-      await fs.rename(path.join(OLD_UPLOADS_DIR, f), path.join(targetUploads, f)).catch(() => {});
+      try {
+        await fs.rename(
+          path.join(OLD_UPLOADS_DIR, f),
+          path.join(targetUploads, f)
+        );
+      } catch {}
     }
-    // try remove old dir
-    try { await fs.rmdir(OLD_UPLOADS_DIR); } catch {}
+    try {
+      await fs.rmdir(OLD_UPLOADS_DIR);
+    } catch {}
   } catch {}
-} catch {
-  // No old single-file layout; ensure new layout exists
-  const defaultJson = boardJsonPath(DATA_DIR, currentBoardId);
+
+  // Optionally remove old board.json to avoid confusion
   try {
-    await fs.access(defaultJson);
-  } catch {
-    await fs.mkdir(boardDir(DATA_DIR, currentBoardId), { recursive: true });
-    await fs.writeFile(defaultJson, JSON.stringify(emptyBoard(), null, 2), 'utf-8');
-  }
+    await fs.unlink(OLD_BOARD_PATH);
+  } catch {}
 }
+
+await importLegacyBoardIfAny();
 
 function emptyBoard() {
   const now = new Date().toISOString();
   return {
     schemaVersion: schemaVersion,
-    id: "board-1",
+    id: genShortId(),
     title: "My Evidence Board",
     nodes: [],
     edges: [],
@@ -251,56 +438,34 @@ function emptyBoard() {
 }
 
 async function readBoard() {
-  try {
-    const p = boardJsonPath(DATA_DIR, currentBoardId);
-    const raw = await fs.readFile(p, 'utf-8');
-    const b = JSON.parse(raw);
-    // If the on-disk board has a different id, honor it
-    if (b && typeof b.id === 'string' && b.id.trim()) {
-      currentBoardId = b.id.trim();
-    }
-    return b;
-  } catch (e) {
-    // return an empty board if file missing or malformed (and create it)
-    const b = emptyBoard();
-    await ensureBoardFiles(b);
-    return b;
+  // Always read from DB; ensure one exists
+  let b = await readBoardFromDb(currentBoardId);
+  if (!b) {
+    const empty = emptyBoard();
+    await writeBoardToDb(empty);
+    currentBoardId = empty.id;
+    b = await readBoardFromDb(currentBoardId);
   }
-}
-
-async function ensureBoardFiles(board) {
-  const id = (board && typeof board.id === 'string' && board.id.trim()) ? board.id.trim() : 'board-1';
-  await fs.mkdir(boardDir(DATA_DIR, id), { recursive: true });
-  await fs.mkdir(boardUploadsDir(DATA_DIR, id), { recursive: true });
-  const p = boardJsonPath(DATA_DIR, id);
-  try { await fs.access(p); } catch { await fs.writeFile(p, JSON.stringify(board, null, 2), 'utf-8'); }
+  // Keep currentBoardId in sync with what's stored
+  if (b && typeof b.id === "string" && b.id.trim()) {
+    currentBoardId = b.id.trim();
+  }
+  return b;
 }
 
 async function writeBoard(board) {
-  const now = new Date().toISOString();
-  const id = (board && typeof board.id === 'string' && board.id.trim()) ? board.id.trim() : 'board-1';
-  board.id = id;
-  board.updatedAt = now;
-  board.schemaVersion = schemaVersion;
-
-  await fs.mkdir(boardDir(DATA_DIR, id), { recursive: true });
-  await fs.mkdir(boardUploadsDir(DATA_DIR, id), { recursive: true });
-
-  const p = boardJsonPath(DATA_DIR, id);
-  const tmp = p + '.' + crypto.randomBytes(4).toString('hex') + '.tmp';
-  await fs.writeFile(tmp, JSON.stringify(board, null, 2), 'utf-8');
-  await fs.rename(tmp, p);
-
-  currentBoardId = id;
-  return board;
+  const clean = sanitizeBoard(board, currentBoardId);
+  const saved = await writeBoardToDb(clean);
+  currentBoardId = saved.id;
+  return saved;
 }
 
 app.get(/^\/uploads\/(.+)$/, async (req, res) => {
   try {
-    const relRaw = req.params[0] || '';
+    const relRaw = req.params[0] || "";
     // Normalize and prevent directory traversal
-    const rel = path.posix.normalize('/' + relRaw).replace(/^\/+/, '');
-    if (rel.includes('..')) return res.status(400).end();
+    const rel = path.posix.normalize("/" + relRaw).replace(/^\/+/, "");
+    if (rel.includes("..")) return res.status(400).end();
 
     const base = boardUploadsDir(DATA_DIR, currentBoardId);
     const filePath = path.join(base, rel);
@@ -310,7 +475,10 @@ app.get(/^\/uploads\/(.+)$/, async (req, res) => {
   }
 });
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 app.get("/api/board", async (_req, res) => {
   const board = await readBoard();
@@ -322,7 +490,7 @@ app.post("/api/board", async (req, res) => {
     if (!req.body || typeof req.body !== "object") {
       return res.status(400).json({ error: "Invalid board payload" });
     }
-    const clean = sanitizeBoard(req.body);
+    const clean = sanitizeBoard(req.body, currentBoardId);
     const saved = await writeBoard(clean);
     res.json(saved);
   } catch (err) {
@@ -340,12 +508,17 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
 
     const buf = req.file.buffer;
     // Generate a stable name based on content hash + short stamp
-    const hash = crypto.createHash("sha1").update(buf).digest("hex").slice(0, 12);
+    const hash = crypto
+      .createHash("sha1")
+      .update(buf)
+      .digest("hex")
+      .slice(0, 12);
     const stamp = Date.now().toString(36).slice(-6);
-    const safeBase = (req.file.originalname || "upload")
-      .replace(/\.[^.]+$/, "")
-      .replace(/[^a-zA-Z0-9-_\.]/g, "_")
-      .slice(0, 40) || "img";
+    const safeBase =
+      (req.file.originalname || "upload")
+        .replace(/\.[^.]+$/, "")
+        .replace(/[^a-zA-Z0-9-_\.]/g, "_")
+        .slice(0, 40) || "img";
 
     const UP_DIR = boardUploadsDir(DATA_DIR, currentBoardId);
     await fs.mkdir(UP_DIR, { recursive: true });
@@ -387,76 +560,97 @@ const probeUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
 });
-app.post("/api/board/probeZip", probeUpload.single("bundle"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file" });
-
-    const tmpDir = path.join(DATA_DIR, ".probe-" + crypto.randomBytes(4).toString("hex"));
-    await fs.mkdir(tmpDir, { recursive: true });
-    const tmpZip = path.join(tmpDir, "bundle.zip");
-    await fs.writeFile(tmpZip, req.file.buffer);
-
+app.post(
+  "/api/board/probeZip",
+  probeUpload.single("bundle"),
+  async (req, res) => {
     try {
-      // Extract into tmpDir
-      await new Promise((resolve, reject) => {
-        const s = unzipper.Extract({ path: tmpDir });
-        s.on("close", resolve);
-        s.on("error", reject);
-        import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
-      });
+      if (!req.file) return res.status(400).json({ error: "No file" });
 
-      // Locate board.json (root or single inner folder)
-      async function findBoardJson(root) {
-        const entries = await fs.readdir(root, { withFileTypes: true });
-        for (const e of entries) {
-          if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
-        }
-        const dirs = entries.filter((e) => e.isDirectory());
-        if (dirs.length === 1) {
-          const inner = path.join(root, dirs[0].name);
-          try {
-            await fs.access(path.join(inner, "board.json"));
-            return path.join(inner, "board.json");
-          } catch {}
-        }
-        return null;
-      }
+      const tmpDir = path.join(
+        DATA_DIR,
+        ".probe-" + crypto.randomBytes(4).toString("hex")
+      );
+      await fs.mkdir(tmpDir, { recursive: true });
+      const tmpZip = path.join(tmpDir, "bundle.zip");
+      await fs.writeFile(tmpZip, req.file.buffer);
 
-      const bj = await findBoardJson(tmpDir);
-      if (!bj) {
-        return res.status(400).json({ error: "board.json not found in zip" });
-      }
-
-      let parsed;
-      try { parsed = JSON.parse(await fs.readFile(bj, "utf-8")); } catch { parsed = null; }
-      if (!parsed || typeof parsed !== "object") {
-        return res.status(400).json({ error: "Invalid board.json" });
-      }
-
-      // Detect uploads next to board.json
-      let hasUploads = false;
       try {
-        const up = path.join(path.dirname(bj), "uploads");
-        await fs.access(up);
-        const list = await fs.readdir(up);
-        hasUploads = list.length > 0;
-      } catch {}
+        // Extract into tmpDir
+        await new Promise((resolve, reject) => {
+          const s = unzipper.Extract({ path: tmpDir });
+          s.on("close", resolve);
+          s.on("error", reject);
+          import("node:fs").then(({ createReadStream }) =>
+            createReadStream(tmpZip).pipe(s)
+          );
+        });
 
-      return res.json({
-        boardId: (parsed.id && typeof parsed.id === "string" && parsed.id.trim()) ? parsed.id.trim() : "board-1",
-        title: typeof parsed.title === "string" ? parsed.title : "",
-        hasUploads,
-      });
-    } finally {
-      // Always clean temp zip and directory
-      try { await fs.unlink(tmpZip); } catch {}
-      try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
+        // Locate board.json (root or single inner folder)
+        async function findBoardJson(root) {
+          const entries = await fs.readdir(root, { withFileTypes: true });
+          for (const e of entries) {
+            if (e.isFile() && e.name === "board.json")
+              return path.join(root, e.name);
+          }
+          const dirs = entries.filter((e) => e.isDirectory());
+          if (dirs.length === 1) {
+            const inner = path.join(root, dirs[0].name);
+            try {
+              await fs.access(path.join(inner, "board.json"));
+              return path.join(inner, "board.json");
+            } catch {}
+          }
+          return null;
+        }
+
+        const bj = await findBoardJson(tmpDir);
+        if (!bj) {
+          return res.status(400).json({ error: "board.json not found in zip" });
+        }
+
+        let parsed;
+        try {
+          parsed = JSON.parse(await fs.readFile(bj, "utf-8"));
+        } catch {
+          parsed = null;
+        }
+        if (!parsed || typeof parsed !== "object") {
+          return res.status(400).json({ error: "Invalid board.json" });
+        }
+
+        // Detect uploads next to board.json
+        let hasUploads = false;
+        try {
+          const up = path.join(path.dirname(bj), "uploads");
+          await fs.access(up);
+          const list = await fs.readdir(up);
+          hasUploads = list.length > 0;
+        } catch {}
+
+        return res.json({
+          boardId:
+            parsed.id && typeof parsed.id === "string" && parsed.id.trim()
+              ? parsed.id.trim()
+              : "board-1",
+          title: typeof parsed.title === "string" ? parsed.title : "",
+          hasUploads,
+        });
+      } finally {
+        // Always clean temp zip and directory
+        try {
+          await fs.unlink(tmpZip);
+        } catch {}
+        try {
+          await fs.rm(tmpDir, { recursive: true, force: true });
+        } catch {}
+      }
+    } catch (e) {
+      console.error("probeZip error", e);
+      return res.status(500).json({ error: "Probe failed" });
     }
-  } catch (e) {
-    console.error("probeZip error", e);
-    return res.status(500).json({ error: "Probe failed" });
   }
-});
+);
 
 // --- Export current board as ZIP (board.json + uploads/)
 app.get("/api/board/export", async (req, res) => {
@@ -477,7 +671,7 @@ app.get("/api/board/export", async (req, res) => {
     archive.pipe(res);
 
     // board.json at zip root
-    archive.file(boardJsonPath(DATA_DIR, b.id), { name: "board.json" });
+    archive.append(JSON.stringify(b, null, 2), { name: "board.json" });
 
     // uploads/ if present
     try {
@@ -500,115 +694,122 @@ const importUpload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
-app.post("/api/board/importZip", importUpload.single("bundle"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file" });
-
-    // Create a temp workspace
-    const tmpDir = path.join(
-      DATA_DIR,
-      ".import-" + crypto.randomBytes(4).toString("hex")
-    );
-    await fs.mkdir(tmpDir, { recursive: true });
-    const tmpZip = path.join(tmpDir, "bundle.zip");
-    await fs.writeFile(tmpZip, req.file.buffer);
-
+app.post(
+  "/api/board/importZip",
+  importUpload.single("bundle"),
+  async (req, res) => {
     try {
-      // Extract (unzipper enforces extraction under tmpDir)
-      await new Promise((resolve, reject) => {
-        const s = unzipper.Extract({ path: tmpDir });
-        s.on("close", resolve);
-        s.on("error", reject);
-        import("node:fs").then(({ createReadStream }) =>
-          createReadStream(tmpZip).pipe(s)
-        );
-      });
+      if (!req.file) return res.status(400).json({ error: "No file" });
 
-      // Locate board.json (root or single inner folder)
-      async function findBoardJson(root) {
-        const entries = await fs.readdir(root, { withFileTypes: true });
-        for (const e of entries) {
-          if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
-        }
-        const dirs = entries.filter((e) => e.isDirectory());
-        if (dirs.length === 1) {
-          const inner = path.join(root, dirs[0].name);
-          try {
-            await fs.access(path.join(inner, "board.json"));
-            return path.join(inner, "board.json");
-          } catch {}
-        }
-        return null;
-      }
-
-      const bj = await findBoardJson(tmpDir);
-      if (!bj) {
-        return res.status(400).json({ error: "board.json not found in zip" });
-      }
-
-      // Read + sanitize board.json
-      let parsed;
-      try {
-        parsed = JSON.parse(await fs.readFile(bj, "utf-8"));
-      } catch {
-        parsed = null;
-      }
-      if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-        return res.status(400).json({ error: "Invalid board.json" });
-      }
-
-      const clean = sanitizeBoard(parsed);
-      const targetId =
-        clean.id && typeof clean.id === "string" && clean.id.trim()
-          ? clean.id.trim()
-          : "board-1";
-
-      // Write board.json into the per-board directory
-      const targetDir = boardDir(DATA_DIR, targetId);
-      await fs.mkdir(targetDir, { recursive: true });
-      await fs.writeFile(
-        boardJsonPath(DATA_DIR, targetId),
-        JSON.stringify(clean, null, 2),
-        "utf-8"
+      // Create a temp workspace
+      const tmpDir = path.join(
+        DATA_DIR,
+        ".import-" + crypto.randomBytes(4).toString("hex")
       );
+      await fs.mkdir(tmpDir, { recursive: true });
+      const tmpZip = path.join(tmpDir, "bundle.zip");
+      await fs.writeFile(tmpZip, req.file.buffer);
 
-      // Copy uploads if present
-      async function copyUploads(fromDir) {
-        const up = path.join(fromDir, "uploads");
+      try {
+        // Extract (unzipper enforces extraction under tmpDir)
+        await new Promise((resolve, reject) => {
+          const s = unzipper.Extract({ path: tmpDir });
+          s.on("close", resolve);
+          s.on("error", reject);
+          import("node:fs").then(({ createReadStream }) =>
+            createReadStream(tmpZip).pipe(s)
+          );
+        });
+
+        // Locate board.json (root or single inner folder)
+        async function findBoardJson(root) {
+          const entries = await fs.readdir(root, { withFileTypes: true });
+          for (const e of entries) {
+            if (e.isFile() && e.name === "board.json")
+              return path.join(root, e.name);
+          }
+          const dirs = entries.filter((e) => e.isDirectory());
+          if (dirs.length === 1) {
+            const inner = path.join(root, dirs[0].name);
+            try {
+              await fs.access(path.join(inner, "board.json"));
+              return path.join(inner, "board.json");
+            } catch {}
+          }
+          return null;
+        }
+
+        const bj = await findBoardJson(tmpDir);
+        if (!bj) {
+          return res.status(400).json({ error: "board.json not found in zip" });
+        }
+
+        // Read + sanitize board.json
+        let parsed;
         try {
-          await fs.access(up);
+          parsed = JSON.parse(await fs.readFile(bj, "utf-8"));
         } catch {
-          return;
+          parsed = null;
         }
-        const dest = boardUploadsDir(DATA_DIR, targetId);
-        await fs.mkdir(dest, { recursive: true });
-        const files = await fs.readdir(up);
-        for (const f of files) {
-          const src = path.join(up, f);
-          const dst = path.join(dest, f);
+        if (
+          !parsed ||
+          !Array.isArray(parsed.nodes) ||
+          !Array.isArray(parsed.edges)
+        ) {
+          return res.status(400).json({ error: "Invalid board.json" });
+        }
+
+        const clean = sanitizeBoard(parsed);
+        const targetId =
+          clean.id && typeof clean.id === "string" && clean.id.trim()
+            ? clean.id.trim()
+            : genShortId();
+
+        // Persist into DB
+        await writeBoardToDb({ ...clean, id: targetId });
+
+        // Copy uploads if present
+        async function copyUploads(fromDir) {
+          const up = path.join(fromDir, "uploads");
           try {
-            await fs.copyFile(src, dst);
-          } catch {}
+            await fs.access(up);
+          } catch {
+            return;
+          }
+          const dest = boardUploadsDir(DATA_DIR, targetId);
+          await fs.mkdir(dest, { recursive: true });
+          const files = await fs.readdir(up);
+          for (const f of files) {
+            const src = path.join(up, f);
+            const dst = path.join(dest, f);
+            try {
+              await fs.copyFile(src, dst);
+            } catch {}
+          }
         }
+        await copyUploads(path.dirname(bj));
+        if (path.dirname(bj) !== tmpDir) await copyUploads(tmpDir);
+
+        // Switch current board
+        currentBoardId = targetId;
+
+        const saved = await readBoardFromDb(currentBoardId);
+        return res.json(saved);
+      } finally {
+        // Always clean temp zip and directory
+        try {
+          await fs.unlink(tmpZip);
+        } catch {}
+        try {
+          await fs.rm(tmpDir, { recursive: true, force: true });
+        } catch {}
       }
-      await copyUploads(path.dirname(bj));
-      if (path.dirname(bj) !== tmpDir) await copyUploads(tmpDir);
-
-      // Switch current board
-      currentBoardId = targetId;
-
-      const saved = await readBoard();
-      return res.json(saved);
-    } finally {
-      // Always clean temp zip and directory
-      try { await fs.unlink(tmpZip); } catch {}
-      try { await fs.rm(tmpDir, { recursive: true, force: true }); } catch {}
+    } catch (e) {
+      console.error("importZip error", e);
+      res.status(500).json({ error: "Import failed" });
     }
-  } catch (e) {
-    console.error("importZip error", e);
-    res.status(500).json({ error: "Import failed" });
   }
-});
+);
 
 // --- Link preview endpoint ---
 // POST /api/link-preview { url: string }
@@ -718,14 +919,14 @@ app.post("/api/link-preview", async (req, res) => {
       );
 
     const cleanTitle = String(title || "")
-      .replace(/[\\r\\n\\t]+/g, " ")
+      .replace(/[\r\n\t]+/g, " ")
       .slice(0, 256);
     const cleanDesc = String(ogDesc || "")
       .replace(/<[^>]*>/g, "")
-      .replace(/[\\r\\n\\t]+/g, " ")
+      .replace(/[\r\n\t]+/g, " ")
       .slice(0, 512);
     const cleanSite = String(siteName || "")
-      .replace(/[\\r\\n\\t]+/g, " ")
+      .replace(/[\r\n\t]+/g, " ")
       .slice(0, 128);
 
     res.json({
@@ -743,7 +944,7 @@ app.post("/api/link-preview", async (req, res) => {
 });
 
 // Expose version + schema information for the client
-app.get('/api/version', (_req, res) => {
+app.get("/api/version", (_req, res) => {
   res.json({ version: APP_VERSION, schemaVersion });
 });
 
