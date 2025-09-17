@@ -13,6 +13,35 @@ import { PrismaClient } from "@prisma/client";
 // --- Prisma (SQLite) ---
 const prisma = new PrismaClient();
 
+// Handle Prisma connection errors and graceful shutdown
+async function connectPrisma() {
+  try {
+    await prisma.$connect();
+    console.log("Connected to the database.");
+  } catch (err) {
+    console.error("Failed to connect to the database:", err);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+async function gracefulShutdown(signal) {
+  console.log(`Received ${signal}. Closing database connection...`);
+  try {
+    await prisma.$disconnect();
+    console.log("Database connection closed.");
+  } catch (err) {
+    console.error("Error during disconnect:", err);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Immediately connect to the database on startup
+await connectPrisma();
 // --- Path Definitions ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
