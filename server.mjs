@@ -10,6 +10,8 @@ import archiver from "archiver";
 import unzipper from "unzipper";
 import { PrismaClient } from "@prisma/client";
 
+import 'dotenv/config';
+
 // --> Prisma (SQLite) ---
 const prisma = new PrismaClient();
 
