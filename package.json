@@ -4,7 +4,7 @@
   "version": "1.0.0-alpha.28",
   "main": "server.mjs",
   "scripts": {
-    "prestart": "npm run prisma:reset && npm run prisma:seed",
+    "prestart": "npx prisma db push && npm run prisma:reset && npm run prisma:seed",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.mjs",
