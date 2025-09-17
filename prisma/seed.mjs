@@ -28,8 +28,6 @@ async function main() {
       id: boardId,
       title: b.title || 'My Evidence Board',
       schemaVersion: b.schemaVersion ?? 1,
-      nodes: { create: [] }, // add below
-      edges: { create: [] },
     },
     update: {},
   });
