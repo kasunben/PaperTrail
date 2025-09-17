@@ -10,7 +10,7 @@ import archiver from "archiver";
 import unzipper from "unzipper";
 import { PrismaClient } from "@prisma/client";
 
-// --- Prisma (SQLite) ---
+// --> Prisma (SQLite) ---
 const prisma = new PrismaClient();
 
 // Handle Prisma connection errors and graceful shutdown
@@ -39,15 +39,6 @@ async function gracefulShutdown(signal) {
 
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-
-// Immediately connect to the database on startup
-await connectPrisma();
-// --- Path Definitions ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// --- Constants / Variables ---
-const schemaVersion = 1;
 
 // --- Database Helpers ---
 async function readBoardFromDb(boardId) {
@@ -164,9 +155,17 @@ async function writeBoardToDb(cleanBoard) {
   return readBoardFromDb(id);
 }
 
-// --- Helpers ---
+// Immediately connect to the database on startup
+await connectPrisma();
 
-// --- ID Helpers ---
+// --> Path Definitions ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --> Constants / Variables ---
+const schemaVersion = 1;
+
+// --> ID Helpers ---
 function genShortId(prefix = "b_") {
   // ~8-char URL-safe id
   const raw = crypto.randomBytes(6).toString("base64url");
@@ -322,7 +321,7 @@ function sanitizeBoard(incoming, fallbackId) {
   return out;
 }
 
-// --- App ---
+// --> App ---
 const app = express();
 
 app.use((req, res, next) => {
@@ -555,7 +554,7 @@ app.post("/api/upload", upload.single("image"), async (req, res) => {
   }
 });
 
-// --- Probe a ZIP: read board.json and report metadata, no writes
+// --> Probe a ZIP: read board.json and report metadata, no writes ---
 const probeUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
@@ -943,7 +942,7 @@ app.post("/api/link-preview", async (req, res) => {
   }
 });
 
-// Expose version + schema information for the client
+// --> Expose version + schema information for the client
 app.get("/api/version", (_req, res) => {
   res.json({ version: APP_VERSION, schemaVersion });
 });
