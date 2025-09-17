@@ -1,9 +1,12 @@
 {
   "name": "papertrail",
   "description": "PaperTrail — map your evidence, follow the story.",
-  "version": "1.0.0-alpha.26",
+  "version": "1.0.0-alpha.27",
   "main": "server.mjs",
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "node prisma/seed.mjs",
     "start": "node server.mjs",
     "start:dev": "nodemon"
   },
@@ -20,6 +23,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^6.16.2",
     "archiver": "^7.0.1",
     "express": "^5.1.0",
     "multer": "^2.0.2",
@@ -28,6 +32,7 @@
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "prisma": "^6.16.2"
   }
 }

@@ -18,6 +18,7 @@ This setup is lightweight and simple, making it ideal for solo use, prototyping,
 ```bash
 git clone git@github.com:kasunben/PaperTrail.git
 cd PaperTrail
+mv .env.example .env
 npm i
 ```
 
