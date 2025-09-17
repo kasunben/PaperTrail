@@ -8,7 +8,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "node prisma/seed.mjs",
     "start": "node server.mjs",
-    "start:dev": "nodemon"
+    "dev": "nodemon"
   },
   "nodemonConfig": {
     "watch": [
