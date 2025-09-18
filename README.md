@@ -37,7 +37,7 @@ We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
 **Branches**
 - `main` → production branch (always deployable).
 - `develop` → integration branch (latest development work).
-- `feature/` → short-lived branches for new features or fixes.
+- `feat/` → short-lived branches for new features or fixes.
 - `release/` → optional branches to prepare a release.
 - `hotfix/` → urgent fixes branched from main.
 - `fix/` → bug fixes

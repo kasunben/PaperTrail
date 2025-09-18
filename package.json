@@ -27,6 +27,8 @@
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "archiver": "^7.0.1",
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "multer": "^2.0.2",
