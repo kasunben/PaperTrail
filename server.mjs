@@ -583,6 +583,41 @@ app.get("/register", (_req, res) => {
   res.sendFile(path.join(__dirname, "public", "register.html"));
 });
 
+// Serve a specific board by id (SPA entry)
+// GET /b/:id  -> serves public/board.html if board exists, else public/404.html
+app.get("/b/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+
+    // basic id sanity check
+    if (!isValidBoardId(id)) {
+      return res
+        .status(404)
+        .sendFile(path.join(__dirname, "public", "404.html"));
+    }
+
+    const exists = await prisma.board.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!exists) {
+      return res
+        .status(404)
+        .sendFile(path.join(__dirname, "public", "404.html"));
+    }
+
+    // Switch current board so /api/board and uploads resolve correctly
+    currentBoardId = id;
+
+    // Serve the SPA shell (renamed from index.html to board.html)
+    return res.sendFile(path.join(__dirname, "public", "board.html"));
+  } catch (e) {
+    console.error("route /b/:id error", e);
+    return res.status(500).sendFile(path.join(__dirname, "public", "404.html"));
+  }
+});
+
 app.get(/^\/uploads\/(.+)$/, async (req, res) => {
   try {
     const relRaw = req.params[0] || "";
