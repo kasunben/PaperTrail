@@ -575,6 +575,14 @@ async function writeBoard(board, ownerUserId = null) {
   return saved;
 }
 
+app.get("/login", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/register", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "register.html"));
+});
+
 app.get(/^\/uploads\/(.+)$/, async (req, res) => {
   try {
     const relRaw = req.params[0] || "";

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - PaperTrail</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 3rem auto; padding: 1rem; }
+    form { display: flex; flex-direction: column; gap: 0.5rem; }
+    input { padding: 0.5rem; font-size: 1rem; }
+    button { padding: 0.5rem; font-size: 1rem; cursor: pointer; }
+    .error { color: red; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password" required minlength="10" />
+    <button type="submit">Login</button>
+    <div id="error" class="error"></div>
+  </form>
+  <script>
+    const form = document.getElementById('loginForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        window.location.href = '/';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Login failed';
+      }
+    });
+  </script>
+</body>
+</html>

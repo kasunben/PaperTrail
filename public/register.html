@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - PaperTrail</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 3rem auto; padding: 1rem; }
+    form { display: flex; flex-direction: column; gap: 0.5rem; }
+    input { padding: 0.5rem; font-size: 1rem; }
+    button { padding: 0.5rem; font-size: 1rem; cursor: pointer; }
+    .error { color: red; margin-top: 0.5rem; }
+    .success { color: green; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="registerForm">
+    <input type="email" id="email" placeholder="Email" required />
+    <input type="password" id="password" placeholder="Password (min 10 chars)" required minlength="10" />
+    <button type="submit">Register</button>
+    <div id="error" class="error"></div>
+    <div id="success" class="success"></div>
+  </form>
+  <script>
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        document.getElementById('success').textContent = "Registered successfully! You can now log in.";
+        document.getElementById('error').textContent = "";
+        // optionally redirect: window.location.href = '/login';
+      } else {
+        document.getElementById('error').textContent = data.error || 'Registration failed';
+        document.getElementById('success').textContent = "";
+      }
+    });
+  </script>
+</body>
+</html>
