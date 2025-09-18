@@ -1104,12 +1104,20 @@
       }
       function updateSaveButton() {
         const snap = computeSnapshot();
-        const dirty = lastSavedJSON !== null && snap !== lastSavedJSON;
-        saveBtn.disabled = !dirty;
+        // On first run, capture a clean baseline so Save starts disabled,
+        // and subsequent changes correctly enable the button.
+        if (lastSavedJSON === null) {
+          lastSavedJSON = snap;
+          saveBtn.disabled = true;
+          return;
+        }
+        saveBtn.disabled = (snap === lastSavedJSON);
       }
       function markDirty() {
-        // Enable save when something changed
-        updateSaveButton();
+        // Record mutation time
+        try { board.updatedAt = new Date().toISOString(); } catch (_) {}
+        // Always enable Save on user-visible changes; actual disable will happen after a successful save
+        saveBtn.disabled = false;
       }
       const ctxMenu = document.getElementById("ctxMenu");
       let ctxTarget = null; // { type: 'node'|'edge', id: string }
@@ -1267,6 +1275,8 @@
 
       // Initialize board name display from default board.title
       boardNameEl.textContent = board.title || "";
+      // Establish initial clean snapshot so Save enables on changes
+      updateSaveButton();
 
       let selectedNodeId = null;
       let selectedEdgeId = null;
@@ -1353,16 +1363,21 @@
 
       function nodeBounds(n) {
         const el = document.getElementById(n.id);
-        if (!el)
-          return {
-            x: n.x,
-            y: n.y,
-            w: n.w || el?.offsetWidth || 200,
-            h: n.h || el?.offsetHeight || 80,
-          };
-        const w = el.offsetWidth,
-          h = el.offsetHeight;
-        return { x: n.x, y: n.y, w: n.w || w, h: n.h || h };
+        if (el) {
+          // Use live DOM position to prevent model/view drift after save
+          const left = Number.parseFloat(el.style.left) || el.offsetLeft || n.x || 0;
+          const top  = Number.parseFloat(el.style.top)  || el.offsetTop  || n.y || 0;
+          const w = n.w || el.offsetWidth || 200;
+          const h = n.h || el.offsetHeight || 80;
+          return { x: left, y: top, w, h };
+        }
+        // Fallback to model values if DOM element isn't mounted yet
+        return {
+          x: n.x,
+          y: n.y,
+          w: n.w || 200,
+          h: n.h || 80,
+        };
       }
 
       function centerOf(n) {
