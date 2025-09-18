@@ -7,24 +7,34 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum BoardVisibility {
+  PUBLIC
+  PRIVATE
+}
+
 model Board {
-  id            String   @id
+  id            String          @id
   title         String
   schemaVersion Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  visibility    BoardVisibility @default(PUBLIC)
+  userId        String?
+  user          User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   nodes         Node[]
   edges         Edge[]
+
+  @@index([userId])
 }
 
 model Node {
-  id       String  @id
-  boardId  String
-  type     String
-  x        Int
-  y        Int
-  w        Int?
-  h        Int?
+  id      String @id
+  boardId String
+  type    String
+  x       Int
+  y       Int
+  w       Int?
+  h       Int?
 
   // content fields expected by server.mjs
   title    String?
@@ -34,14 +44,14 @@ model Node {
   linkUrl  String?
   imageUrl String?
 
-  board    Board   @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  tags     NodeTag[]
+  board Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tags  NodeTag[]
 
   @@index([boardId])
 }
 
 model Edge {
-  id       String @id
+  id       String  @id
   boardId  String
   sourceId String
   targetId String
@@ -49,7 +59,7 @@ model Edge {
   dashed   Boolean @default(false)
   color    String?
 
-  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
   @@index([boardId])
   @@index([sourceId])
@@ -57,8 +67,8 @@ model Edge {
 }
 
 model Tag {
-  id    String  @id
-  name  String  @unique
+  id    String    @id
+  name  String    @unique
   nodes NodeTag[]
 }
 
@@ -66,8 +76,61 @@ model NodeTag {
   nodeId String
   tagId  String
 
-  node   Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  node Node @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([nodeId, tagId])
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  sessions            Session[]
+  verificationTokens  VerificationToken[]  @relation("UserToVerificationTokens")
+  passwordResetTokens PasswordResetToken[] @relation("UserToPasswordResetTokens")
+  Board               Board[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  ipHash    String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(name: "UserToVerificationTokens", fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  purpose   String // 'email-verify'
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(name: "UserToPasswordResetTokens", fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
 }

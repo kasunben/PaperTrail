@@ -9,8 +9,10 @@ import sharp from "sharp";
 import archiver from "archiver";
 import unzipper from "unzipper";
 import { PrismaClient } from "@prisma/client";
+import cookieParser from "cookie-parser";
+import argon2 from "argon2";
 
-import 'dotenv/config';
+import "dotenv/config";
 
 // --> Prisma (SQLite) ---
 const prisma = new PrismaClient();
@@ -55,6 +57,7 @@ async function readBoardFromDb(boardId) {
   return {
     schemaVersion: b.schemaVersion ?? schemaVersion,
     id: b.id,
+    visibility: (b.visibility || "PUBLIC").toString().toLowerCase(),
     title: b.title,
     createdAt: (b.createdAt instanceof Date
       ? b.createdAt
@@ -92,13 +95,24 @@ async function readBoardFromDb(boardId) {
   };
 }
 
-async function writeBoardToDb(cleanBoard) {
+async function writeBoardToDb(cleanBoard, ownerUserId = null) {
   const { id, title, nodes, edges } = cleanBoard;
   await prisma.$transaction(async (tx) => {
     await tx.board.upsert({
       where: { id },
-      create: { id, title, schemaVersion },
-      update: { title, schemaVersion },
+      create: {
+        id,
+        title,
+        schemaVersion,
+        visibility: cleanBoard.visibility === "private" ? "PRIVATE" : "PUBLIC",
+        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+      },
+      update: {
+        title,
+        schemaVersion,
+        visibility: cleanBoard.visibility === "private" ? "PRIVATE" : "PUBLIC",
+        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+      },
     });
 
     await Promise.all([
@@ -166,6 +180,94 @@ const __dirname = path.dirname(__filename);
 
 // --> Constants / Variables ---
 const schemaVersion = 1;
+
+// ---- Auth constants & helpers ----
+const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || "pt_session";
+const sessionTtlMs =
+  1000 * 60 * 60 * Number(process.env.SESSION_TTL_HOURS ?? 720); // 30 days default
+
+const cookieOpts = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // HTTPS in prod
+  sameSite: "lax",
+  path: "/",
+  maxAge: sessionTtlMs,
+};
+
+async function hashPassword(pwd) {
+  return argon2.hash(pwd, {
+    type: argon2.argon2id,
+    memoryCost: Number(process.env.ARGON2_MEMORY ?? 19456),
+    timeCost: Number(process.env.ARGON2_ITERATIONS ?? 2),
+    parallelism: Number(process.env.ARGON2_PARALLELISM ?? 1),
+  });
+}
+function verifyPassword(hash, pwd) {
+  return argon2.verify(hash, pwd);
+}
+function randomToken(bytes = 48) {
+  return crypto.randomBytes(bytes).toString("hex");
+}
+function hashIp(ip) {
+  return crypto
+    .createHash("sha256")
+    .update(ip ?? "")
+    .digest("hex");
+}
+
+async function createSession(res, user, req) {
+  const token = randomToken(48);
+  const expiresAt = new Date(Date.now() + sessionTtlMs);
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      token,
+      userAgent: req.get("user-agent") || undefined,
+      ipHash: hashIp(req.ip),
+      expiresAt,
+    },
+  });
+  res.cookie(SESSION_COOKIE, token, { ...cookieOpts, expires: expiresAt });
+}
+
+async function getSessionWithUser(token) {
+  if (!token) return null;
+  const s = await prisma.session.findUnique({
+    where: { token },
+    include: { user: true },
+  });
+  if (!s || s.expiresAt < new Date()) {
+    if (s) {
+      try {
+        await prisma.session.delete({ where: { token } });
+      } catch {}
+    }
+    return null;
+  }
+  return s;
+}
+
+async function requireAuth(req, res, next) {
+  const token = req.cookies?.[SESSION_COOKIE];
+  const session = await getSessionWithUser(token);
+  if (!session) {
+    res.clearCookie(SESSION_COOKIE, cookieOpts);
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  req.user = { id: session.userId, email: session.user.email };
+  req.sessionToken = token;
+  next();
+}
+
+// --> Visibility helper ---
+async function getBoardVisibility(id) {
+  const b = await prisma.board.findUnique({
+    where: { id },
+    select: { visibility: true },
+  });
+  if (!b) return "PUBLIC";
+  return (b.visibility || "PUBLIC").toString();
+}
 
 // --> ID Helpers ---
 function genShortId(prefix = "b_") {
@@ -300,6 +402,11 @@ function sanitizeBoard(incoming, fallbackId) {
       typeof incoming.title === "string"
         ? incoming.title.slice(0, 256)
         : "My Evidence Board",
+    visibility:
+      typeof incoming.visibility === "string" &&
+      incoming.visibility.toLowerCase() === "private"
+        ? "private"
+        : "public",
     createdAt: incoming.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     nodes: [],
@@ -346,6 +453,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: "10mb" }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
@@ -430,6 +538,7 @@ function emptyBoard() {
   return {
     schemaVersion: schemaVersion,
     id: genShortId(),
+    visibility: "public",
     title: "My Evidence Board",
     nodes: [],
     edges: [],
@@ -454,9 +563,14 @@ async function readBoard() {
   return b;
 }
 
-async function writeBoard(board) {
+async function writeBoard(board, ownerUserId = null) {
   const clean = sanitizeBoard(board, currentBoardId);
-  const saved = await writeBoardToDb(clean);
+  if (clean.visibility === "private" && !ownerUserId) {
+    const err = new Error("Private boards require a logged-in user");
+    err.status = 401;
+    throw err;
+  }
+  const saved = await writeBoardToDb(clean, ownerUserId);
   currentBoardId = saved.id;
   return saved;
 }
@@ -476,9 +590,164 @@ app.get(/^\/uploads\/(.+)$/, async (req, res) => {
   }
 });
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+// ---- Auth routes ----
+
+// POST /auth/register { email, password }
+app.post("/auth/register", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (
+      typeof email !== "string" ||
+      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
+    ) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+    if (typeof password !== "string" || password.length < 10) {
+      return res.status(400).json({ error: "Password too short" });
+    }
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing)
+      return res.status(409).json({ error: "Email already registered" });
+
+    const passwordHash = await hashPassword(password);
+    const user = await prisma.user.create({ data: { email, passwordHash } });
+
+    // Optional: email verification
+    const token = randomToken(32);
+    await prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token,
+        purpose: "email-verify",
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24h
+      },
+    });
+    // send verification email with `${process.env.APP_URL || ""}/verify?token=${token}`
+
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    console.error("/auth/register error", e);
+    res.status(500).json({ error: "Register failed" });
+  }
+});
+
+// POST /auth/login { email, password }
+app.post("/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+
+    const ok = await verifyPassword(user.passwordHash, password);
+    if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+
+    await createSession(res, user, req);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("/auth/login error", e);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// POST /auth/logout
+app.post("/auth/logout", async (req, res) => {
+  try {
+    const token = req.cookies?.[SESSION_COOKIE];
+    if (token) {
+      try {
+        await prisma.session.delete({ where: { token } });
+      } catch {}
+      res.clearCookie(SESSION_COOKIE, cookieOpts);
+    }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+// GET /auth/me
+app.get("/auth/me", requireAuth, async (req, res) => {
+  res.json({ user: req.user });
+});
+
+// GET /auth/verify?token=...
+app.get("/auth/verify", async (req, res) => {
+  try {
+    const token = String(req.query.token || "");
+    if (!token) return res.status(400).json({ error: "Missing token" });
+
+    const vt = await prisma.verificationToken.findUnique({ where: { token } });
+    if (!vt || vt.expiresAt < new Date() || vt.purpose !== "email-verify") {
+      return res.status(400).json({ error: "Invalid/expired token" });
+    }
+    await prisma.user.update({
+      where: { id: vt.userId },
+      data: { emailVerifiedAt: new Date() },
+    });
+    await prisma.verificationToken.delete({ where: { token } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("/auth/verify error", e);
+    res.status(500).json({ error: "Verify failed" });
+  }
+});
+
+// POST /auth/password/forgot { email }
+app.post("/auth/password/forgot", async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (typeof email !== "string")
+      return res.status(400).json({ error: "Invalid" });
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      const token = randomToken(32);
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt: new Date(Date.now() + 1000 * 60 * 30), // 30m
+        },
+      });
+      // send reset link `${process.env.APP_URL || ""}/reset?token=${token}`
+    }
+    res.json({ ok: true }); // don't reveal if email exists
+  } catch (e) {
+    console.error("/auth/password/forgot error", e);
+    res.status(500).json({ error: "Failed" });
+  }
+});
+
+// POST /auth/password/reset { token, password }
+app.post("/auth/password/reset", async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    if (
+      typeof token !== "string" ||
+      typeof password !== "string" ||
+      password.length < 10
+    ) {
+      return res.status(400).json({ error: "Invalid" });
+    }
+    const t = await prisma.passwordResetToken.findUnique({ where: { token } });
+    if (!t || t.expiresAt < new Date()) {
+      return res.status(400).json({ error: "Invalid/expired token" });
+    }
+
+    const passwordHash = await hashPassword(password);
+    await prisma.user.update({
+      where: { id: t.userId },
+      data: { passwordHash },
+    });
+    await prisma.passwordResetToken.delete({ where: { token } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("/auth/password/reset error", e);
+    res.status(500).json({ error: "Failed" });
+  }
 });
 
 app.get("/api/board", async (_req, res) => {
@@ -491,17 +760,49 @@ app.post("/api/board", async (req, res) => {
     if (!req.body || typeof req.body !== "object") {
       return res.status(400).json({ error: "Invalid board payload" });
     }
+    // If incoming board is private, enforce auth (public boards can be saved without auth)
+    if (
+      String(req.body?.visibility || "").toLowerCase() === "private" &&
+      !req.user
+    ) {
+      const token = req.cookies?.[SESSION_COOKIE];
+      const session = await getSessionWithUser(token);
+      if (!session)
+        return res
+          .status(401)
+          .json({ error: "Login required for private boards" });
+      req.user = { id: session.userId, email: session.user.email };
+    }
     const clean = sanitizeBoard(req.body, currentBoardId);
-    const saved = await writeBoard(clean);
+    const saved = await writeBoard(clean, req.user?.id || null);
     res.json(saved);
   } catch (err) {
     console.error("save board error", err);
-    res.status(500).json({ error: "Save failed" });
+    if (err && err.status === 401) {
+      return res.status(401).json({ error: err.message || "Unauthorized" });
+    }
+    return res.status(500).json({ error: "Save failed" });
   }
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 app.post("/api/upload", upload.single("image"), async (req, res) => {
   try {
+    const vis = await getBoardVisibility(currentBoardId);
+    if (vis === "PRIVATE") {
+      const token = req.cookies?.[SESSION_COOKIE];
+      const session = await getSessionWithUser(token);
+      if (!session)
+        return res
+          .status(401)
+          .json({ error: "Login required for uploads to private boards" });
+      req.user = { id: session.userId, email: session.user.email };
+    }
+
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
     if (!/^image\//i.test(req.file.mimetype || "")) {
       return res.status(400).json({ error: "Only image uploads are allowed" });
@@ -761,13 +1062,23 @@ app.post(
         }
 
         const clean = sanitizeBoard(parsed);
+        // Enforce auth only if the incoming board is private
+        if (clean.visibility === "private") {
+          const token = req.cookies?.[SESSION_COOKIE];
+          const session = await getSessionWithUser(token);
+          if (!session)
+            return res
+              .status(401)
+              .json({ error: "Login required for importing private boards" });
+          req.user = { id: session.userId, email: session.user.email };
+        }
         const targetId =
           clean.id && typeof clean.id === "string" && clean.id.trim()
             ? clean.id.trim()
             : genShortId();
 
         // Persist into DB
-        await writeBoardToDb({ ...clean, id: targetId });
+        await writeBoardToDb({ ...clean, id: targetId }, req.user?.id || null);
 
         // Copy uploads if present
         async function copyUploads(fromDir) {
