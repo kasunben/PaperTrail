@@ -40,6 +40,7 @@ We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
 - `feature/` → short-lived branches for new features or fixes.
 - `release/` → optional branches to prepare a release.
 - `hotfix/` → urgent fixes branched from main.
+- `fix/` → bug fixes
 
 ##### Workflow
 
