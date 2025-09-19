@@ -3,26 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PaperTrail — Board Index</title>
+    <title>PaperTrail — Boards</title>
     <style>
       :root {
         --color-bg: #ffffff;
         --color-muted: #9ca3af;
-        --color-ink: #e5e7eb;
-        --color-accent: #60a5fa;
-
-        /* keep existing semantic tokens mapped to the new palette */
-        --bg: var(--color-bg);
-        --fg: #0f172a; /* slate-900 for body text */
-        --fg-muted: #475569; /* slate-600 */
+        --color-ink: #0f172a;
+        --color-accent: #ff0000;
         --card: #ffffff;
         --card-border: #e2e8f0; /* slate-200 */
         --muted: #64748b; /* slate-500 */
-        --primary: var(--color-accent);
-        --primary-600: var(--color-accent);
-        --primary-700: #3b82f6; /* slightly darker hover */
-        --chip: #f1f5f9; /* slate-100 */
-        --surface: var(--color-bg);
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
         --radius: 12px;
         --radius-sm: 10px;
@@ -34,123 +24,127 @@
       body {
         height: 100%;
       }
-      body {
+      body.page {
         margin: 0;
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-        background: var(--surface);
-        color: var(--fg);
+          Helvetica, Arial;
+        color: var(--color-ink);
+        background: var(--color-bg);
+        /* same background grid style as board.html */
+        background-image: radial-gradient(
+          var(--color-muted) 1px,
+          transparent 1px
+        );
+        background-size: 16px 16px;
+        background-position: -1px -1px;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        display: grid;
+        place-items: start center;
       }
 
-      /* Toolbar header (matches board.html) */
-      .toolbar {
-        display: flex;
-        gap: 0.5rem;
-        padding: 0.5rem;
-        background: #f9fafb;
-        color: #111;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        align-items: flex-end;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      .app-title {
-        display: flex;
-        flex-direction: column;
-        margin-right: 1rem;
-      }
-      .app-title .brand {
-        font-weight: 700;
-        font-size: 16px;
-        color: #111827;
-      }
-      .app-title .tagline {
-        font-size: 11px;
-        color: #6b7280;
-      }
-      .spacer { flex: 1; }
-
-      /* Page container */
-      .wrap {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 28px 20px 60px;
+      .page__wrap {
+        width: min(1100px, 100%);
+        padding: 40px 20px 80px;
       }
 
-      h1 {
-        font-size: clamp(28px, 3.5vw, 40px);
+      /* Hero */
+      .hero {
+        text-align: left;
+        margin: 4vh 0 30px;
+      }
+      .hero__title {
+        font-size: clamp(32px, 5vw, 56px);
         letter-spacing: -0.02em;
-        margin: 6px 0 18px;
+        margin: 0 0 2px;
       }
-
-      .actions {
-        margin: 8px 0 26px;
+      .hero__tagline {
+        color: #475569;
+        font-size: clamp(14px, 2.5vw, 18px);
+        margin: 0 0 22px;
       }
-      .btn {
+      .hero__actions {
+        margin-top: 10px;
+      }
+      .button {
         appearance: none;
         border: 0;
         outline: 0;
         cursor: pointer;
-        padding: 12px 16px;
-        border-radius: 10px;
-        background: var(--primary-600);
+        padding: 10px 15px;
         color: #fff;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 14px;
         display: inline-flex;
         align-items: center;
         gap: 10px;
         box-shadow: var(--shadow);
-        transition: transform 0.02s ease, background 0.15s ease;
+        transition: transform 0.02s ease, filter 0.15s ease;
+        text-decoration: none;
       }
-      .btn:active {
+      .button--primary {
+        background: var(--color-accent);
+      }
+      .button:active {
         transform: translateY(1px);
       }
-      .btn:hover {
-        background: var(--primary-700);
-      }
-      .btn .plus {
+      .button__icon {
         width: 18px;
         height: 18px;
-        display: inline-block;
         position: relative;
+        display: inline-block;
       }
-      .btn .plus::before,
-      .btn .plus::after {
+      .button__icon::before,
+      .button__icon::after {
         content: "";
         position: absolute;
         background: #fff;
         border-radius: 2px;
       }
-      .btn .plus::before {
+      .button__icon::before {
         width: 100%;
         height: 3px;
         top: 7.5px;
         left: 0;
       }
-      .btn .plus::after {
+      .button__icon::after {
         height: 100%;
         width: 3px;
         left: 7.5px;
         top: 0;
       }
 
-      /* Grid of cards */
-      .grid {
+      /* Boards block */
+      .boards__title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .boards__empty {
+        color: #475569;
+        border: 2px dashed var(--card-border);
+        background: #fff;
+        border-radius: var(--radius-sm);
+        padding: 150px 0;
+        text-align: center;
+        font-size: small;
+      }
+      .boards__grid {
         display: grid;
         gap: 16px;
         grid-template-columns: repeat(1, minmax(0, 1fr));
       }
       @media (min-width: 820px) {
-        .grid {
+        .boards__grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
-      .card {
+      @media (min-width: 1200px) {
+        .boards__grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+      .boards__card {
         background: var(--card);
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
@@ -161,186 +155,168 @@
         gap: 10px;
         min-height: 110px;
       }
-      .card__title {
+      .boards__card-title {
         font-weight: 700;
         font-size: 18px;
+        overflow-wrap: anywhere;
       }
-      .card__desc {
-        color: var(--muted);
-        font-size: 14px;
-      }
-      .card__meta {
+      .boards__row {
         display: flex;
+        gap: 10px;
         align-items: center;
         justify-content: space-between;
-        color: var(--fg-muted);
-        font-size: 13px;
-        margin-top: 2px;
       }
-      .chip {
-        background: var(--chip);
-        color: var(--fg-muted);
+      .boards__meta {
+        color: #64748b;
+        font-size: 13px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .boards__badge {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: #fff;
+        text-transform: capitalize;
+      }
+      .boards__link {
+        background: #f1f5f9;
+        color: #475569;
         font-size: 12px;
         padding: 6px 10px;
         border-radius: 999px;
         text-decoration: none;
         font-weight: 600;
-      }
-      .chip:hover {
-        color: var(--fg);
-      }
-      .status {
-        font-size: 12px;
-        color: var(--fg-muted);
-        margin-left: 8px;
-        padding: 4px 8px;
-        border: 1px solid var(--card-border);
-        border-radius: 999px;
-        text-transform: capitalize;
-        background: #fff;
+        align-self: flex-start;
+        display: inline-block;
       }
 
-      .empty {
-        color: var(--fg-muted);
-        border: 1px dashed var(--card-border);
-        background: #fff;
-        border-radius: var(--radius-sm);
-        padding: 22px;
-        text-align: center;
+      /* Auth block */
+      .auth {
+        margin: 36px auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
+      .auth__title { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 12px; }
+      .auth__card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; max-width: 520px; width: 100%; }
+      .form { display: grid; gap: 12px; }
+      .field { display: grid; gap: 6px; }
+      .field label { font-size: 13px; color: #475569; }
+      .input { appearance: none; width: 100%; border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fff; color: var(--color-ink); }
+      .input:focus { outline: 2px solid rgba(99, 102, 241, 0.25); outline-offset: 1px; }
+      .actions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
+      .link { color: #2563eb; text-decoration: none; font-size: 13px; }
+      .link:hover { text-decoration: underline; }
+      .divider { height: 1px; background: var(--card-border); margin: 14px 0; }
     </style>
   </head>
-  <body>
-    <!-- Top Bar -->
-    <header class="toolbar">
-      <div class="app-title">
-        <div class="brand">PaperTrail</div>
-        <div class="tagline">map your evidence, follow the story.</div>
-      </div>
-      <div class="spacer"></div>
-    </header>
-
-    <!-- Content -->
-    <main class="wrap">
-      <h1>Board Index</h1>
-
-      <div class="actions">
-        <button class="btn" id="createBoardBtn">
-          <span class="plus" aria-hidden="true"></span> Create Board
-        </button>
-      </div>
-
-      <section id="grid" class="grid" aria-live="polite">
-        <!-- Cards injected by script -->
+  <body class="page">
+    <main class="page__wrap">
+      <section class="hero" aria-label="Intro">
+        <h1 class="hero__title">PaperTrail</h1>
+        <p class="hero__tagline">map your evidence, follow the story.</p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="/b/create-new"
+            ><span class="button__icon" aria-hidden="true"></span> Create</a
+          >
+        </div>
       </section>
 
-      <div id="empty" class="empty" style="display: none">
-        No boards yet. Create the first one!
-      </div>
-    </main>
+      <h2 class="boards__title">Boards</h2>
+      <div id="empty" class="boards__empty">No boards yet. Create the first one!</div>
 
-    <script>
-      // Minimal data source (current board only, until a list endpoint exists)
-      async function fetchBoards() {
-        try {
-          const r = await fetch("/api/board");
-          if (!r.ok) return [];
-          const b = await r.json();
-          if (!b || !b.id) return [];
-          return [b];
-        } catch {
-          return [];
-        }
-      }
-
-      function boardCardTemplate(b) {
-        const updated = b.updatedAt ? timeAgo(new Date(b.updatedAt)) : "—";
-        const desc =
-          (b.nodes?.length || 0) +
-          " nodes · " +
-          (b.edges?.length || 0) +
-          " connections";
-        const vis = (b.visibility || "public").toLowerCase();
-
-        return `
-        <article class="card">
-          <div class="card__title">
-            ${escapeHtml(b.title || "Untitled Board")}
-            <span class="status">${vis}</span>
+      <section id="grid" class="boards__grid">
+        <article class="boards__card">
+          <div class="boards__row">
+            <div class="boards__card-title">Example Board One</div>
+            <span class="boards__badge">public</span>
           </div>
-          <div class="card__desc">${escapeHtml(b.description || desc)}</div>
-          <div class="card__meta">
-            <span>Updated&nbsp; ${escapeHtml(updated)}</span>
-            <a class="chip" href="/b/${encodeURIComponent(b.id)}">Overview</a>
+          <div class="boards__meta">
+            <span>Created Jan 01, 2025</span>
+            <span class="boards__badge">draft</span>
           </div>
+          <a class="boards__link" href="/b/example-one">Open</a>
         </article>
-      `;
-      }
 
-      function timeAgo(date) {
-        const d = (Date.now() - date.getTime()) / 1000;
-        if (d < 60) return "just now";
-        const mins = Math.floor(d / 60);
-        if (mins < 60) return mins + " min" + (mins > 1 ? "s" : "") + " ago";
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return hrs + " hour" + (hrs > 1 ? "s" : "") + " ago";
-        const days = Math.floor(hrs / 24);
-        if (days < 30) return days + " day" + (days > 1 ? "s" : "") + " ago";
-        const mos = Math.floor(days / 30);
-        if (mos < 12) return mos + " month" + (mos > 1 ? "s" : "") + " ago";
-        const yrs = Math.floor(mos / 12);
-        return yrs + " year" + (yrs > 1 ? "s" : "") + " ago";
-      }
+        <article class="boards__card">
+          <div class="boards__row">
+            <div class="boards__card-title">Research Notes</div>
+            <span class="boards__badge">private</span>
+          </div>
+          <div class="boards__meta">
+            <span>Created Feb 15, 2025</span>
+            <span class="boards__badge">publish</span>
+          </div>
+          <a class="boards__link" href="/b/research-notes">Open</a>
+        </article>
 
-      function escapeHtml(s) {
-        return String(s).replace(
-          /[&<>\"']/g,
-          (c) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              '"': "&quot;",
-              "'": "&#39;",
-            }[c])
-        );
-      }
-
-      async function render() {
-        const grid = document.getElementById("grid");
-        const empty = document.getElementById("empty");
-        grid.innerHTML = "";
-        const boards = await fetchBoards();
-        if (!boards.length) {
-          empty.style.display = "";
-          return;
-        }
-        empty.style.display = "none";
-        grid.innerHTML = boards.map(boardCardTemplate).join("");
-      }
-
-      // Create new PUBLIC board and redirect to /b/:id
-      document
-        .getElementById("createBoardBtn")
-        .addEventListener("click", async () => {
-          try {
-            const r = await fetch("/api/board", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ visibility: "public" }),
-            });
-            const b = await r.json();
-            if (r.ok && b && b.id) {
-              location.href = "/b/" + encodeURIComponent(b.id);
-            } else {
-              alert((b && b.error) || "Failed to create board");
-            }
-          } catch (e) {
-            alert("Failed to create board");
-          }
-        });
-
-      render();
-    </script>
+        <article class="boards__card">
+          <div class="boards__row">
+            <div class="boards__card-title">Case Study Alpha</div>
+            <span class="boards__badge">public</span>
+          </div>
+          <div class="boards__meta">
+            <span>Created Mar 03, 2025</span>
+            <span class="boards__badge">draft</span>
+          </div>
+          <a class="boards__link" href="/b/case-alpha">Open</a>
+        </article>
+      </section>
+      <section class="auth" aria-label="Sign in">
+        <h2 class="auth__title">Sign in</h2>
+        <div class="auth__card">
+          <form class="form" method="post" action="/login">
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" class="input" placeholder="you@example.com" required />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password" name="password" type="password" class="input" placeholder="••••••••" required />
+            </div>
+            <div class="actions">
+              <a class="link" href="/forgot">Forgot password?</a>
+              <button class="button button--primary" type="submit"><span class="button__icon" aria-hidden="true"></span> Sign in</button>
+            </div>
+          </form>
+          <div class="divider"></div>
+          <div class="actions">
+            <span style="color:#64748b; font-size:13px;">Don’t have an account? <a class="link" href="/register">Create account</a></span>
+          </div>
+        </div>
+      </section>
+      <section class="auth" aria-label="Register">
+        <h2 class="auth__title">Create account</h2>
+        <div class="auth__card">
+          <form class="form" method="post" action="/register">
+            <div class="field">
+              <label for="reg-name">Full Name</label>
+              <input id="reg-name" name="name" type="text" class="input" placeholder="Jane Doe" required />
+            </div>
+            <div class="field">
+              <label for="reg-email">Email</label>
+              <input id="reg-email" name="email" type="email" class="input" placeholder="you@example.com" required />
+            </div>
+            <div class="field">
+              <label for="reg-password">Password</label>
+              <input id="reg-password" name="password" type="password" class="input" placeholder="••••••••" required />
+            </div>
+            <div class="field">
+              <label for="reg-confirm">Confirm Password</label>
+              <input id="reg-confirm" name="confirm_password" type="password" class="input" placeholder="••••••••" required />
+            </div>
+            <div class="actions">
+              <a class="link" href="/login">Already have an account?</a>
+              <button class="button button--primary" type="submit">Register</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
   </body>
 </html>

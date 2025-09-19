@@ -253,7 +253,10 @@
           100% - 24px
         ); /* refined by JS to subtract toolbar height */
         overflow: auto;
-        background-image: radial-gradient(var(--color-muted) 1px, transparent 1px);
+        background-image: radial-gradient(
+          var(--color-muted) 1px,
+          transparent 1px
+        );
         background-size: 16px 16px;
         background-position: -1px -1px;
       }
@@ -941,7 +944,7 @@
       const boardEl = $("#board");
       const edgesSvg = $("#edges");
       const statusEl = $("#status");
-      const saveBtn = document.getElementById("save");
+      let saveBtn = document.getElementById("save");
       const exportBtn = document.getElementById("export");
       const importBtn = document.getElementById("importBtn");
       const importFile = document.getElementById("importFile");
@@ -951,6 +954,85 @@
       const aboutClose = document.getElementById("aboutClose");
       let lastSavedJSON = null;
       let APP_VERSION = "—"; // populated from /api/version
+
+      // --- Ensure DOM positions/sizes are synced to the model prior to save
+      function syncDomToModel() {
+        for (const n of board.nodes) {
+          const el = document.getElementById(n.id);
+          if (!el) continue;
+          const left = Number.parseFloat(el.style.left);
+          const top = Number.parseFloat(el.style.top);
+          n.x = Number.isFinite(left) ? left : (el.offsetLeft || n.x || 0);
+          n.y = Number.isFinite(top) ? top : (el.offsetTop || n.y || 0);
+          // Persist measured size so edges/auto-layout remain consistent after reload
+          n.w = Math.trunc(el.offsetWidth || n.w || 0) || undefined;
+          n.h = Math.trunc(el.offsetHeight || n.h || 0) || undefined;
+        }
+      }
+
+      // Rebind the Save button to guarantee our latest handler and avoid duplicate listeners
+      function wireSaveButton() {
+        const oldBtn = document.getElementById('save');
+        const newBtn = oldBtn.cloneNode(true); // drops prior listeners
+        oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+        saveBtn = newBtn;
+
+        newBtn.addEventListener('click', async () => {
+          try {
+            newBtn.disabled = true;
+            // Always sync the latest DOM position/size state before snapshot + POST
+            syncDomToModel();
+            const payload = { ...board, id: BOARD_ID };
+            const res = await fetch(`/api/board/${encodeURIComponent(BOARD_ID)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data && data.error ? data.error : 'Save failed');
+            // Update local model with canonical server state
+            board = data;
+            lastSavedJSON = computeSnapshot();
+            showStatus('Saved.', { ttl: 1600 });
+            render();
+            updateSaveButton();
+          } catch (e) {
+            showStatus(e && e.message ? e.message : 'Save failed', { sticky: true });
+          } finally {
+            updateSaveButton();
+          }
+        });
+      }
+
+      // Derive :id from /b/:id
+      const PATH_PARTS = location.pathname.split("/").filter(Boolean);
+      const BOARD_ID =
+        PATH_PARTS[0] === "b" && PATH_PARTS[1] ? PATH_PARTS[1] : null;
+      if (!BOARD_ID) {
+        window.location.href = "/404.html";
+      }
+
+      // Remap legacy API paths to new board-scoped endpoints
+      function fixedApi(url) {
+        const id = encodeURIComponent(BOARD_ID);
+        if (url === "/api/board") return `/api/board/${id}`;
+        if (url === "/api/upload-image") return `/api/board/${id}/upload-image`;
+        if (url === "/api/board/export") return `/api/board/${id}/export`;
+        if (url === "/api/board/validate-import") return `/api/board/${id}/validate-import`;
+        if (url === "/api/board/import") return `/api/board/${id}/import`;
+        return url;
+      }
+      const _origFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        if (typeof input === "string") {
+          return _origFetch(fixedApi(input), init);
+        } else if (input && typeof input === "object" && "url" in input) {
+          try {
+            input = new Request(fixedApi(input.url), input);
+          } catch {}
+        }
+        return _origFetch(input, init);
+      };
 
       // Ghost edge state
       let ghostPath = null; // SVGPathElement
@@ -1098,9 +1180,38 @@
         return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       }
 
+      function stableBoardSnapshot(b) {
+        // Create a deterministic snapshot that ignores volatile fields (like updatedAt)
+        // and normalizes numeric values so tiny float jitter doesn't flip the Save button.
+        return {
+          id: b.id,
+          title: b.title || "",
+          visibility: b.visibility || "public",
+          // Normalize nodes and only include fields that affect persistence
+          nodes: (b.nodes || []).map((n) => ({
+            id: n.id,
+            type: n.type,
+            x: Math.round(n.x || 0),
+            y: Math.round(n.y || 0),
+            w: Number.isFinite(n.w) ? Math.round(n.w) : undefined,
+            h: Number.isFinite(n.h) ? Math.round(n.h) : undefined,
+            data: n.data || {},
+          })),
+          // Normalize edges similarly
+          edges: (b.edges || []).map((e) => ({
+            id: e.id,
+            sourceId: e.sourceId,
+            targetId: e.targetId,
+            label: e.label || undefined,
+            dashed: !!e.dashed,
+            color: e.color || undefined,
+          })),
+          createdAt: b.createdAt || undefined,
+          // NOTE: updatedAt is intentionally excluded from snapshot comparison
+        };
+      }
       function computeSnapshot() {
-        // Exclude volatile fields if needed; for now we snapshot the whole board
-        return JSON.stringify(board);
+        return JSON.stringify(stableBoardSnapshot(board));
       }
       function updateSaveButton() {
         const snap = computeSnapshot();
@@ -1111,13 +1222,13 @@
           saveBtn.disabled = true;
           return;
         }
-        saveBtn.disabled = (snap === lastSavedJSON);
+        saveBtn.disabled = snap === lastSavedJSON;
       }
       function markDirty() {
-        // Record mutation time
+        // Record mutation time (not part of snapshot equivalence)
         try { board.updatedAt = new Date().toISOString(); } catch (_) {}
-        // Always enable Save on user-visible changes; actual disable will happen after a successful save
-        saveBtn.disabled = false;
+        // Re-evaluate against the last saved snapshot so moving a node back disables Save
+        updateSaveButton();
       }
       const ctxMenu = document.getElementById("ctxMenu");
       let ctxTarget = null; // { type: 'node'|'edge', id: string }
@@ -1277,6 +1388,23 @@
       boardNameEl.textContent = board.title || "";
       // Establish initial clean snapshot so Save enables on changes
       updateSaveButton();
+      wireSaveButton();
+
+      (async function loadInitialBoard() {
+        try {
+          const r = await fetch(`/api/board/${encodeURIComponent(BOARD_ID)}`);
+          if (!r.ok) throw new Error("not found");
+          const b = await r.json();
+          board = b;
+          boardNameEl.textContent = board.title || "Untitled Board";
+          lastSavedJSON = computeSnapshot();
+          render();
+          updateSaveButton();
+          wireSaveButton();
+        } catch (e) {
+          window.location.href = "/404.html";
+        }
+      })();
 
       let selectedNodeId = null;
       let selectedEdgeId = null;
@@ -1365,8 +1493,10 @@
         const el = document.getElementById(n.id);
         if (el) {
           // Use live DOM position to prevent model/view drift after save
-          const left = Number.parseFloat(el.style.left) || el.offsetLeft || n.x || 0;
-          const top  = Number.parseFloat(el.style.top)  || el.offsetTop  || n.y || 0;
+          const left =
+            Number.parseFloat(el.style.left) || el.offsetLeft || n.x || 0;
+          const top =
+            Number.parseFloat(el.style.top) || el.offsetTop || n.y || 0;
           const w = n.w || el.offsetWidth || 200;
           const h = n.h || el.offsetHeight || 80;
           return { x: left, y: top, w, h };
@@ -1459,6 +1589,7 @@
             resizing = false;
             document.body.style.userSelect = "";
             markDirty();
+            updateSaveButton();
           });
 
           // select on click
@@ -1515,6 +1646,7 @@
             if (dragging) {
               dragging = false;
               markDirty();
+              updateSaveButton();
             }
           });
 
@@ -2252,7 +2384,7 @@
         // Let the server stream a ZIP (includes board.json and uploads/)
         showStatus("Export in progress…", { sticky: true });
         // Trigger the download
-        window.location.href = "/api/board/export";
+        window.location.href = `/api/board/${encodeURIComponent(BOARD_ID)}/export`;
         // After a short delay, update the message to guide user
         setTimeout(() => {
           showStatus(
@@ -2522,7 +2654,7 @@
             // Probe first
             const probeFd = new FormData();
             probeFd.append("bundle", file);
-            const probeRes = await fetch("/api/board/probeZip", {
+            const probeRes = await fetch("/api/board/validate-import", {
               method: "POST",
               body: probeFd,
             });
@@ -2548,7 +2680,7 @@
             setStatus("Importing zip…");
             const fd = new FormData();
             fd.append("bundle", file);
-            const res = await fetch("/api/board/importZip", {
+            const res = await fetch("/api/board/import", {
               method: "POST",
               body: fd,
             });
@@ -2794,7 +2926,7 @@
           setStatus("Uploading…");
           const fd = new FormData();
           fd.append("image", file);
-          const res = await fetch("/api/upload", { method: "POST", body: fd });
+          const res = await fetch("/api/upload-image", { method: "POST", body: fd });
           if (!res.ok) throw new Error("Upload failed");
           const data = await res.json();
           addNode("image", viewCenter(), {

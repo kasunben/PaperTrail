@@ -1,1 +1,65 @@
-404
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>404 Not Found</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        --color-bg: #ffffff;
+        --color-muted: #9ca3af;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--color-bg);
+        background-image: radial-gradient(
+          var(--color-muted) 1px,
+          transparent 1px
+        );
+        background-size: 16px 16px;
+        background-position: -1px -1px;
+        color: #444;
+        font: 14px/1.4 ui-sans-serif, system-ui;
+        text-align: center;
+        display: grid;
+        place-items: center;
+      }
+      h1 {
+        font-size: 4rem;
+        font-weight: 700;
+        margin: 0 0 1rem;
+        color: #1f2937; /* slate-800 */
+      }
+      p {
+        font-size: 1.25rem;
+        margin: 0.5rem 0;
+        color: #374151; /* slate-700 */
+      }
+      a {
+        text-decoration: none;
+        color: #2563eb; /* blue-600 */
+        font-weight: 600;
+        font-size: 1.1rem;
+      }
+      a:hover {
+        text-decoration: underline;
+        color: #1d4ed8; /* blue-700 */
+      }
+      body > div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>404</h1>
+      <p>The page you’re looking for doesn’t exist.</p>
+      <p><a href="/">Return to home</a></p>
+    </div>
+  </body>
+</html>
