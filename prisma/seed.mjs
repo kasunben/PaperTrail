@@ -8,6 +8,7 @@ import https from "https";
 import http from "http";
 
 const prisma = new PrismaClient();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -52,18 +53,8 @@ async function downloadToFile(urlStr, destPath) {
   });
 }
 
-async function getTableColumns(table) {
-  // Works in SQLite; returns list of column names for a table
-  const rows = await prisma.$queryRawUnsafe(`PRAGMA table_info('${table}');`);
-  return new Set(rows.map((r) => r.name));
-}
-
-function pickKnownColumns(obj, knownCols) {
-  const out = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (knownCols.has(k)) out[k] = v;
-  }
-  return out;
+function normalizeTag(raw) {
+  return String(raw).trim().replace(/^#+/, "").toLowerCase();
 }
 
 async function main() {
@@ -72,66 +63,38 @@ async function main() {
   const raw = await readFile(jsonPath, "utf-8");
   const boardJson = JSON.parse(raw);
 
-  // --- 2) Discover schema columns dynamically ---
-  const boardCols = await getTableColumns("Board");
-  const nodeCols = await getTableColumns("Node");
-  const edgeCols = await getTableColumns("Edge");
-
-  const hasNodeBoardId = nodeCols.has("boardId");
-  const hasEdgeBoardId = edgeCols.has("boardId");
-
   const boardId = boardJson.id || "board-demo";
-
-  const uploadsDir = path.join(__dirname, "../public/uploads", boardId);
+  const uploadsDir = path.join(__dirname, "../data/uploads", boardId);
   await ensureDir(uploadsDir);
 
-  // --- 3) Upsert Board (id + metadata) ---
-  // Map board fields to model columns
-  const boardData = pickKnownColumns(
-    {
-      id: boardId,
-      title: boardJson.title,
-      schemaVersion: Number.isInteger(boardJson.schemaVersion)
-        ? boardJson.schemaVersion
-        : 1,
-      createdAt: boardJson.createdAt
-        ? new Date(boardJson.createdAt)
-        : undefined,
-      updatedAt: boardJson.updatedAt
-        ? new Date(boardJson.updatedAt)
-        : undefined,
-    },
-    boardCols
-  );
-
+  // --- 2) Upsert Board (id + metadata) ---
   await prisma.board.upsert({
     where: { id: boardId },
-    create: boardData,
-    update: boardData,
+    create: {
+      id: boardId,
+      title: boardJson.title || "Demo Board",
+      schemaVersion: Number.isInteger(boardJson.schemaVersion) ? boardJson.schemaVersion : 1,
+      // createdAt/updatedAt use defaults if undefined
+    },
+    update: {
+      title: boardJson.title || "Demo Board",
+      schemaVersion: Number.isInteger(boardJson.schemaVersion) ? boardJson.schemaVersion : 1,
+    },
   });
 
-  // --- 4) Clear existing Nodes/Edges for this board ---
-  if (hasEdgeBoardId) {
-    await prisma.edge.deleteMany({ where: { boardId } });
-  } else {
-    const ids = (boardJson.edges || []).map((e) => e.id).filter(Boolean);
-    if (ids.length)
-      await prisma.edge.deleteMany({ where: { id: { in: ids } } });
-  }
+  // --- 3) Clear existing data for this board ---
+  await prisma.$transaction([
+    prisma.nodeTag.deleteMany({ where: { node: { boardId } } }),
+    prisma.edge.deleteMany({ where: { boardId } }),
+    prisma.node.deleteMany({ where: { boardId } }),
+  ]);
 
-  if (hasNodeBoardId) {
-    await prisma.node.deleteMany({ where: { boardId } });
-  } else {
-    const ids = (boardJson.nodes || []).map((n) => n.id).filter(Boolean);
-    if (ids.length)
-      await prisma.node.deleteMany({ where: { id: { in: ids } } });
-  }
-
-  // --- 5) Insert Nodes ---
-  const nodePayloads = (boardJson.nodes || []).map(async (n) => {
+  // --- 4) Insert Nodes ---
+  for (const n of boardJson.nodes || []) {
     const nodeId = n.id;
     let dataObj = n.data ?? null;
-    // Localize image URLs into /public/uploads/<boardId>/ if present
+
+    // Localize image URLs into /data/uploads/<boardId>/ if present (served at /uploads/<boardId>/...)
     if (dataObj && (dataObj.imageUrl || dataObj.img || dataObj.thumbnail || dataObj.thumbUrl)) {
       const rawUrl = dataObj.imageUrl || dataObj.img || dataObj.thumbnail || dataObj.thumbUrl;
       if (typeof rawUrl === "string" && /^https?:\/\//i.test(rawUrl)) {
@@ -140,7 +103,7 @@ async function main() {
         const publicPath = path.posix.join("/uploads", boardId, filename);
         try {
           await downloadToFile(rawUrl, destPath);
-          dataObj = { ...dataObj, imageUrl: publicPath, thumbUrl: dataObj.thumbUrl || publicPath };
+          dataObj = { ...dataObj, imageUrl: publicPath, thumbUrl: dataObj?.thumbUrl || publicPath };
         } catch (e) {
           // Keep original URL if download fails
           dataObj = { ...dataObj, imageUrl: rawUrl };
@@ -148,78 +111,56 @@ async function main() {
         }
       }
     }
-    const normalized = {
-      id: n.id,
-      type: n.type,
-      x: Number.isFinite(n.x) ? n.x : parseInt(n.x ?? 0, 10),
-      y: Number.isFinite(n.y) ? n.y : parseInt(n.y ?? 0, 10),
-      w: Number.isFinite(n.w) ? n.w : parseInt(n.w ?? 0, 10),
-      h:
-        n.h == null
-          ? undefined
-          : Number.isFinite(n.h)
-          ? n.h
-          : parseInt(n.h, 10),
-      // Prefer to store full JSON if the table has a JSON column for it
-      data: dataObj,
-      // Some schemas use alternative names for the JSON blob
-      payload: dataObj,
-      content: dataObj,
-      // Flattened fields (only kept if such columns exist in your schema)
-      title: dataObj && typeof dataObj.title === "string" ? dataObj.title : null,
-      html:
-        dataObj && typeof dataObj.html === "string"
-          ? dataObj.html
-          : dataObj && typeof dataObj.descHtml === "string"
-          ? dataObj.descHtml
-          : null,
-      linkUrl:
-        dataObj && typeof dataObj.linkUrl === "string" ? dataObj.linkUrl : null,
-      imageUrl:
-        dataObj && typeof dataObj.imageUrl === "string" ? dataObj.imageUrl : null,
-      thumbUrl:
-        dataObj && typeof dataObj.thumbUrl === "string" ? dataObj.thumbUrl : null,
-      tags: Array.isArray(dataObj?.tags) ? dataObj.tags : null,
-      boardId: hasNodeBoardId ? boardId : undefined,
-      createdAt: boardJson.createdAt ? new Date(boardJson.createdAt) : undefined,
-      updatedAt: boardJson.updatedAt ? new Date(boardJson.updatedAt) : undefined,
-    };
-    return pickKnownColumns(normalized, nodeCols);
-  });
 
-  // Prefer createMany for speed; fallback to per-item if needed
-  const resolvedNodePayloads = await Promise.all(nodePayloads);
-  if (resolvedNodePayloads.length) {
-    await prisma.node.createMany({ data: resolvedNodePayloads });
+    await prisma.node.create({
+      data: {
+        id: nodeId, // keep JSON id so edges can reference it
+        boardId,
+        type: n.type,
+        x: Number.isFinite(n.x) ? Math.trunc(n.x) : parseInt(n.x ?? 0, 10),
+        y: Number.isFinite(n.y) ? Math.trunc(n.y) : parseInt(n.y ?? 0, 10),
+        w: Number.isFinite(n.w) ? Math.trunc(n.w) : (n.w == null ? null : parseInt(n.w, 10)),
+        h: Number.isFinite(n.h) ? Math.trunc(n.h) : (n.h == null ? null : parseInt(n.h, 10)),
+
+        // Flattened fields per schema (camelCase; Prisma maps to snake_case)
+        title: typeof dataObj?.title === "string" ? dataObj.title : null,
+        html: typeof dataObj?.html === "string" ? dataObj.html
+             : typeof dataObj?.descHtml === "string" ? dataObj.descHtml : null,
+        linkUrl: typeof dataObj?.linkUrl === "string" ? dataObj.linkUrl : null,
+        imageUrl: typeof dataObj?.imageUrl === "string" ? dataObj.imageUrl : null,
+      },
+    });
+
+    // Tags → Tag/NodeTag
+    const tags = Array.isArray(dataObj?.tags) ? dataObj.tags : [];
+    for (const rawTag of tags) {
+      const name = normalizeTag(rawTag);
+      if (!name) continue;
+      const tag = await prisma.tag.upsert({
+        where: { name },
+        create: { name }, // DB generates cuid()
+        update: {},
+      });
+      await prisma.nodeTag.create({ data: { nodeId, tagId: tag.id } });
+    }
   }
 
-  // --- 6) Insert Edges ---
-  const edgePayloads = (boardJson.edges || []).map((e) => {
-    const normalized = {
-      id: e.id,
-      sourceId: e.sourceId,
-      targetId: e.targetId,
-      label: e.label ?? null,
-      dashed: e.dashed === true,
-      color: e.color ?? null,
-      boardId: hasEdgeBoardId ? boardId : undefined,
-      createdAt: boardJson.createdAt
-        ? new Date(boardJson.createdAt)
-        : undefined,
-      updatedAt: boardJson.updatedAt
-        ? new Date(boardJson.updatedAt)
-        : undefined,
-    };
-    return pickKnownColumns(normalized, edgeCols);
-  });
-
-  if (edgePayloads.length) {
-    await prisma.edge.createMany({ data: edgePayloads });
+  // --- 5) Insert Edges ---
+  for (const e of boardJson.edges || []) {
+    await prisma.edge.create({
+      data: {
+        id: e.id,
+        boardId,
+        sourceId: e.sourceId,
+        targetId: e.targetId,
+        label: e.label ?? null,
+        dashed: e.dashed === true,
+        color: e.color ?? null,
+      },
+    });
   }
 
-  console.log(
-    `Seeded board ${boardId} with ${resolvedNodePayloads.length} nodes and ${edgePayloads.length} edges.`
-  );
+  console.log(`Seeded board ${boardId} with ${(boardJson.nodes || []).length} nodes and ${(boardJson.edges || []).length} edges.`);
 }
 
 main()
