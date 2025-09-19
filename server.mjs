@@ -103,20 +103,40 @@ const miscHandler = {
         return res.status(400).json({ error: "Invalid URL" });
       }
 
-      // Fetch the page with a simple timeout
-      const controller = new AbortController();
-      const to = setTimeout(() => controller.abort(), 8000);
-      const resp = await fetch(parsed.toString(), {
-        redirect: "follow",
-        signal: controller.signal,
-        headers: {
-          "user-agent": "EvidenceBoard/1.0 (+https://local)",
-        },
-      }).catch((err) => {
-        clearTimeout(to);
-        throw err;
+      // Helpers up-front
+      const minimal = (overrides = {}) => ({
+        url: parsed.toString(),
+        title: parsed.hostname,
+        description: "",
+        siteName: parsed.hostname,
+        image: null,
+        icon: new URL("/favicon.ico", parsed).toString(),
+        ...overrides,
       });
-      clearTimeout(to);
+
+      // Fetch the page with a strict timeout
+      const controller = new AbortController();
+      const timeoutMs = 8000;
+      const to = setTimeout(() => controller.abort(), timeoutMs);
+
+      let resp;
+      try {
+        resp = await fetch(parsed.toString(), {
+          redirect: "follow",
+          signal: controller.signal,
+          headers: { "user-agent": "EvidenceBoard/1.0 (+https://local)" },
+        });
+      } catch (err) {
+        clearTimeout(to);
+        if (err && (err.name === "AbortError" || err.type === "aborted")) {
+          // Upstream took too long – treat as gateway timeout
+          return res.status(504).json({ error: "Upstream timeout" });
+        }
+        // Generic upstream failure (DNS, TLS, network reset, etc.)
+        return res.status(502).json({ error: "Upstream fetch failed" });
+      } finally {
+        clearTimeout(to);
+      }
 
       if (!resp || !resp.ok) {
         return res.status(502).json({
@@ -124,21 +144,20 @@ const miscHandler = {
         });
       }
 
-      const contentType = resp.headers.get("content-type") || "";
-      if (!/text\/html/i.test(contentType)) {
-        return res.json({
-          url: parsed.toString(),
-          title: parsed.hostname,
-          description: "",
-          siteName: parsed.hostname,
-          image: null,
-          icon: new URL("/favicon.ico", parsed).toString(),
-        });
+      const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("text/html")) {
+        return res.json(minimal());
       }
 
-      const html = await resp.text();
+      // Try to read HTML; if it fails (too large/stream error), fall back
+      let html = "";
+      try {
+        html = await resp.text();
+      } catch {
+        return res.json(minimal());
+      }
 
-      // Helpers
+      // Parsing helpers
       const pick = (re) => {
         const m = html.match(re);
         return m ? (m[1] || m[2] || m[3] || "").toString().trim() : "";
@@ -154,57 +173,33 @@ const miscHandler = {
 
       // Title
       const ogTitle =
-        pick(
-          /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i
-        );
+        pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
       const title =
         ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
 
       // Description
       const ogDesc =
-        pick(
-          /<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i
-        );
+        pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i);
 
       // Site name
       const siteName =
-        pick(
-          /<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) || parsed.hostname;
+        pick(/<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        parsed.hostname;
 
       // Image
-      const ogImg = pick(
-        /<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
-      );
+      const ogImg = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
 
       // Icon
       const iconHref =
-        pick(
-          /<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i
-        );
+        pick(/<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i);
 
-      const cleanTitle = String(title || "")
-        .replace(/[\r\n\t]+/g, " ")
-        .slice(0, 256);
-      const cleanDesc = String(ogDesc || "")
-        .replace(/<[^>]*>/g, "")
-        .replace(/[\r\n\t]+/g, " ")
-        .slice(0, 512);
-      const cleanSite = String(siteName || "")
-        .replace(/[\r\n\t]+/g, " ")
-        .slice(0, 128);
+      const cleanTitle = String(title || "").replace(/[\r\n\t]+/g, " ").slice(0, 256);
+      const cleanDesc = String(ogDesc || "").replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").slice(0, 512);
+      const cleanSite = String(siteName || "").replace(/[\r\n\t]+/g, " ").slice(0, 128);
 
       return res.json({
         url: parsed.toString(),
@@ -215,8 +210,9 @@ const miscHandler = {
         icon: abs(iconHref) || new URL("/favicon.ico", parsed).toString(),
       });
     } catch (err) {
-      console.error("/api/link-preview error", err);
-      return res.status(500).json({ error: "Preview failed" });
+      // Last-resort safety: never crash the app from this handler
+      console.warn("/api/link-preview unexpected error", err?.message || err);
+      return res.status(502).json({ error: "Preview failed" });
     }
   },
 };
