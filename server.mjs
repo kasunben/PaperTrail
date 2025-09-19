@@ -11,12 +11,14 @@ import unzipper from "unzipper";
 import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import argon2 from "argon2";
+import { engine as hbsEngine } from "express-handlebars";
 
 import "dotenv/config";
 
 /** $Global Vars */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const __templatedir = path.join(__dirname, "public");
 
 // > Read app/schema versions from package.json once at startup
 let appVersion = "0.0.0";
@@ -144,7 +146,9 @@ const miscHandler = {
         });
       }
 
-      const contentType = (resp.headers.get("content-type") || "").toLowerCase();
+      const contentType = (
+        resp.headers.get("content-type") || ""
+      ).toLowerCase();
       if (!contentType.includes("text/html")) {
         return res.json(minimal());
       }
@@ -173,33 +177,57 @@ const miscHandler = {
 
       // Title
       const ogTitle =
-        pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
+        pick(
+          /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i
+        ) ||
+        pick(
+          /<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i
+        );
       const title =
         ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
 
       // Description
       const ogDesc =
-        pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-        pick(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i);
+        pick(
+          /<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i
+        ) ||
+        pick(
+          /<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i
+        ) ||
+        pick(
+          /<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i
+        );
 
       // Site name
       const siteName =
-        pick(/<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
-        parsed.hostname;
+        pick(
+          /<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i
+        ) || parsed.hostname;
 
       // Image
-      const ogImg = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+      const ogImg = pick(
+        /<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
+      );
 
       // Icon
       const iconHref =
-        pick(/<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i) ||
-        pick(/<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i);
+        pick(
+          /<link[^>]+rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["'][^>]*>/i
+        ) ||
+        pick(
+          /<link[^>]+href=["']([^"']+)["'][^>]*rel=["'](?:shortcut icon|icon|apple-touch-icon)["'][^>]*>/i
+        );
 
-      const cleanTitle = String(title || "").replace(/[\r\n\t]+/g, " ").slice(0, 256);
-      const cleanDesc = String(ogDesc || "").replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").slice(0, 512);
-      const cleanSite = String(siteName || "").replace(/[\r\n\t]+/g, " ").slice(0, 128);
+      const cleanTitle = String(title || "")
+        .replace(/[\r\n\t]+/g, " ")
+        .slice(0, 256);
+      const cleanDesc = String(ogDesc || "")
+        .replace(/<[^>]*>/g, "")
+        .replace(/[\r\n\t]+/g, " ")
+        .slice(0, 512);
+      const cleanSite = String(siteName || "")
+        .replace(/[\r\n\t]+/g, " ")
+        .slice(0, 128);
 
       return res.json({
         url: parsed.toString(),
@@ -604,11 +632,14 @@ const fileHandler = {
 };
 
 const uiHandler = {
+  viewIndexPage: async (_, res) => {
+    return res.render("index");
+  },
   viewLoginPage: async (_, res) => {
-    return res.sendFile(path.join(__dirname, "public", "login.html"));
+    return res.render("login");
   },
   viewRegisterPage: async (_, res) => {
-    return res.sendFile(path.join(__dirname, "public", "register.html"));
+    return res.render("register");
   },
   viewBoard: async (req, res) => {
     try {
@@ -616,9 +647,12 @@ const uiHandler = {
 
       // basic id sanity check
       if (!isValidBoardId(id)) {
-        return res
-          .status(404)
-          .sendFile(path.join(__dirname, "public", "404.html"));
+        return res.status(404).render("error", {
+          title: 404,
+          subtitle: "Board not found",
+          message:
+            "The board you’re looking for doesn’t exist or may have been moved.",
+        });
       }
 
       const exists = await prisma.board.findUnique({
@@ -627,18 +661,22 @@ const uiHandler = {
       });
 
       if (!exists) {
-        return res
-          .status(404)
-          .sendFile(path.join(__dirname, "public", "404.html"));
+        return res.status(404).render("error", {
+          title: 404,
+          subtitle: "Board not found",
+          message:
+            "The board you’re looking for doesn’t exist or may have been moved.",
+        });
       }
-
       // Serve the SPA shell (renamed from index.html to board.html)
-      return res.sendFile(path.join(__dirname, "public", "board.html"));
+      return res.render("board");
     } catch (e) {
       console.error("route /b/:id error", e);
-      return res
-        .status(500)
-        .sendFile(path.join(__dirname, "public", "404.html"));
+      return res.status(500).render("error", {
+        title: 500,
+        subtitle: "Oops!",
+        message: "Something went wrong",
+      });
     }
   },
 };
@@ -1156,6 +1194,20 @@ async function getSessionWithUser(token) {
 // Bootstrap the app ---
 const app = express();
 
+// Template engine: Handlebars using .html files under /public
+app.engine(
+  "html",
+  hbsEngine({
+    extname: ".html",
+    defaultLayout: false,
+    // You can enable these later if you add folders:
+    // partialsDir: path.join(__dirname, "public", "partials"),
+    // layoutsDir: path.join(__dirname, "public", "layouts"),
+  })
+);
+app.set("view engine", "html");
+app.set("views", path.join(__dirname, "public"));
+
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
@@ -1177,11 +1229,21 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
+
+// Block direct access to template files under /public (e.g., *.html, *.hbs)
+app.use((req, res, next) => {
+  if (/\.(html|hbs|handlebars)$/i.test(req.path)) {
+    return res.status(404).end();
+  }
+  next();
+});
+// Serve static assets (CSS/JS/images/fonts, etc.) without directory index
+app.use(express.static(__templatedir, { index: false }));
 
 app.get(/^\/uploads\/(.+)$/, fileHandler.serveUpload);
 
 // $Routes.Views
+app.get("/", uiHandler.viewIndexPage);
 app.get("/login", uiHandler.viewLoginPage);
 app.get("/register", uiHandler.viewRegisterPage);
 app.get("/b/:id", uiHandler.viewBoard);
@@ -1230,6 +1292,25 @@ app.get("/api/board/:id/export", boardHandler.exportBoard);
 // $Routes.Misc (API)
 app.get("/api/version", miscHandler.getVersion);
 app.post("/api/link-preview", miscHandler.fetchLinkPreview);
+
+// 404 handler for unknown routes
+app.use((_, res) => {
+  return res.status(404).render("error", {
+    title: 404,
+    subtitle: "Page not found",
+    message:
+      "The page you’re looking for doesn’t exist or may have been moved.",
+  });
+});
+
+// Centralized error handler (last)
+app.use((err, req, res) => {
+  return res.status(500).render("error", {
+    title: 500,
+    subtitle: "Oops!",
+    message: "Something went wrong",
+  });
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
