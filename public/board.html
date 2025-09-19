@@ -64,27 +64,27 @@
         color: var(--color-ink);
         font: 14px/1.4 ui-sans-serif, system-ui;
       }
-      .app-title {
+      .toolbar__title {
         display: flex;
         flex-direction: column;
         margin-right: 1rem;
       }
-      .app-title .brand {
+      .toolbar__brand {
         font-weight: 700;
         font-size: 16px;
         color: #111827;
       }
-      .app-title .tagline {
+      .toolbar__tagline {
         font-size: 11px;
         color: #6b7280;
       }
-      .app-title .board-name {
+      .toolbar__board-name {
         font-size: 12px;
         color: #374151;
         margin-top: 2px;
         font-style: italic;
       }
-      .board-name[contenteditable="true"] {
+      .toolbar__board-name[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
         padding-bottom: 1px;
@@ -93,11 +93,11 @@
         white-space: normal;
         overflow-wrap: anywhere;
       }
-      .board-name[contenteditable="true"]:focus {
+      .toolbar__board-name[contenteditable="true"]:focus {
         outline: none;
         border-bottom: 1px dashed #60a5fa;
       }
-      .board-name[contenteditable="true"]:empty:before {
+      .toolbar__board-name[contenteditable="true"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
@@ -127,20 +127,20 @@
         transition: background 0.2s, box-shadow 0.2s;
         outline: none;
       }
-      .btn-icon {
+      .toolbar__btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0.45rem;
       }
-      .btn-icon svg {
+      .toolbar__btn--icon svg {
         width: 18px;
         height: 18px;
         stroke: currentColor;
         fill: none;
         stroke-width: 2;
       }
-      .btn-icon svg.filled {
+      .toolbar__btn--icon svg.filled {
         fill: currentColor;
         stroke: none;
       }
@@ -153,20 +153,20 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .toolbar .spacer {
+      .toolbar__spacer {
         flex: 1;
       }
-      .toolbar .search {
+      .toolbar__search {
         min-width: 250px;
         cursor: text;
       }
-      .search-wrap {
+      .toolbar__search-wrap {
         position: relative;
         display: inline-flex;
         align-items: center;
         max-width: 100%;
       }
-      .search-wrap input.search {
+      .toolbar__search-wrap input.toolbar__search {
         flex: 1 1 auto;
         width: 100%;
         padding-right: 1.8em; /* reserve space */
@@ -198,34 +198,34 @@
           gap: 6px;
           padding: 0.5rem 0.5rem 0.35rem;
         }
-        .app-title {
+        .toolbar__title {
           flex: 1 1 100%;
           margin-right: 0;
         }
-        .app-title .brand {
+        .toolbar__brand {
           font-size: 15px;
         }
-        .app-title .tagline {
+        .toolbar__tagline {
           font-size: 10px;
         }
-        .app-title .board-name {
+        .toolbar__board-name {
           max-width: 100%;
           font-size: 12px;
         }
 
-        .toolbar .spacer {
+        .toolbar__spacer {
           display: none;
         }
 
-        .btn-icon {
+        .toolbar__btn {
           padding: 0.35rem;
         }
-        .btn-icon svg {
+        .toolbar__btn--icon svg {
           width: 16px;
           height: 16px;
         }
         /* Search gets its own row when wrapping */
-        .search-wrap {
+        .toolbar__search-wrap {
           flex: 1 1 100%;
           min-width: 0;
           order: 10;
@@ -233,7 +233,7 @@
           display: flex;
           align-items: center;
         }
-        .search-wrap input.search {
+        .toolbar__search-wrap input.toolbar__search {
           width: 100%;
         }
         /* Right-side controls come after search */
@@ -295,7 +295,7 @@
       .node:active {
         cursor: grabbing;
       }
-      .node .title {
+      .node__title {
         font-weight: 600;
         margin-bottom: 0.25rem;
         font-size: 13px;
@@ -304,7 +304,7 @@
         overflow-wrap: anywhere;
         word-break: break-word;
       }
-      .node .content {
+      .node__content {
         font-size: 13px;
         color: #1f2937;
         word-wrap: break-word;
@@ -317,7 +317,7 @@
         border-radius: 0.3rem;
         margin-bottom: 0.35rem;
       }
-      .node .ports {
+      .node__ports {
         position: absolute;
         top: 12px; /* better vertical centering with 13px title */
         left: 10px; /* balances with 20px title padding */
@@ -326,7 +326,7 @@
         margin-top: 0;
         align-items: center;
       }
-      .node .port {
+      .node__port {
         width: 8px;
         height: 8px;
         border-radius: 50%;
@@ -334,13 +334,13 @@
         transition: background 0.2s, border-color 0.2s;
         flex-shrink: 0;
       }
-      .node .title {
+      .node__title {
         padding-left: 18px;
       }
-      .node-link .content .rich {
+      .node-link .node__content .rich {
         margin-top: 5px;
       }
-      body.connect-mode .node .port {
+      body.connect-mode .node .node__port {
         background: #ef4444; /* red */
         border-color: #b91c1c;
       }
@@ -358,7 +358,7 @@
         outline: 2px solid var(--color-accent);
       }
       /* Resize handle */
-      .resizer {
+      .node__resizer {
         position: absolute;
         right: 2px;
         bottom: 2px;
@@ -368,7 +368,7 @@
         cursor: se-resize;
         display: none;
       }
-      .resizer::after {
+      .node__resizer::after {
         content: "";
         position: absolute;
         right: 2px;
@@ -379,8 +379,8 @@
         border-bottom: 2px solid #9ca3af;
         box-sizing: border-box;
       }
-      .node:hover .resizer,
-      .node:focus-within .resizer {
+      .node:hover .node__resizer,
+      .node:focus-within .node__resizer {
         display: block;
       }
       .edge {
@@ -392,23 +392,23 @@
         pointer-events: stroke; /* enable clicks on the line only */
         cursor: pointer;
       }
-      .edge-endpoint {
+      .edge__endpoint {
         fill: red;
         stroke: #b91c1c;
         stroke-width: 1.2;
         pointer-events: none;
       }
-      .edge.selected {
+      .edge--selected {
         stroke: var(--color-accent);
         stroke-width: 3;
       }
       .edge:hover {
         stroke-width: 3;
       }
-      .edge.dashed {
+      .edge--dashed {
         stroke-dasharray: 6 6;
       }
-      .edge.ghost {
+      .edge--ghost {
         stroke: #9ca3af; /* muted */
         stroke-width: 2;
         fill: none;
@@ -424,7 +424,7 @@
         stroke: #f9fafb;
         stroke-width: 2px;
       }
-      .hint {
+      .statusbar__hint {
         color: #000000;
         margin-left: 0.5rem;
       }
@@ -440,7 +440,7 @@
         display: none;
         color: #111;
       }
-      .context-menu button {
+      .context-menu__item {
         width: 100%;
         display: block;
         text-align: left;
@@ -452,7 +452,7 @@
         cursor: pointer;
         transition: background 0.15s ease-in-out;
       }
-      .context-menu button:hover {
+      .context-menu__item:hover {
         background: #f3f4f6;
       }
       /* Inline rich text toolbar */
@@ -495,23 +495,23 @@
         text-decoration: underline;
       }
       /* Discoverable editable areas */
-      .title[contenteditable="false"] {
+      .node__title[contenteditable="false"] {
         cursor: pointer; /* single-click selects; dblclick enables editing */
       }
-      .title[contenteditable="true"] {
+      .node__title[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
         padding-bottom: 2px;
       }
-      .node:hover .title[contenteditable="true"] {
+      .node:hover .node__title[contenteditable="true"] {
         border-bottom-color: #d1d5db;
       }
-      .title[contenteditable="true"]:focus {
+      .node__title[contenteditable="true"]:focus {
         outline: none;
         border-bottom-color: #60a5fa;
         box-shadow: inset 0 -1px 0 #60a5fa;
       }
-      .title[contenteditable="true"]:empty:before {
+      .node__title[contenteditable="true"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
@@ -685,11 +685,11 @@
         z-index: 20;
         font-size: smaller;
       }
-      .statusbar #status {
+      .statusbar .statusbar__text {
         color: #000;
       }
       /* About modal */
-      .modal-backdrop {
+      .modal__backdrop {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.35);
@@ -698,7 +698,7 @@
         justify-content: center;
         z-index: 10000;
       }
-      .modal-backdrop.show {
+      .modal__backdrop.show {
         display: flex;
       }
       .modal {
@@ -711,28 +711,28 @@
         overflow: auto;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
       }
-      .modal header {
+      .modal__header {
         padding: 14px 16px;
         border-bottom: 1px solid #f3f4f6;
         display: flex;
         align-items: center;
         justify-content: space-between;
       }
-      .modal header h3 {
+      .modal__title {
         margin: 0;
         font-size: 16px;
       }
-      .modal header button {
+      .modal__close {
         border: 0;
         background: transparent;
         cursor: pointer;
         font-size: 18px;
         color: #6b7280;
       }
-      .modal header button:hover {
+      .modal__close:hover {
         color: #111827;
       }
-      .modal .body {
+      .modal__body {
         padding: 0 25px 25px;
         font-size: smaller;
       }
@@ -749,17 +749,21 @@
   </head>
   <body>
     <div class="toolbar">
-      <div class="app-title">
-        <div class="brand">PaperTrail</div>
-        <div class="tagline">map your evidence, follow the story.</div>
+      <div class="toolbar__title">
+        <div class="toolbar__brand">PaperTrail</div>
+        <div class="toolbar__tagline">map your evidence, follow the story.</div>
         <div
-          class="board-name"
+          class="toolbar__board-name"
           id="boardName"
           contenteditable="true"
           data-placeholder="Untitled Board"
         ></div>
       </div>
-      <button id="addText" class="btn-icon" title="Add text">
+      <button
+        id="addText"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Add text"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="3" width="16" height="18" rx="2" ry="2" />
           <line x1="8" y1="9" x2="16" y2="9" />
@@ -767,14 +771,22 @@
           <line x1="8" y1="17" x2="14" y2="17" />
         </svg>
       </button>
-      <button id="addImage" class="btn-icon" title="Add image (URL)">
+      <button
+        id="addImage"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Add image (URL)"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2" />
           <path d="M7 15l3-3 3 3 4-4 3 3" />
           <circle cx="9" cy="9" r="1.5" />
         </svg>
       </button>
-      <button id="uploadImage" class="btn-icon" title="Upload image">
+      <button
+        id="uploadImage"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Upload image"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 15V5" />
           <path d="M8 9l4-4 4 4" />
@@ -787,14 +799,22 @@
         accept="image/*"
         style="display: none"
       />
-      <button id="addLink" class="btn-icon" title="Add link">
+      <button
+        id="addLink"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Add link"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M10 14l-2 2a4 4 0 0 1-6-6l2-2" />
           <path d="M14 10l2-2a4 4 0 0 1 6 6l-2 2" />
           <path d="M8 12l8-8" opacity="0.0" />
         </svg>
       </button>
-      <button id="connect" class="btn-icon" title="Connect nodes (C)">
+      <button
+        id="connect"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Connect nodes (C)"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="6" cy="12" r="2" />
           <circle cx="18" cy="6" r="2" />
@@ -804,17 +824,21 @@
           <path d="M12 12l5 5" />
         </svg>
       </button>
-      <div class="search-wrap">
+      <div class="toolbar__search-wrap">
         <input
           id="search"
-          class="search"
+          class="toolbar__search"
           type="search"
           placeholder="Search… (use #tag)"
         />
         <button id="clearSearch" title="Clear search">✕</button>
       </div>
-      <div class="spacer"></div>
-      <button id="autoLayout" class="btn-icon" title="Auto layout">
+      <div class="toolbar__spacer"></div>
+      <button
+        id="autoLayout"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Auto layout"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="4" width="6" height="6" />
           <rect x="14" y="4" width="6" height="6" />
@@ -822,14 +846,22 @@
           <rect x="14" y="14" width="6" height="6" />
         </svg>
       </button>
-      <button id="export" class="btn-icon" title="Export board">
+      <button
+        id="export"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Export board"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v10" />
           <path d="M8 9l4-4 4 4" />
           <path d="M4 19h16" />
         </svg>
       </button>
-      <button id="importBtn" class="btn-icon" title="Import board">
+      <button
+        id="importBtn"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Import board"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 19V9" />
           <path d="M8 15l4 4 4-4" />
@@ -842,20 +874,33 @@
         accept="application/zip,application/x-zip-compressed,.zip,application/json"
         style="display: none"
       />
-      <button id="save" class="btn-icon" disabled title="Save">
+      <button
+        id="save"
+        class="toolbar__btn toolbar__btn--icon"
+        disabled
+        title="Save"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="4" width="16" height="16" rx="2" />
           <rect x="8" y="4" width="8" height="6" />
           <rect x="9" y="14" width="6" height="6" />
         </svg>
       </button>
-      <button id="reset" class="btn-icon" title="Reset board">
+      <button
+        id="reset"
+        class="toolbar__btn toolbar__btn--icon"
+        title="Reset board"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 12a9 9 0 1 0 3-6" />
           <path d="M3 4v6h6" />
         </svg>
       </button>
-      <button id="infoBtn" class="btn-icon" title="About / Info">
+      <button
+        id="infoBtn"
+        class="toolbar__btn toolbar__btn--icon"
+        title="About / Info"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <circle cx="12" cy="8" r="1.4" />
@@ -869,26 +914,33 @@
     </div>
     <div id="ctxMenu" class="context-menu"></div>
     <div class="statusbar">
-      <span id="status"></span>
-      <span class="hint" id="modeHint"
+      <span id="status" class="statusbar__text"></span>
+      <span class="statusbar__hint" id="modeHint"
         >💡 Mode: Select/Move. Press C to toggle connect mode.</span
       >
     </div>
     <div
       id="aboutModal"
-      class="modal-backdrop"
+      class="modal__backdrop"
       role="dialog"
       aria-modal="true"
       aria-labelledby="aboutTitle"
     >
       <div class="modal">
-        <header>
-          <h3 id="aboutTitle">
+        <header class="modal__header">
+          <h3 id="aboutTitle" class="modal__title">
             PaperTrail — map your evidence, follow the story
           </h3>
-          <button type="button" id="aboutClose" aria-label="Close">✕</button>
+          <button
+            type="button"
+            id="aboutClose"
+            class="modal__close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
         </header>
-        <div class="body">
+        <div class="modal__body">
           <p>
             <em>PaperTrail</em> is a lightweight visual evidence board for
             organizing ideas, documents, images, and links. It lets you pin down
@@ -962,8 +1014,8 @@
           if (!el) continue;
           const left = Number.parseFloat(el.style.left);
           const top = Number.parseFloat(el.style.top);
-          n.x = Number.isFinite(left) ? left : (el.offsetLeft || n.x || 0);
-          n.y = Number.isFinite(top) ? top : (el.offsetTop || n.y || 0);
+          n.x = Number.isFinite(left) ? left : el.offsetLeft || n.x || 0;
+          n.y = Number.isFinite(top) ? top : el.offsetTop || n.y || 0;
           // Persist measured size so edges/auto-layout remain consistent after reload
           n.w = Math.trunc(el.offsetWidth || n.w || 0) || undefined;
           n.h = Math.trunc(el.offsetHeight || n.h || 0) || undefined;
@@ -972,32 +1024,38 @@
 
       // Rebind the Save button to guarantee our latest handler and avoid duplicate listeners
       function wireSaveButton() {
-        const oldBtn = document.getElementById('save');
+        const oldBtn = document.getElementById("save");
         const newBtn = oldBtn.cloneNode(true); // drops prior listeners
         oldBtn.parentNode.replaceChild(newBtn, oldBtn);
         saveBtn = newBtn;
 
-        newBtn.addEventListener('click', async () => {
+        newBtn.addEventListener("click", async () => {
           try {
             newBtn.disabled = true;
             // Always sync the latest DOM position/size state before snapshot + POST
             syncDomToModel();
             const payload = { ...board, id: BOARD_ID };
-            const res = await fetch(`/api/board/${encodeURIComponent(BOARD_ID)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
+            const res = await fetch(
+              `/api/board/${encodeURIComponent(BOARD_ID)}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }
+            );
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data && data.error ? data.error : 'Save failed');
+            if (!res.ok)
+              throw new Error(data && data.error ? data.error : "Save failed");
             // Update local model with canonical server state
             board = data;
             lastSavedJSON = computeSnapshot();
-            showStatus('Saved.', { ttl: 1600 });
+            showStatus("Saved.", { ttl: 1600 });
             render();
             updateSaveButton();
           } catch (e) {
-            showStatus(e && e.message ? e.message : 'Save failed', { sticky: true });
+            showStatus(e && e.message ? e.message : "Save failed", {
+              sticky: true,
+            });
           } finally {
             updateSaveButton();
           }
@@ -1018,7 +1076,8 @@
         if (url === "/api/board") return `/api/board/${id}`;
         if (url === "/api/upload-image") return `/api/board/${id}/upload-image`;
         if (url === "/api/board/export") return `/api/board/${id}/export`;
-        if (url === "/api/board/validate-import") return `/api/board/${id}/validate-import`;
+        if (url === "/api/board/validate-import")
+          return `/api/board/${id}/validate-import`;
         if (url === "/api/board/import") return `/api/board/${id}/import`;
         return url;
       }
@@ -1044,7 +1103,7 @@
             "http://www.w3.org/2000/svg",
             "path"
           );
-          ghostPath.setAttribute("class", "edge ghost");
+          ghostPath.setAttribute("class", "edge edge--ghost");
           edgesSvg.appendChild(ghostPath);
         } else if (!edgesSvg.contains(ghostPath)) {
           edgesSvg.appendChild(ghostPath);
@@ -1226,7 +1285,9 @@
       }
       function markDirty() {
         // Record mutation time (not part of snapshot equivalence)
-        try { board.updatedAt = new Date().toISOString(); } catch (_) {}
+        try {
+          board.updatedAt = new Date().toISOString();
+        } catch (_) {}
         // Re-evaluate against the last saved snapshot so moving a node back disables Save
         updateSaveButton();
       }
@@ -1240,21 +1301,21 @@
         // Build menu dynamically based on target type
         if (ctxTarget && ctxTarget.type === "edge") {
           menu.innerHTML = `
-            <button data-action="label">Edit label</button>
-            <button data-action="dashed">Toggle dashed</button>
-            <button data-action="color">Set color…</button>
-            <button data-action="delete">Delete</button>
+            <button class="context-menu__item" data-action="label">Edit label</button>
+            <button class="context-menu__item" data-action="dashed">Toggle dashed</button>
+            <button class="context-menu__item" data-action="color">Set color…</button>
+            <button class="context-menu__item" data-action="delete">Delete</button>
           `;
         } else {
           const node = board.nodes.find((n) => n.id === target.id);
           if (node && node.type === "link") {
             menu.innerHTML = `
-              <button data-action="edit-link-url">Edit link URL…</button>
-              <button data-action="delete">Delete</button>
+              <button class="context-menu__item" data-action="edit-link-url">Edit link URL…</button>
+              <button class="context-menu__item" data-action="delete">Delete</button>
             `;
           } else {
             menu.innerHTML = `
-              <button data-action="delete">Delete</button>
+              <button class="context-menu__item" data-action="delete">Delete</button>
             `;
           }
         }
@@ -1522,15 +1583,15 @@
           el.className = "node node-" + n.type;
           el.id = n.id;
           el.innerHTML = `
-            <div class="title editable-hint" contenteditable="false" data-placeholder="Untitled"></div>
-            <div class="content"></div>
-            <div class="ports"><div class="port"></div></div>
+            <div class="node__title editable-hint" contenteditable="false" data-placeholder="Untitled"></div>
+            <div class="node__content"></div>
+            <div class="node__ports"><div class="node__port"></div></div>
           `;
           boardEl.appendChild(el);
 
           // add resize handle
           const resizer = document.createElement("div");
-          resizer.className = "resizer";
+          resizer.className = "node__resizer";
           el.appendChild(resizer);
 
           let resizing = false;
@@ -1594,7 +1655,7 @@
 
           // select on click
           el.addEventListener("mousedown", (ev) => {
-            if (ev.target && ev.target.closest(".resizer")) return;
+            if (ev.target && ev.target.closest(".node__resizer")) return;
             // if connect mode, handle port click like connection
             if (connectMode) {
               if (!connectFromId) {
@@ -1628,7 +1689,7 @@
             offX = 0,
             offY = 0;
           el.addEventListener("mousedown", (ev) => {
-            if (ev.target && ev.target.closest(".resizer")) return;
+            if (ev.target && ev.target.closest(".node__resizer")) return;
             dragging = true;
             offX = ev.clientX - n.x;
             offY = ev.clientY - n.y;
@@ -1651,7 +1712,7 @@
           });
 
           // inline edits
-          const titleEl = el.querySelector(".title");
+          const titleEl = el.querySelector(".node__title");
           titleEl.addEventListener("input", () => {
             n.data.title = titleEl.textContent || "";
             markDirty();
@@ -1731,7 +1792,7 @@
         });
         el.classList.add("node-" + n.type);
 
-        const titleEl = el.querySelector(".title");
+        const titleEl = el.querySelector(".node__title");
         titleEl.setAttribute(
           "data-placeholder",
           n.type === "text"
@@ -1750,7 +1811,7 @@
             ? "Image"
             : "Link";
 
-        const contentEl = el.querySelector(".content");
+        const contentEl = el.querySelector(".node__content");
         if (n.type === "text") {
           const html =
             n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
@@ -1881,7 +1942,7 @@
         if (!tagsWrap) {
           tagsWrap = document.createElement("div");
           tagsWrap.className = "tags";
-          el.querySelector(".content").appendChild(tagsWrap);
+          el.querySelector(".node__content").appendChild(tagsWrap);
         }
         renderTagChips(n, tagsWrap);
 
@@ -1890,7 +1951,7 @@
           addTagBtn = document.createElement("button");
           addTagBtn.className = "add-tag";
           addTagBtn.textContent = "+ tag";
-          el.querySelector(".content").appendChild(addTagBtn);
+          el.querySelector(".node__content").appendChild(addTagBtn);
           addTagBtn.addEventListener("click", (ev) => {
             ev.stopPropagation();
             const input = prompt("Add tags (comma separated or single #tag):");
@@ -1931,7 +1992,7 @@
                   addBtn.remove();
                   rich.focus();
                 });
-                el.querySelector(".content").insertBefore(addBtn, rtb);
+                el.querySelector(".node__content").insertBefore(addBtn, rtb);
               }
             }
 
@@ -1998,7 +2059,7 @@
           }
         }
         // Toggle resizer visibility based on node type (text, image, link are resizable)
-        const resizerEl = el.querySelector(".resizer");
+        const resizerEl = el.querySelector(".node__resizer");
         if (resizerEl) {
           resizerEl.style.display =
             n.type === "text" || n.type === "image" || n.type === "link"
@@ -2163,8 +2224,8 @@
             "path"
           );
           path.setAttribute("d", smoothCubic(a1, a2));
-          let cls = "edge" + (selectedEdgeId === e.id ? " selected" : "");
-          if (e.dashed) cls += " dashed";
+          let cls = "edge" + (selectedEdgeId === e.id ? " edge--selected" : "");
+          if (e.dashed) cls += " edge--dashed";
           path.setAttribute("class", cls);
           if (e.color) {
             // Use inline style so it overrides the .edge CSS rule
@@ -2238,7 +2299,7 @@
           startCircle.setAttribute("cx", a1.x);
           startCircle.setAttribute("cy", a1.y);
           startCircle.setAttribute("r", "4");
-          startCircle.setAttribute("class", "edge-endpoint");
+          startCircle.setAttribute("class", "edge__endpoint");
 
           const endCircle = document.createElementNS(
             "http://www.w3.org/2000/svg",
@@ -2247,7 +2308,7 @@
           endCircle.setAttribute("cx", a2.x);
           endCircle.setAttribute("cy", a2.y);
           endCircle.setAttribute("r", "4");
-          endCircle.setAttribute("class", "edge-endpoint");
+          endCircle.setAttribute("class", "edge__endpoint");
 
           g.appendChild(startCircle);
           g.appendChild(endCircle);
@@ -2269,7 +2330,7 @@
         });
         // edges
         document.querySelectorAll("path.edge").forEach((p) => {
-          p.classList.toggle("selected", p.dataset.id === selectedEdgeId);
+          p.classList.toggle("edge--selected", p.dataset.id === selectedEdgeId);
         });
       }
 
@@ -2384,7 +2445,9 @@
         // Let the server stream a ZIP (includes board.json and uploads/)
         showStatus("Export in progress…", { sticky: true });
         // Trigger the download
-        window.location.href = `/api/board/${encodeURIComponent(BOARD_ID)}/export`;
+        window.location.href = `/api/board/${encodeURIComponent(
+          BOARD_ID
+        )}/export`;
         // After a short delay, update the message to guide user
         setTimeout(() => {
           showStatus(
@@ -2926,7 +2989,10 @@
           setStatus("Uploading…");
           const fd = new FormData();
           fd.append("image", file);
-          const res = await fetch("/api/upload-image", { method: "POST", body: fd });
+          const res = await fetch("/api/upload-image", {
+            method: "POST",
+            body: fd,
+          });
           if (!res.ok) throw new Error("Upload failed");
           const data = await res.json();
           addNode("image", viewCenter(), {
