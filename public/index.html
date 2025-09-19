@@ -202,17 +202,66 @@
         align-items: center;
         justify-content: center;
       }
-      .auth__title { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 12px; }
-      .auth__card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; max-width: 520px; width: 100%; }
-      .form { display: grid; gap: 12px; }
-      .field { display: grid; gap: 6px; }
-      .field label { font-size: 13px; color: #475569; }
-      .input { appearance: none; width: 100%; border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fff; color: var(--color-ink); }
-      .input:focus { outline: 2px solid rgba(99, 102, 241, 0.25); outline-offset: 1px; }
-      .actions { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
-      .link { color: #2563eb; text-decoration: none; font-size: 13px; }
-      .link:hover { text-decoration: underline; }
-      .divider { height: 1px; background: var(--card-border); margin: 14px 0; }
+      .auth__title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 12px;
+      }
+      .auth__card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px;
+        max-width: 520px;
+        width: 100%;
+      }
+      .form {
+        display: grid;
+        gap: 12px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 13px;
+        color: #475569;
+      }
+      .input {
+        appearance: none;
+        width: 100%;
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fff;
+        color: var(--color-ink);
+      }
+      .input:focus {
+        outline: 2px solid rgba(99, 102, 241, 0.25);
+        outline-offset: 1px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+      }
+      .link {
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .divider {
+        height: 1px;
+        background: var(--card-border);
+        margin: 14px 0;
+      }
     </style>
   </head>
   <body class="page">
@@ -228,7 +277,9 @@
       </section>
 
       <h2 class="boards__title">Boards</h2>
-      <div id="empty" class="boards__empty">No boards yet. Create the first one!</div>
+      <div id="empty" class="boards__empty">
+        No boards yet. Create the first one!
+      </div>
 
       <section id="grid" class="boards__grid">
         <article class="boards__card">
@@ -273,20 +324,39 @@
           <form class="form" method="post" action="/login">
             <div class="field">
               <label for="email">Email</label>
-              <input id="email" name="email" type="email" class="input" placeholder="you@example.com" required />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                class="input"
+                placeholder="you@example.com"
+                required
+              />
             </div>
             <div class="field">
               <label for="password">Password</label>
-              <input id="password" name="password" type="password" class="input" placeholder="••••••••" required />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                class="input"
+                placeholder="••••••••"
+                required
+              />
             </div>
             <div class="actions">
               <a class="link" href="/forgot">Forgot password?</a>
-              <button class="button button--primary" type="submit"><span class="button__icon" aria-hidden="true"></span> Sign in</button>
+              <button class="button button--primary" type="submit">
+                Sign in
+              </button>
             </div>
           </form>
           <div class="divider"></div>
           <div class="actions">
-            <span style="color:#64748b; font-size:13px;">Don’t have an account? <a class="link" href="/register">Create account</a></span>
+            <span style="color: #64748b; font-size: 13px"
+              >Don’t have an account?
+              <a class="link" href="/register">Create account</a></span
+            >
           </div>
         </div>
       </section>
@@ -296,23 +366,53 @@
           <form class="form" method="post" action="/register">
             <div class="field">
               <label for="reg-name">Full Name</label>
-              <input id="reg-name" name="name" type="text" class="input" placeholder="Jane Doe" required />
+              <input
+                id="reg-name"
+                name="name"
+                type="text"
+                class="input"
+                placeholder="Jane Doe"
+                required
+              />
             </div>
             <div class="field">
               <label for="reg-email">Email</label>
-              <input id="reg-email" name="email" type="email" class="input" placeholder="you@example.com" required />
+              <input
+                id="reg-email"
+                name="email"
+                type="email"
+                class="input"
+                placeholder="you@example.com"
+                required
+              />
             </div>
             <div class="field">
               <label for="reg-password">Password</label>
-              <input id="reg-password" name="password" type="password" class="input" placeholder="••••••••" required />
+              <input
+                id="reg-password"
+                name="password"
+                type="password"
+                class="input"
+                placeholder="••••••••"
+                required
+              />
             </div>
             <div class="field">
               <label for="reg-confirm">Confirm Password</label>
-              <input id="reg-confirm" name="confirm_password" type="password" class="input" placeholder="••••••••" required />
+              <input
+                id="reg-confirm"
+                name="confirm_password"
+                type="password"
+                class="input"
+                placeholder="••••••••"
+                required
+              />
             </div>
             <div class="actions">
               <a class="link" href="/login">Already have an account?</a>
-              <button class="button button--primary" type="submit">Register</button>
+              <button class="button button--primary" type="submit">
+                Register
+              </button>
             </div>
           </form>
         </div>
