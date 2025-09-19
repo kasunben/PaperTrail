@@ -97,18 +97,8 @@ async function main() {
     // Localize image URLs into /data/uploads/<boardId>/ if present (served at /uploads/<boardId>/...)
     if (dataObj && (dataObj.imageUrl || dataObj.img || dataObj.thumbnail || dataObj.thumbUrl)) {
       const rawUrl = dataObj.imageUrl || dataObj.img || dataObj.thumbnail || dataObj.thumbUrl;
-      if (typeof rawUrl === "string" && /^https?:\/\//i.test(rawUrl)) {
-        const filename = urlToFilename(rawUrl, `${nodeId}.img`);
-        const destPath = path.join(uploadsDir, filename);
-        const publicPath = path.posix.join("/uploads", boardId, filename);
-        try {
-          await downloadToFile(rawUrl, destPath);
-          dataObj = { ...dataObj, imageUrl: publicPath, thumbUrl: dataObj?.thumbUrl || publicPath };
-        } catch (e) {
-          // Keep original URL if download fails
-          dataObj = { ...dataObj, imageUrl: rawUrl };
-          console.warn(`Failed to download ${rawUrl}: ${e.message}`);
-        }
+      if (typeof rawUrl === "string") {
+        dataObj = { ...dataObj, imageUrl: rawUrl, thumbUrl: dataObj?.thumbUrl || rawUrl };
       }
     }
 
