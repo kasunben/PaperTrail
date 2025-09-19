@@ -277,47 +277,29 @@
       </section>
 
       <h2 class="boards__title">Boards</h2>
-      <div id="empty" class="boards__empty">
-        No boards yet. Create the first one!
-      </div>
 
-      <section id="grid" class="boards__grid">
-        <article class="boards__card">
-          <div class="boards__row">
-            <div class="boards__card-title">Example Board One</div>
-            <span class="boards__badge">public</span>
-          </div>
-          <div class="boards__meta">
-            <span>Created Jan 01, 2025</span>
-            <span class="boards__badge">draft</span>
-          </div>
-          <a class="boards__link" href="/b/example-one">Open</a>
-        </article>
+      {{#if boards.length}}
+        <section id="grid" class="boards__grid">
+          {{#each boards}}
+            <article class="boards__card">
+              <div class="boards__row">
+                <div class="boards__card-title">{{this.title}}</div>
+                <span class="boards__badge">{{this.visibility}}</span>
+              </div>
+              <div class="boards__meta">
+                <span>{{this.createdAt}}</span>
+                <span class="boards__badge">{{this.status}}</span>
+              </div>
+              <a class="boards__link" href="{{this.url}}">Open</a>
+            </article>
+          {{/each}}
+        </section>
+      {{else}}
+        <div id="empty" class="boards__empty">
+          No boards yet. Create the first one!
+        </div>
+      {{/if}}
 
-        <article class="boards__card">
-          <div class="boards__row">
-            <div class="boards__card-title">Research Notes</div>
-            <span class="boards__badge">private</span>
-          </div>
-          <div class="boards__meta">
-            <span>Created Feb 15, 2025</span>
-            <span class="boards__badge">publish</span>
-          </div>
-          <a class="boards__link" href="/b/research-notes">Open</a>
-        </article>
-
-        <article class="boards__card">
-          <div class="boards__row">
-            <div class="boards__card-title">Case Study Alpha</div>
-            <span class="boards__badge">public</span>
-          </div>
-          <div class="boards__meta">
-            <span>Created Mar 03, 2025</span>
-            <span class="boards__badge">draft</span>
-          </div>
-          <a class="boards__link" href="/b/case-alpha">Open</a>
-        </article>
-      </section>
       <section class="auth" aria-label="Sign in">
         <h2 class="auth__title">Sign in</h2>
         <div class="auth__card">

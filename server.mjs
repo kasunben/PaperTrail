@@ -14,6 +14,7 @@ import argon2 from "argon2";
 import { engine as hbsEngine } from "express-handlebars";
 
 import "dotenv/config";
+import { stat } from "node:fs";
 
 /** $Global Vars */
 const __filename = fileURLToPath(import.meta.url);
@@ -633,7 +634,43 @@ const fileHandler = {
 
 const uiHandler = {
   viewIndexPage: async (_, res) => {
-    return res.render("index");
+    try {
+      const rows = await prisma.board.findMany({
+        orderBy: { updatedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          visibility: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      const boards = rows.map((b) => ({
+        id: b.id,
+        title: b.title || "Untitled",
+        visibility: (b.visibility || "public").toLowerCase(),
+        status: "draft", // TODO: placeholder for now, implement this later
+        createdAt:
+          b.createdAt instanceof Date
+            ? b.createdAt.toISOString()
+            : new Date(b.createdAt).toISOString(),
+        updatedAt:
+          b.updatedAt instanceof Date
+            ? b.updatedAt.toISOString()
+            : new Date(b.updatedAt).toISOString(),
+        url: `/b/${b.id}`,
+      }));
+
+      return res.render("index", { boards });
+    } catch (e) {
+      console.error("viewIndexPage error", e);
+      return res.status(500).render("error", {
+        title: 500,
+        subtitle: "Oops!",
+        message: "Failed to load boards",
+      });
+    }
   },
   viewLoginPage: async (_, res) => {
     return res.render("login");
