@@ -801,10 +801,10 @@ const authHandler = {
         }
         return res.status(400).json({ error: "Invalid" });
       }
-      if (pwd.length < 10 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
+      if (pwd.length < 6 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
         if (isFormContent) {
           return res.status(400).render("login", {
-            error: "Password must be at least 10 characters and include a letter and a number.",
+            error: "Password must be at least 6 characters and include a letter and a number.",
             reset_mode: true,
             token: tkn,
           });
@@ -1082,17 +1082,17 @@ const authHandler = {
         return res.status(400).json({ error: "Invalid email" });
       }
 
-      // Validate password: length ≥ 10 AND contains at least one letter and one number
+      // Validate password: length ≥ 6 AND contains at least one letter and one number
       const passStr = typeof password === "string" ? password : "";
       if (
-        passStr.length < 10 ||
+        passStr.length < 6 ||
         !/[A-Za-z]/.test(passStr) ||
         !/\d/.test(passStr)
       ) {
         if (isFormContent) {
           return res.status(400).render("register", {
             error:
-              "Password must be at least 10 characters and include a letter and a number.",
+              "Password must be at least 6 characters and include a letter and a number.",
             values: { handler: h, email: emailNorm },
           });
         }
