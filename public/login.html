@@ -156,6 +156,22 @@
         background: var(--card-border);
         margin: 14px 0;
       }
+      .alert {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .alert--error {
+        background: #fee2e2; /* red-100 */
+        border: 1px solid #fecaca; /* red-200 */
+        color: #991b1b; /* red-800 */
+      }
+      .alert--success {
+        background: #dcfce7; /* green-100 */
+        border: 1px solid #bbf7d0; /* green-200 */
+        color: #166534; /* green-800 */
+      }
     </style>
   </head>
   <body class="page">
@@ -168,7 +184,10 @@
       <section class="auth" aria-label="Sign in">
         <h2 class="auth__title">Sign in</h2>
         <div class="auth__card">
-          <form class="form" method="post" action="/login">
+          {{#if success}}
+          <div class="alert alert--success">{{success}}</div>
+          {{/if}}
+          <form class="form" method="post" action="/auth/login">
             <div class="field">
               <label for="email">Email</label>
               <input
