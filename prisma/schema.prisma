@@ -12,13 +12,19 @@ enum BoardVisibility {
   private
 }
 
+enum BoardStatus {
+  draft
+  published
+}
+
 model Board {
   id            String          @id @default(cuid()) @map("id")
-  title         String          @map("title")
+  title         String          @default("Untitled Board") @map("title")
   schemaVersion Int             @map("schema_version")
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
-  visibility    BoardVisibility @default(public) @map("visibility")
+  visibility    BoardVisibility @default(private) @map("visibility")
+  status        BoardStatus     @default(draft) @map("status")
 
   userId String? @map("user_id")
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -98,6 +104,7 @@ model NodeTag {
 model User {
   id              String    @id @default(cuid()) @map("id")
   email           String    @unique @map("email")
+  handler         String    @unique @map("handler")
   emailVerifiedAt DateTime? @map("email_verified_at")
   passwordHash    String    @map("password_hash")
   createdAt       DateTime  @default(now()) @map("created_at")

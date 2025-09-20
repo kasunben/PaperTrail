@@ -192,6 +192,17 @@
         align-self: flex-start;
         display: inline-block;
       }
+      .userbar {
+        margin-top: 40px;
+        padding-top: 16px;
+        border-top: 1px solid var(--card-border);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
     </style>
   </head>
   <body class="page">
@@ -230,5 +241,10 @@
         </div>
       {{/if}}
     </main>
+    <footer class="userbar">
+      <span class="userbar__tag">@username</span>
+      <span class="userbar__status">Logged in</span>
+      <a href="/logout" class="userbar__logout">Logout</a>
+    </footer>
   </body>
 </html>
