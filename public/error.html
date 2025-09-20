@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>404 – PaperTrail</title>
+    <title>{{code}} – PaperTrail</title>
     <style>
       :root {
         --color-bg: #ffffff;
@@ -129,6 +129,20 @@
         color: #64748b;
         margin: 0 0 18px;
       }
+      .error__stack {
+        text-align: left;
+        font-size: 13px;
+        color: #9ca3af;
+        background: #f9fafb;
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: 12px;
+        max-height: 240px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0 0 18px;
+      }
       .error__actions {
         margin-top: 10px;
       }
@@ -147,11 +161,12 @@
   <body class="page">
     <main class="page__wrap">
       <section class="error" aria-label="Not found">
-        <h1 class="error__code">{{title}}</h1>
-        <p class="error__title">{{subtitle}}</p>
+        <h1 class="error__code">{{code}}</h1>
+        <p class="error__title">{{message}}</p>
         <p class="error__text">
-          {{message}}
+          {{description}}
         </p>
+        <pre class="error__stack">{{error}}</pre>
         <div class="error__actions">
           <a class="button button--text" href="/">Return to home</a>
         </div>

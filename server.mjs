@@ -663,12 +663,13 @@ const uiHandler = {
       }));
 
       return res.render("index", { boards });
-    } catch (e) {
-      console.error("viewIndexPage error", e);
+    } catch (err) {
+      console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
-        title: 500,
-        subtitle: "Oops!",
-        message: "Failed to load boards",
+        code: 500,
+        message: "Oops!",
+        description: "Failed to load boards",
+        error: err?.message || String(err),
       });
     }
   },
@@ -685,9 +686,9 @@ const uiHandler = {
       // basic id sanity check
       if (!isValidBoardId(id)) {
         return res.status(404).render("error", {
-          title: 404,
-          subtitle: "Board not found",
-          message:
+          code: 404,
+          message: "Board not found",
+          description:
             "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
@@ -699,20 +700,21 @@ const uiHandler = {
 
       if (!exists) {
         return res.status(404).render("error", {
-          title: 404,
-          subtitle: "Board not found",
-          message:
+          code: 404,
+          message: "Board not found",
+          description:
             "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
       // Serve the SPA shell (renamed from index.html to board.html)
       return res.render("board");
-    } catch (e) {
-      console.error("route /b/:id error", e);
+    } catch (err) {
+      console.error("route /b/:id error", err);
       return res.status(500).render("error", {
-        title: 500,
-        subtitle: "Oops!",
-        message: "Something went wrong",
+        code: 500,
+        message: "Oops!",
+        description: "Something went wrong",
+        error: err?.message || String(err),
       });
     }
   },
@@ -734,9 +736,9 @@ const uiHandler = {
         const session = await getSessionWithUser(token);
         if (!session) {
           return res.status(401).render("error", {
-            title: 401,
-            subtitle: "Login required",
-            message: "Please log in to create a private board.",
+            code: 401,
+            message: "Login required",
+            description: "Please log in to create a private board.",
           });
         }
         ownerUserId = session.userId;
@@ -764,12 +766,13 @@ const uiHandler = {
 
       // Redirect user to the new board
       return res.redirect(302, `/b/${id}`);
-    } catch (e) {
-      console.error("createNewBoard error", e);
+    } catch (err) {
+      console.error("createNewBoard error", err);
       return res.status(500).render("error", {
-        title: 500,
-        subtitle: "Oops!",
-        message: "Failed to create a new board.",
+        code: 500,
+        message: "Oops!",
+        description: "Failed to create a new board.",
+        error: err?.message || String(err),
       });
     }
   },
@@ -1391,19 +1394,20 @@ app.post("/api/link-preview", miscHandler.fetchLinkPreview);
 // 404 handler for unknown routes
 app.use((_, res) => {
   return res.status(404).render("error", {
-    title: 404,
-    subtitle: "Page not found",
-    message:
+    code: 404,
+    message: "Page not found",
+    description:
       "The page you’re looking for doesn’t exist or may have been moved.",
   });
 });
 
 // Centralized error handler (last)
-app.use((err, req, res) => {
+app.use((err, _, res) => {
   return res.status(500).render("error", {
-    title: 500,
-    subtitle: "Oops!",
-    message: "Something went wrong",
+    code: 500,
+    message: "Oops!",
+    description: "Something went wrong",
+    error: err?.message || String(err),
   });
 });
 
