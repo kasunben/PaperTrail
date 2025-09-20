@@ -30,6 +30,17 @@ npx prisma db push
 
 Use `npm run dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
 
+#### Prisma
+
+We use Prisma as intermediate abstarction layer between the app code and the database.
+
+##### Useful commands
+
+```
+npx prisma format
+npx prisma migrate dev --name <migration-name-in-snake-case>
+```
+
 #### Git Workflow
 
 We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) inspired branching strategy to keep development organized and production stable.
