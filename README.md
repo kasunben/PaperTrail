@@ -32,14 +32,13 @@ Use `npm run dev` to launch the development server with automatic file watching.
 
 #### Prisma
 
-We use Prisma as intermediate abstarction layer between the app code and the database.
+We use [Prisma](https://www.prisma.io/) as intermediate abstraction layer between the app code and the database.
 
-##### Useful commands
+##### Updating the schema
 
-```
-npx prisma format
-npx prisma migrate dev --name <migration-name-in-snake-case>
-```
+- Update `prisma/schema.prisma` first
+- Run `npx prisma format` to ensure the validity and format the schema changes
+- Run the migration command to log the change with `npx prisma migrate dev --name <migration-name-in-snake-case>`
 
 #### Git Workflow
 
