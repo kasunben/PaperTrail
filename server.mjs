@@ -14,7 +14,6 @@ import argon2 from "argon2";
 import { engine as hbsEngine } from "express-handlebars";
 
 import "dotenv/config";
-import { stat } from "node:fs";
 
 /** $Global Vars */
 const __filename = fileURLToPath(import.meta.url);
@@ -720,11 +719,12 @@ const uiHandler = {
   },
   createNewBoard: async (_, res) => {
     try {
-      const board = sanitizeBoard({ nodes: [], edges: [] });
-      await writeBoardToDb(board, board.id);
-
-      // Redirect user to the new board
-      return res.redirect(302, `/b/${board.id}`);
+      const id = uuid("b_");
+      await prisma.board.create({
+        data: { id, schemaVersion },
+        select: { id: true },
+      });
+      return res.redirect(302, `/b/${id}`);
     } catch (err) {
       console.error("createNewBoard error", err);
       return res.status(500).render("error", {
@@ -1022,24 +1022,36 @@ function sanitizeUrl(u, opts = { allowRelative: true }) {
       return "";
     }
   }
-
   return ""; // anything else is rejected
 }
 
 // $Utils.Ids
-function genShortId(prefix = "b_") {
-  // ~8-char URL-safe id
-  const raw = crypto.randomBytes(6).toString("base64url");
-  const id = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, 8);
-  return prefix + id;
+function uuid(prefix = "", salt = "", length = 6) {
+  // base36 timestamp (ms precision)
+  const ts = Date.now().toString(36);
+
+  // combine salt + timestamp + random bytes → then hash
+  const rand = crypto.randomBytes(6).toString("base64url"); // ~8 chars
+  const hash = crypto
+    .createHash("sha256")
+    .update(salt + ts + rand)
+    .digest("base64url")
+    .slice(0, length - 1); // shorten to keep IDs manageable
+
+  // Example output: b_kf1m9x8fA1B2C3D4
+  // Prefix is optional, but recommended to identify the type of ID (e.g., "b_" for boards, "u_" for users, etc.)
+  // Salt is optional, but recommended to add an extra layer of uniqueness and security (e.g., user ID, session ID, etc.)
+  // The salt should be consistent for the same context to ensure uniqueness within that context.
+  return `${prefix}${ts}${rand}${hash}`.trim();
 }
+
 function isValidBoardId(v) {
   return typeof v === "string" && /^[A-Za-z0-9_-]{3,32}$/.test(v);
 }
 function ensureBoardId(candidate, fallbackCurrent) {
   if (isValidBoardId(candidate)) return candidate;
   if (isValidBoardId(fallbackCurrent)) return fallbackCurrent;
-  return genShortId();
+  return uuid("b_");
 }
 
 // Per-board storage helpers
