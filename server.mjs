@@ -772,11 +772,13 @@ const uiHandler = {
       });
     }
   },
-  createNewBoard: async (_, res) => {
+  createNewBoard: async (req, res) => {
     try {
       const id = uuid("b_");
+      const userId = req.user?.id || null;
+      
       await prisma.board.create({
-        data: { id, schemaVersion },
+        data: { id, schemaVersion, userId },
         select: { id: true },
       });
       return res.redirect(302, `/b/${id}`);
@@ -1619,7 +1621,7 @@ app.get("/", htmlRequireAuth, uiHandler.viewIndexPage);
 app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
-app.get("/b/create-new", uiHandler.createNewBoard);
+app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
 app.get("/b/:id", uiHandler.viewBoard);
 
 // $Routes.Auth
