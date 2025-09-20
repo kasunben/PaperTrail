@@ -672,8 +672,11 @@ const uiHandler = {
       });
     }
   },
-  viewLoginPage: async (_, res) => {
-    return res.render("login");
+  viewLoginPage: async (req, res) => {
+    const justRegistered = String(req.query.registered || "") === "1";
+    return res.render("login", {
+      success: justRegistered ? "Account created. Please sign in." : null,
+    });
   },
   viewRegisterPage: async (_, res) => {
     return res.render("register");
@@ -843,32 +846,122 @@ const authHandler = {
       if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
       await createSession(res, user, req);
-      res.json({ ok: true });
+      return res.json({ ok: true });
     } catch (e) {
       console.error("/auth/login error", e);
-      res.status(500).json({ error: "Login failed" });
+      return res.status(500).json({ error: "Login failed" });
     }
   },
   register: async (req, res) => {
     try {
-      const { email, password } = req.body || {};
+      // Decide response mode: HTML form vs JSON API
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
+
+      // Pull fields (form may pass additional fields like confirm_password)
+      const { handler, email, password, confirm_password } = req.body || {};
+
+      // Normalize inputs
+      const h = typeof handler === "string" ? handler.trim() : "";
+      const emailNorm =
+        typeof email === "string" ? email.trim().toLowerCase() : "";
+
+      // Validate handler/username (required)
+      // Rules: 3–24 chars, starts with a letter, then letters/numbers/._-
+      const handlerOk =
+        typeof h === "string" &&
+        /^[A-Za-z][A-Za-z0-9._-]{2,23}$/.test(h || "");
+      if (!handlerOk) {
+        if (isFormContent) {
+          return res.status(400).render("register", {
+            error:
+              "Choose a username (3–24 chars). Start with a letter; use letters, numbers, dot, underscore or hyphen.",
+            values: { handler: h, email: emailNorm },
+          });
+        }
+        return res
+          .status(400)
+          .json({ error: "Invalid username", code: "BAD_HANDLER" });
+      }
+
+      // Validate email
       if (
-        typeof email !== "string" ||
-        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)
+        typeof emailNorm !== "string" ||
+        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)
       ) {
+        if (isFormContent) {
+          return res.status(400).render("register", {
+            error: "Please enter a valid email address.",
+            values: { handler: h, email: emailNorm },
+          });
+        }
         return res.status(400).json({ error: "Invalid email" });
       }
-      if (typeof password !== "string" || password.length < 10) {
-        return res.status(400).json({ error: "Password too short" });
+
+      // Validate password: length ≥ 10 AND contains at least one letter and one number
+      const passStr = typeof password === "string" ? password : "";
+      if (
+        passStr.length < 10 ||
+        !/[A-Za-z]/.test(passStr) ||
+        !/\d/.test(passStr)
+      ) {
+        if (isFormContent) {
+          return res.status(400).render("register", {
+            error:
+              "Password must be at least 10 characters and include a letter and a number.",
+            values: { handler: h, email: emailNorm },
+          });
+        }
+        return res.status(400).json({ error: "Password too weak" });
       }
-      const existing = await prisma.user.findUnique({ where: { email } });
-      if (existing)
+
+      // Confirm password (only checked for form flow; API clients can omit)
+      if (
+        isFormContent &&
+        typeof confirm_password === "string" &&
+        passStr !== confirm_password
+      ) {
+        return res.status(400).render("register", {
+          error: "Passwords do not match.",
+          values: { handler: h, email: emailNorm },
+        });
+      }
+
+      // Uniqueness checks
+      const [existingEmail, existingHandler] = await Promise.all([
+        prisma.user.findUnique({ where: { email: emailNorm } }).catch(() => null),
+        prisma.user.findFirst({ where: { handler: h } }).catch(() => null),
+      ]);
+      if (existingHandler) {
+        if (isFormContent) {
+          return res.status(409).render("register", {
+            error: "That username is taken. Please choose another.",
+            values: { handler: h, email: emailNorm },
+          });
+        }
+        return res
+          .status(409)
+          .json({ error: "Username already registered" });
+      }
+      if (existingEmail) {
+        if (isFormContent) {
+          return res.status(409).render("register", {
+            error: "That email is already registered.",
+            values: { handler: h, email: emailNorm },
+          });
+        }
         return res.status(409).json({ error: "Email already registered" });
+      }
 
-      const passwordHash = await hashPassword(password);
-      const user = await prisma.user.create({ data: { email, passwordHash } });
+      const passwordHash = await hashPassword(passStr);
+      const user = await prisma.user.create({
+        data: { handler: h, email: emailNorm, passwordHash },
+        select: { id: true },
+      });
 
-      // Optional: email verification
+      // Optional: email verification token (kept consistent with existing API)
       const token = randomToken(32);
       await prisma.verificationToken.create({
         data: {
@@ -878,11 +971,28 @@ const authHandler = {
           expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24), // 24h
         },
       });
-      // send verification email with `${process.env.APP_URL || ""}/verify?token=${token}`
 
+      if (isFormContent) {
+        // HTML form flow → redirect to login with banner
+        return res.redirect(302, "/login?registered=1");
+      }
+      // JSON API flow
       return res.status(201).json({ ok: true });
     } catch (e) {
       console.error("/auth/register error", e);
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
+      if (isFormContent) {
+        return res.status(500).render("register", {
+          error: "Registration failed. Please try again.",
+          values: {
+            handler: String(req.body?.handler || ""),
+            email: String(req.body?.email || "").toLowerCase(),
+          },
+        });
+      }
       return res.status(500).json({ error: "Register failed" });
     }
   },
@@ -1296,6 +1406,7 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Block direct access to template files under /public (e.g., *.html, *.hbs)

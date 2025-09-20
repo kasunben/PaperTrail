@@ -149,6 +149,17 @@
       .link:hover {
         text-decoration: underline;
       }
+      .alert {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .alert--error {
+        background: #fee2e2; /* red-100 */
+        border: 1px solid #fecaca; /* red-200 */
+        color: #991b1b; /* red-800 */
+      }
     </style>
   </head>
   <body class="page">
@@ -161,12 +172,15 @@
       <section class="auth" aria-label="Register">
         <h2 class="auth__title">Create account</h2>
         <div class="auth__card">
-          <form class="form" method="post" action="/register">
+          {{#if error}}
+            <div class="alert alert--error">{{error}}</div>
+          {{/if}}
+          <form class="form" method="post" action="/auth/register">
             <div class="field">
               <label for="handler">User Name</label>
               <input
                 id="handler"
-                name="name"
+                name="handler"
                 type="text"
                 class="input"
                 placeholder="Jane Doe"
@@ -179,6 +193,7 @@
                 id="email"
                 name="email"
                 type="email"
+                value="{{values.email}}"
                 class="input"
                 placeholder="you@example.com"
                 required
