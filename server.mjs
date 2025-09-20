@@ -660,7 +660,7 @@ const fileHandler = {
 };
 
 const uiHandler = {
-  viewIndexPage: async (_, res) => {
+  viewIndexPage: async (req, res) => {
     try {
       const rows = await prisma.board.findMany({
         orderBy: { updatedAt: "desc" },
@@ -689,7 +689,18 @@ const uiHandler = {
         url: `/b/${b.id}`,
       }));
 
-      return res.render("index", { boards });
+      let username = "";
+      if (req.user) {
+        try {
+          const u = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            select: { handler: true },
+          });
+          if (u) username = u.handler;
+        } catch {}
+      }
+
+      return res.render("index", { boards, username });
     } catch (err) {
       console.error("viewIndexPage error", err);
       return res.status(500).render("error", {

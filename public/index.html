@@ -65,6 +65,35 @@
       }
       .hero__actions {
         margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .hero__userbar {
+        margin-top: 0;
+        font-size: 15px;
+        color: #64748b; /* subtle slate */
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hero__userbar a {
+        color: var(--color-accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .hero__userbar a:hover {
+        text-decoration: underline;
+      }
+      .link--quiet {
+        color: #94a3b8; /* slate-400 */
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .link--quiet:hover {
+        color: #64748b; /* slate-500 */
+        text-decoration: underline;
       }
       .button {
         appearance: none;
@@ -192,17 +221,6 @@
         align-self: flex-start;
         display: inline-block;
       }
-      .userbar {
-        margin-top: 40px;
-        padding-top: 16px;
-        border-top: 1px solid var(--card-border);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 12px;
-        font-size: 14px;
-        color: var(--muted);
-      }
     </style>
   </head>
   <body class="page">
@@ -211,40 +229,40 @@
         <h1 class="hero__title">PaperTrail</h1>
         <p class="hero__tagline">map your evidence, follow the story.</p>
         <div class="hero__actions">
-          <a class="button button--primary" href="/b/create-new"
-            ><span class="button__icon" aria-hidden="true"></span> Create</a
-          >
+          <a class="button button--primary" href="/b/create-new">
+            <span class="button__icon" aria-hidden="true"></span> Create
+          </a>
+          <div class="hero__userbar">
+            <span>Ayubowan, <strong>{{username}}</strong></span>
+            <span aria-hidden="true">·</span>
+            <a href="/logout" class="link--quiet" aria-label="Log out of your account">Log out</a>
+          </div>
         </div>
       </section>
 
       <h2 class="boards__title">Boards</h2>
 
       {{#if boards.length}}
-        <section id="grid" class="boards__grid">
-          {{#each boards}}
-            <article class="boards__card">
-              <div class="boards__row">
-                <div class="boards__card-title">{{this.title}}</div>
-                <span class="boards__badge">{{this.visibility}}</span>
-              </div>
-              <div class="boards__meta">
-                <span>{{this.createdAt}}</span>
-                <span class="boards__badge">{{this.status}}</span>
-              </div>
-              <a class="boards__link" href="{{this.url}}">Open</a>
-            </article>
-          {{/each}}
-        </section>
+      <section id="grid" class="boards__grid">
+        {{#each boards}}
+        <article class="boards__card">
+          <div class="boards__row">
+            <div class="boards__card-title">{{this.title}}</div>
+            <span class="boards__badge">{{this.visibility}}</span>
+          </div>
+          <div class="boards__meta">
+            <span>{{this.createdAt}}</span>
+            <span class="boards__badge">{{this.status}}</span>
+          </div>
+          <a class="boards__link" href="{{this.url}}">Open</a>
+        </article>
+        {{/each}}
+      </section>
       {{else}}
-        <div id="empty" class="boards__empty">
-          No boards yet. Create the first one!
-        </div>
+      <div id="empty" class="boards__empty">
+        No boards yet. Create the first one!
+      </div>
       {{/if}}
     </main>
-    <footer class="userbar">
-      <span class="userbar__tag">@username</span>
-      <span class="userbar__status">Logged in</span>
-      <a href="/logout" class="userbar__logout">Logout</a>
-    </footer>
   </body>
 </html>
