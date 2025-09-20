@@ -20,6 +20,7 @@ enum BoardStatus {
 model Board {
   id            String          @id @default(cuid()) @map("id")
   title         String          @default("Untitled Board") @map("title")
+  slug          String?         @unique @map("slug")
   schemaVersion Int             @map("schema_version")
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
