@@ -85,6 +85,33 @@ async function requireAuth(req, res, next) {
   req.sessionToken = token;
   next();
 }
+
+// HTML-only: redirect to login if not authed
+async function htmlRequireAuth(req, res, next) {
+  const token = req.cookies?.[SESSION_COOKIE];
+  const session = await getSessionWithUser(token);
+  if (!session) {
+    res.clearCookie(SESSION_COOKIE, cookieOpts);
+    const returnTo = encodeURIComponent(req.originalUrl || "/");
+    return res.redirect(302, `/login?return_to=${returnTo}`);
+  }
+  req.user = { id: session.userId, email: session.user.email };
+  req.sessionToken = token;
+  next();
+}
+
+// HTML-only: block login/register for already authed users
+async function disallowIfAuthed(req, res, next) {
+  const token = req.cookies?.[SESSION_COOKIE];
+  const session = await getSessionWithUser(token);
+  if (session) {
+    // Prefer explicit return_to if provided and safe (path-only)
+    const rt = typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const dest = rt && rt.startsWith("/") ? rt : "/";
+    return res.redirect(302, dest);
+  }
+  next();
+}
 /** -- eof::$Route.Middlewares -- */
 
 /** $Route.Handlers */
@@ -1482,9 +1509,9 @@ app.use(express.static(__templatedir, { index: false }));
 app.get(/^\/uploads\/(.+)$/, fileHandler.serveUpload);
 
 // $Routes.Views
-app.get("/", uiHandler.viewIndexPage);
-app.get("/login", uiHandler.viewLoginPage);
-app.get("/register", uiHandler.viewRegisterPage);
+app.get("/", htmlRequireAuth, uiHandler.viewIndexPage);
+app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
+app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/b/create-new", uiHandler.createNewBoard);
 app.get("/b/:id", uiHandler.viewBoard);
 
