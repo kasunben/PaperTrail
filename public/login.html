@@ -182,13 +182,20 @@
       </section>
 
       <section class="auth" aria-label="Sign in">
-        <h2 class="auth__title">Sign in</h2>
+        <h2 class="auth__title">
+          {{#if reset_mode}}Reset password{{else if forgot_mode}}Forgot your
+          password{{else}}Sign in{{/if}}
+        </h2>
         <div class="auth__card">
           {{#if success}}
           <div class="alert alert--success">{{success}}</div>
           {{/if}} {{#if error}}
           <div class="alert alert--error">{{error}}</div>
           {{/if}}
+
+          {{!-- LOGIN FORM --}}
+          {{#unless forgot_mode}}
+          {{#unless reset_mode}}
           <form class="form" method="post" action="/auth/login">
             <input type="hidden" name="return_to" value="{{return_to}}" />
             <div class="field">
@@ -198,7 +205,7 @@
                 name="email"
                 type="email"
                 class="input"
-                placeholder="you@example.com"
+                placeholder="eg. john@example.com"
                 value="{{values.email}}"
                 required
               />
@@ -215,7 +222,7 @@
               />
             </div>
             <div class="actions">
-              <a class="link" href="/forgot">Forgot password?</a>
+              <a class="link" href="/login?forgot=1">Forgot your password?</a>
               <button class="button button--primary" type="submit">
                 Sign in
               </button>
@@ -228,6 +235,74 @@
               <a class="link" href="/register">Create account</a></span
             >
           </div>
+          {{/unless}}
+          {{/unless}}
+
+          {{!-- FORGOT PASSWORD FORM --}}
+          {{#if forgot_mode}}
+          <form class="form" method="post" action="/auth/password/forgot">
+            <div class="field">
+              <label for="email">Email</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                class="input"
+                placeholder="eg. john@example.com"
+                value="{{values.email}}"
+                required
+              />
+            </div>
+            <div class="actions">
+              <a class="link" href="/login">Back to sign in</a>
+              <button class="button button--primary" type="submit">
+                Send reset link
+              </button>
+            </div>
+            {{#if dev_reset_url}}
+            <div class="divider"></div>
+            <div class="actions">
+              <span style="color:#64748b; font-size:12px;">Dev:</span>
+              <a class="link" href="{{dev_reset_url}}">Open reset link</a>
+            </div>
+            {{/if}}
+          </form>
+          {{/if}}
+
+          {{!-- RESET PASSWORD FORM --}}
+          {{#if reset_mode}}
+          <form class="form" method="post" action="/auth/password/reset">
+            <input type="hidden" name="token" value="{{token}}" />
+            <div class="field">
+              <label for="password">New password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                class="input"
+                placeholder="At least 10 characters incl. a letter & number"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="confirm_password">Confirm password</label>
+              <input
+                id="confirm_password"
+                name="confirm_password"
+                type="password"
+                class="input"
+                placeholder="Re-enter your password"
+                required
+              />
+            </div>
+            <div class="actions">
+              <a class="link" href="/login">Back to sign in</a>
+              <button class="button button--primary" type="submit">
+                Update password
+              </button>
+            </div>
+          </form>
+          {{/if}}
         </div>
       </section>
     </main>

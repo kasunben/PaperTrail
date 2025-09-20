@@ -702,11 +702,21 @@ const uiHandler = {
   },
   viewLoginPage: async (req, res) => {
     const justRegistered = String(req.query.registered || "") === "1";
-    const returnTo =
-      typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const justReset = String(req.query.reset || "") === "1";
+    const returnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const forgotMode = String(req.query.forgot || "") === "1";
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const resetMode = !!token;
     return res.render("login", {
-      success: justRegistered ? "Account created. Please sign in." : null,
+      success: justRegistered
+        ? "Account created. Please sign in."
+        : justReset
+        ? "Password updated. Please sign in."
+        : null,
       return_to: returnTo,
+      forgot_mode: forgotMode && !resetMode,
+      reset_mode: resetMode,
+      token,
     });
   },
   viewRegisterPage: async (_, res) => {
@@ -774,40 +784,98 @@ const uiHandler = {
 const authHandler = {
   resetPassword: async (req, res) => {
     try {
-      const { token, password } = req.body || {};
-      if (
-        typeof token !== "string" ||
-        typeof password !== "string" ||
-        password.length < 10
-      ) {
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+      const { token, password, confirm_password } = req.body || {};
+      const tkn = typeof token === "string" ? token : "";
+      const pwd = typeof password === "string" ? password : "";
+
+      if (!tkn) {
+        if (isFormContent) {
+          return res.status(400).render("login", {
+            error: "Missing or invalid reset token.",
+            reset_mode: true,
+            token: "",
+          });
+        }
         return res.status(400).json({ error: "Invalid" });
       }
-      const t = await prisma.passwordResetToken.findUnique({
-        where: { token },
-      });
+      if (pwd.length < 10 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
+        if (isFormContent) {
+          return res.status(400).render("login", {
+            error: "Password must be at least 10 characters and include a letter and a number.",
+            reset_mode: true,
+            token: tkn,
+          });
+        }
+        return res.status(400).json({ error: "Weak password" });
+      }
+      if (isFormContent && typeof confirm_password === "string" && pwd !== confirm_password) {
+        return res.status(400).render("login", {
+          error: "Passwords do not match.",
+          reset_mode: true,
+          token: tkn,
+        });
+      }
+
+      const t = await prisma.passwordResetToken.findUnique({ where: { token: tkn } });
       if (!t || t.expiresAt < new Date()) {
+        if (isFormContent) {
+          return res.status(400).render("login", {
+            error: "Invalid or expired reset link.",
+            reset_mode: false,
+            forgot_mode: true,
+          });
+        }
         return res.status(400).json({ error: "Invalid/expired token" });
       }
 
-      const passwordHash = await hashPassword(password);
-      await prisma.user.update({
-        where: { id: t.userId },
-        data: { passwordHash },
-      });
-      await prisma.passwordResetToken.delete({ where: { token } });
-      res.json({ ok: true });
+      const passwordHash = await hashPassword(pwd);
+      await prisma.user.update({ where: { id: t.userId }, data: { passwordHash } });
+      await prisma.passwordResetToken.delete({ where: { token: tkn } });
+
+      if (isFormContent) {
+        return res.redirect(302, "/login?reset=1");
+      }
+      return res.json({ ok: true });
     } catch (e) {
       console.error("/auth/password/reset error", e);
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+      if (isFormContent) {
+        return res.status(500).render("login", {
+          error: "Failed to reset password. Please try again.",
+          reset_mode: true,
+          token: String(req.body?.token || ""),
+        });
+      }
       res.status(500).json({ error: "Failed" });
     }
   },
   forgotPassword: async (req, res) => {
     try {
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       const { email } = req.body || {};
-      if (typeof email !== "string")
-        return res.status(400).json({ error: "Invalid" });
+      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-      const user = await prisma.user.findUnique({ where: { email } });
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)) {
+        if (isFormContent) {
+          return res.status(400).render("login", {
+            error: "Please enter a valid email address.",
+            forgot_mode: true,
+            values: { email: emailNorm },
+            return_to: "",
+          });
+        }
+        return res.status(400).json({ error: "Invalid" });
+      }
+
+      let devResetUrl = "";
+      const user = await prisma.user.findUnique({ where: { email: emailNorm } });
       if (user) {
         const token = randomToken(32);
         await prisma.passwordResetToken.create({
@@ -817,11 +885,36 @@ const authHandler = {
             expiresAt: new Date(Date.now() + 1000 * 60 * 30), // 30m
           },
         });
-        // send reset link `${process.env.APP_URL || ""}/reset?token=${token}`
+        // In development, expose the reset link to speed up testing
+        if (process.env.NODE_ENV !== "production") {
+          devResetUrl = `/login?token=${token}`;
+        }
+        // TODO: send reset link `${process.env.APP_URL || ""}/login?token=${token}`
       }
-      res.json({ ok: true }); // don't reveal if email exists
+
+      if (isFormContent) {
+        return res.status(200).render("login", {
+          success: "If that email exists, we've sent a reset link.",
+          forgot_mode: true,
+          dev_reset_url: devResetUrl,
+          values: { email: emailNorm },
+          return_to: "",
+        });
+      }
+      return res.json({ ok: true });
     } catch (e) {
       console.error("/auth/password/forgot error", e);
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+      if (isFormContent) {
+        return res.status(500).render("login", {
+          error: "Failed to process request.",
+          forgot_mode: true,
+          values: { email: String(req.body?.email || "").toLowerCase() },
+          return_to: "",
+        });
+      }
       res.status(500).json({ error: "Failed" });
     }
   },
