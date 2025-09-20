@@ -106,7 +106,8 @@ async function disallowIfAuthed(req, res, next) {
   const session = await getSessionWithUser(token);
   if (session) {
     // Prefer explicit return_to if provided and safe (path-only)
-    const rt = typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const rt =
+      typeof req.query.return_to === "string" ? req.query.return_to : "";
     const dest = rt && rt.startsWith("/") ? rt : "/";
     return res.redirect(302, dest);
   }
@@ -701,7 +702,8 @@ const uiHandler = {
   },
   viewLoginPage: async (req, res) => {
     const justRegistered = String(req.query.registered || "") === "1";
-    const returnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const returnTo =
+      typeof req.query.return_to === "string" ? req.query.return_to : "";
     return res.render("login", {
       success: justRegistered ? "Account created. Please sign in." : null,
       return_to: returnTo,
@@ -857,10 +859,8 @@ const authHandler = {
         } catch {}
         res.clearCookie(SESSION_COOKIE, cookieOpts);
       }
-      return res.json({ ok: true });
-    } catch {
-      return res.json({ ok: true });
-    }
+    } catch {}
+    return res.redirect(302, "/login");
   },
   login: async (req, res) => {
     try {
@@ -870,7 +870,8 @@ const authHandler = {
         accept.includes("text/html");
 
       const { email, password, return_to } = req.body || {};
-      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
+      const emailNorm =
+        typeof email === "string" ? email.trim().toLowerCase() : "";
       const pwd = typeof password === "string" ? password : "";
 
       // Basic validations
@@ -889,7 +890,9 @@ const authHandler = {
         return res.status(400).json({ error: "Invalid payload" });
       }
 
-      const user = await prisma.user.findUnique({ where: { email: emailNorm } });
+      const user = await prisma.user.findUnique({
+        where: { email: emailNorm },
+      });
       if (!user) {
         if (isFormContent) {
           return res.status(401).render("login", {
@@ -958,8 +961,7 @@ const authHandler = {
       // Validate handler/username (required)
       // Rules: 3–24 chars, starts with a letter, then letters/numbers/._-
       const handlerOk =
-        typeof h === "string" &&
-        /^[A-Za-z][A-Za-z0-9._-]{2,23}$/.test(h || "");
+        typeof h === "string" && /^[A-Za-z][A-Za-z0-9._-]{2,23}$/.test(h || "");
       if (!handlerOk) {
         if (isFormContent) {
           return res.status(400).render("register", {
@@ -1018,7 +1020,9 @@ const authHandler = {
 
       // Uniqueness checks
       const [existingEmail, existingHandler] = await Promise.all([
-        prisma.user.findUnique({ where: { email: emailNorm } }).catch(() => null),
+        prisma.user
+          .findUnique({ where: { email: emailNorm } })
+          .catch(() => null),
         prisma.user.findFirst({ where: { handler: h } }).catch(() => null),
       ]);
       if (existingHandler) {
@@ -1028,9 +1032,7 @@ const authHandler = {
             values: { handler: h, email: emailNorm },
           });
         }
-        return res
-          .status(409)
-          .json({ error: "Username already registered" });
+        return res.status(409).json({ error: "Username already registered" });
       }
       if (existingEmail) {
         if (isFormContent) {
@@ -1512,6 +1514,7 @@ app.get(/^\/uploads\/(.+)$/, fileHandler.serveUpload);
 app.get("/", htmlRequireAuth, uiHandler.viewIndexPage);
 app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
+app.get("/logout", authHandler.logout);
 app.get("/b/create-new", uiHandler.createNewBoard);
 app.get("/b/:id", uiHandler.viewBoard);
 
