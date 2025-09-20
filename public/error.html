@@ -160,13 +160,15 @@
   </head>
   <body class="page">
     <main class="page__wrap">
-      <section class="error" aria-label="Not found">
+      <section class="error" aria-label="{{message}}">
         <h1 class="error__code">{{code}}</h1>
         <p class="error__title">{{message}}</p>
         <p class="error__text">
           {{description}}
         </p>
-        <pre class="error__stack">{{error}}</pre>
+        {{#if error}}
+          <pre class="error__stack">{{error}}</pre>
+        {{/if}}
         <div class="error__actions">
           <a class="button button--text" href="/">Return to home</a>
         </div>

@@ -718,54 +718,13 @@ const uiHandler = {
       });
     }
   },
-  createNewBoard: async (req, res) => {
+  createNewBoard: async (_, res) => {
     try {
-      // TODO: Clean up this logic and extend as needed
-      // TODO: It should visbility private by default, and attach user
-      // and title should be fixed or generate Randomly
-      // Optional: ?visibility=public|private & ?title=...
-      const requestedVis = String(req.query.visibility || "public").toLowerCase();
-      const visibility = requestedVis === "private" ? "private" : "public";
-      const titleRaw = typeof req.query.title === "string" ? req.query.title : "";
-      const title = titleRaw.trim().slice(0, 256) || "Untitled Board";
-
-      // If creating a private board, require a valid session
-      let ownerUserId = null;
-      if (visibility === "private") {
-        const token = req.cookies?.[SESSION_COOKIE];
-        const session = await getSessionWithUser(token);
-        if (!session) {
-          return res.status(401).render("error", {
-            code: 401,
-            message: "Login required",
-            description: "Please log in to create a private board.",
-          });
-        }
-        ownerUserId = session.userId;
-      }
-
-      // TODO: Consider let database handle id creation and uniqueness and retrieve it after creation
-      // Generate a unique board id
-      let id;
-      for (let i = 0; i < 5; i++) {
-        const candidate = genShortId(); // e.g., b_AbC123xy
-        const exists = await prisma.board.findUnique({ where: { id: candidate }, select: { id: true } });
-        if (!exists) {
-          id = candidate;
-          break;
-        }
-      }
-      if (!id) {
-        // Fallback: last-resort id
-        id = genShortId();
-      }
-
-      // Build minimal clean board and persist
-      const clean = sanitizeBoard({ id, title, visibility, nodes: [], edges: [] }, id);
-      await writeBoardToDb(clean, ownerUserId);
+      const board = sanitizeBoard({ nodes: [], edges: [] });
+      await writeBoardToDb(board, board.id);
 
       // Redirect user to the new board
-      return res.redirect(302, `/b/${id}`);
+      return res.redirect(302, `/b/${board.id}`);
     } catch (err) {
       console.error("createNewBoard error", err);
       return res.status(500).render("error", {
