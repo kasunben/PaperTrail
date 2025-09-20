@@ -1331,23 +1331,22 @@ function sanitizeUrl(u, opts = { allowRelative: true }) {
 }
 
 // $Utils.Ids
-function uuid(prefix = "", salt = "", length = 6) {
-  // base36 timestamp (ms precision)
-  const ts = Date.now().toString(36);
+function uuid(prefix = "", salt = "") {
+  // Target: total length ≤ 32, allowed chars [A-Za-z0-9_-]
+  const maxTotal = 32;
+  const ts = Date.now().toString(36); // ~8–9 chars
+  const rand = crypto.randomBytes(4).toString("base64url"); // 6 chars, url-safe
+  
+  // Optional short digest from salt to add entropy while keeping it compact
+  const extra = salt
+    ? crypto.createHash("sha1").update(salt + ts + rand).digest("base64url").slice(0, 6)
+    : "";
 
-  // combine salt + timestamp + random bytes → then hash
-  const rand = crypto.randomBytes(6).toString("base64url"); // ~8 chars
-  const hash = crypto
-    .createHash("sha256")
-    .update(salt + ts + rand)
-    .digest("base64url")
-    .slice(0, length - 1); // shorten to keep IDs manageable
+  // Build core and ensure only allowed characters, then clamp to budget
+  const maxCore = Math.max(3, maxTotal - String(prefix).length);
+  const core = `${ts}${rand}${extra}`.replace(/[^A-Za-z0-9_-]/g, "").slice(0, maxCore);
 
-  // Example output: b_kf1m9x8fA1B2C3D4
-  // Prefix is optional, but recommended to identify the type of ID (e.g., "b_" for boards, "u_" for users, etc.)
-  // Salt is optional, but recommended to add an extra layer of uniqueness and security (e.g., user ID, session ID, etc.)
-  // The salt should be consistent for the same context to ensure uniqueness within that context.
-  return `${prefix}${ts}${rand}${hash}`.trim();
+  return (`${prefix}${core}`).trim();
 }
 
 function isValidBoardId(v) {
@@ -1475,7 +1474,7 @@ async function writeBoardToDb(cleanBoard, ownerUserId = null) {
         if (!name) continue;
         const tag = await tx.tag.upsert({
           where: { name },
-          create: { name },
+          create: { id: uuid("tag_"), name },
           update: {},
         });
         await tx.nodeTag.create({ data: { nodeId: n.id, tagId: tag.id } });
@@ -1689,7 +1688,7 @@ app.use((err, _, res) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`PaperTrail running at http://localhost:${PORT}`);
 });
