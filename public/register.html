@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PaperTrail — Boards</title>
+    <style>
+      :root {
+        --color-bg: #ffffff;
+        --color-muted: #9ca3af;
+        --color-ink: #0f172a;
+        --color-accent: #ff0000;
+        --card: #ffffff;
+        --card-border: #e2e8f0; /* slate-200 */
+        --muted: #64748b; /* slate-500 */
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+        --radius: 12px;
+        --radius-sm: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body.page {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial;
+        color: var(--color-ink);
+        background: var(--color-bg);
+        /* same background grid style as board.html */
+        background-image: radial-gradient(
+          var(--color-muted) 1px,
+          transparent 1px
+        );
+        background-size: 16px 16px;
+        background-position: -1px -1px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        display: grid;
+        place-items: start center;
+      }
+
+      .page__wrap {
+        width: min(1100px, 100%);
+        padding: 40px 20px 80px;
+      }
+
+      /* Hero */
+      .hero {
+        text-align: center;
+        margin: 4vh 0 30px;
+      }
+      .hero__title {
+        font-size: clamp(32px, 5vw, 56px);
+        letter-spacing: -0.02em;
+        margin: 0 0 2px;
+      }
+      .hero__tagline {
+        color: #475569;
+        font-size: clamp(14px, 2.5vw, 18px);
+        margin: 0 0 22px;
+      }
+      .button {
+        appearance: none;
+        border: 0;
+        outline: 0;
+        cursor: pointer;
+        padding: 10px 15px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: var(--shadow);
+        transition: transform 0.02s ease, filter 0.15s ease;
+        text-decoration: none;
+      }
+      .button--primary {
+        background: var(--color-accent);
+      }
+      .button:active {
+        transform: translateY(1px);
+      }
+
+      /* Auth block */
+      .auth {
+        margin: 36px auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .auth__title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 15px;
+      }
+      .auth__card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 18px;
+        max-width: 520px;
+        width: 100%;
+      }
+      .form {
+        display: grid;
+        gap: 12px;
+      }
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+      .field label {
+        font-size: 13px;
+        color: #475569;
+      }
+      .input {
+        appearance: none;
+        width: 100%;
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        background: #fff;
+        color: var(--color-ink);
+      }
+      .input:focus {
+        outline: 2px solid rgba(99, 102, 241, 0.25);
+        outline-offset: 1px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
+      }
+      .link {
+        color: #2563eb;
+        text-decoration: none;
+        font-size: 13px;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .alert {
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+      .alert--error {
+        background: #fee2e2; /* red-100 */
+        border: 1px solid #fecaca; /* red-200 */
+        color: #991b1b; /* red-800 */
+      }
+    </style>
+  </head>
+  <body class="page">
+    <main class="page__wrap">
+      <section class="hero" aria-label="Intro">
+        <h1 class="hero__title">PaperTrail</h1>
+        <p class="hero__tagline">map your evidence, follow the story.</p>
+      </section>
+
+      <section class="auth" aria-label="Register">
+        <h2 class="auth__title">Create account</h2>
+        <div class="auth__card">
+          {{#if error}}
+            <div class="alert alert--error">{{error}}</div>
+          {{/if}}
+          <form class="form" method="post" action="/auth/register">
+            <div class="field">
+              <label for="handler">User Name</label>
+              <input
+                id="handler"
+                name="handler"
+                type="text"
+                value="{{values.handler}}"
+                class="input"
+                placeholder="eg. john_doe"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="email">Email</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value="{{values.email}}"
+                class="input"
+                placeholder="eg. john@example.com"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="password">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                class="input"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="btn-confirm">Confirm Password</label>
+              <input
+                id="btn-confirm"
+                name="confirm_password"
+                type="password"
+                class="input"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div class="actions">
+              <a class="link" href="/login">Already have an account?</a>
+              <button class="button button--primary" type="submit">
+                Register
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -30,6 +30,16 @@ npx prisma db push
 
 Use `npm run dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
 
+#### Prisma
+
+We use [Prisma](https://www.prisma.io/) as intermediate abstraction layer between the app code and the database.
+
+##### Updating the schema
+
+- Update `prisma/schema.prisma` first
+- Run `npx prisma format` to ensure the validity and format the schema changes
+- Run the migration command to log the change with `npx prisma migrate dev --name <migration-name-in-snake-case>`
+
 #### Git Workflow
 
 We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) inspired branching strategy to keep development organized and production stable.
@@ -37,7 +47,7 @@ We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
 **Branches**
 - `main` → production branch (always deployable).
 - `develop` → integration branch (latest development work).
-- `feature/` → short-lived branches for new features or fixes.
+- `feat/` → short-lived branches for new features or fixes.
 - `release/` → optional branches to prepare a release.
 - `hotfix/` → urgent fixes branched from main.
 - `fix/` → bug fixes

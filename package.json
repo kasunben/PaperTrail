@@ -3,6 +3,7 @@
   "description": "PaperTrail — map your evidence, follow the story.",
   "version": "1.0.0-alpha.28",
   "main": "server.mjs",
+  "schemaVersion": 1,
   "scripts": {
     "prestart": "npx prisma db push && npm run prisma:reset && npm run prisma:seed",
     "prisma:generate": "prisma generate",
@@ -27,8 +28,11 @@
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "archiver": "^7.0.1",
+    "argon2": "^0.44.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-handlebars": "^8.0.2",
     "multer": "^2.0.2",
     "node-fetch": "^3.3.2",
     "sharp": "^0.34.3",
