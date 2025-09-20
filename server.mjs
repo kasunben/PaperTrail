@@ -674,8 +674,10 @@ const uiHandler = {
   },
   viewLoginPage: async (req, res) => {
     const justRegistered = String(req.query.registered || "") === "1";
+    const returnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
     return res.render("login", {
       success: justRegistered ? "Account created. Please sign in." : null,
+      return_to: returnTo,
     });
   },
   viewRegisterPage: async (_, res) => {
@@ -835,20 +837,78 @@ const authHandler = {
   },
   login: async (req, res) => {
     try {
-      const { email, password } = req.body || {};
-      if (typeof email !== "string" || typeof password !== "string") {
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
+
+      const { email, password, return_to } = req.body || {};
+      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
+      const pwd = typeof password === "string" ? password : "";
+
+      // Basic validations
+      if (
+        typeof emailNorm !== "string" ||
+        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm) ||
+        !pwd
+      ) {
+        if (isFormContent) {
+          return res.status(400).render("login", {
+            error: "Please enter a valid email and password.",
+            values: { email: emailNorm },
+            return_to: typeof return_to === "string" ? return_to : "",
+          });
+        }
         return res.status(400).json({ error: "Invalid payload" });
       }
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-      const ok = await verifyPassword(user.passwordHash, password);
-      if (!ok) return res.status(401).json({ error: "Invalid credentials" });
+      const user = await prisma.user.findUnique({ where: { email: emailNorm } });
+      if (!user) {
+        if (isFormContent) {
+          return res.status(401).render("login", {
+            error: "Invalid email or password.",
+            values: { email: emailNorm },
+            return_to: typeof return_to === "string" ? return_to : "",
+          });
+        }
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const ok = await verifyPassword(user.passwordHash, pwd);
+      if (!ok) {
+        if (isFormContent) {
+          return res.status(401).render("login", {
+            error: "Invalid email or password.",
+            values: { email: emailNorm },
+            return_to: typeof return_to === "string" ? return_to : "",
+          });
+        }
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
 
       await createSession(res, user, req);
+
+      if (isFormContent) {
+        const dest =
+          typeof return_to === "string" && return_to.startsWith("/")
+            ? return_to
+            : "/";
+        return res.redirect(302, dest);
+      }
       return res.json({ ok: true });
     } catch (e) {
       console.error("/auth/login error", e);
+      const accept = String(req.headers["accept"] || "");
+      const isFormContent =
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
+      if (isFormContent) {
+        return res.status(500).render("login", {
+          error: "Login failed. Please try again.",
+          values: { email: String(req.body?.email || "").toLowerCase() },
+          return_to: String(req.body?.return_to || ""),
+        });
+      }
       return res.status(500).json({ error: "Login failed" });
     }
   },

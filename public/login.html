@@ -186,8 +186,11 @@
         <div class="auth__card">
           {{#if success}}
           <div class="alert alert--success">{{success}}</div>
+          {{/if}} {{#if error}}
+          <div class="alert alert--error">{{error}}</div>
           {{/if}}
           <form class="form" method="post" action="/auth/login">
+            <input type="hidden" name="return_to" value="{{return_to}}" />
             <div class="field">
               <label for="email">Email</label>
               <input
@@ -196,6 +199,7 @@
                 type="email"
                 class="input"
                 placeholder="you@example.com"
+                value="{{values.email}}"
                 required
               />
             </div>
