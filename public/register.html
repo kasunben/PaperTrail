@@ -3,19 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PaperTrail — Boards</title>
+    <title>PaperTrail — Register</title>
     <style>
       :root {
         --color-bg: #ffffff;
         --color-muted: #9ca3af;
         --color-ink: #0f172a;
         --color-accent: #ff0000;
-        --card: #ffffff;
-        --card-border: #e2e8f0; /* slate-200 */
-        --muted: #64748b; /* slate-500 */
+        --color-border-card: #e2e8f0; /* slate-200 */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
-        --radius: 12px;
-        --radius-sm: 10px;
+        --spacing-m: 12px;
       }
       * {
         box-sizing: border-box;
@@ -42,12 +39,10 @@
         display: grid;
         place-items: start center;
       }
-
       .page__wrap {
         width: min(1100px, 100%);
         padding: 40px 20px 80px;
       }
-
       /* Hero */
       .hero {
         text-align: center;
@@ -85,7 +80,6 @@
       .button:active {
         transform: translateY(1px);
       }
-
       /* Auth block */
       .auth {
         margin: 36px auto;
@@ -101,9 +95,9 @@
         margin: 0 0 15px;
       }
       .auth__card {
-        background: var(--card);
-        border: 1px solid var(--card-border);
-        border-radius: var(--radius);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border-card);
+        border-radius: var(--spacing-m);
         box-shadow: var(--shadow);
         padding: 18px;
         max-width: 520px;
@@ -124,7 +118,7 @@
       .input {
         appearance: none;
         width: 100%;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         border-radius: 10px;
         padding: 10px 12px;
         font-size: 14px;

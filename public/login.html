@@ -10,12 +10,9 @@
         --color-muted: #9ca3af;
         --color-ink: #0f172a;
         --color-accent: #ff0000;
-        --card: #ffffff;
-        --card-border: #e2e8f0; /* slate-200 */
-        --muted: #64748b; /* slate-500 */
+        --color-border-card: #e2e8f0; /* slate-200 */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
-        --radius: 12px;
-        --radius-sm: 10px;
+        --spacing-m: 12px;
       }
       * {
         box-sizing: border-box;
@@ -42,12 +39,10 @@
         display: grid;
         place-items: start center;
       }
-
       .page__wrap {
         width: min(1100px, 100%);
         padding: 40px 20px 80px;
       }
-
       /* Hero */
       .hero {
         text-align: center;
@@ -100,9 +95,9 @@
         margin: 0 0 15px;
       }
       .auth__card {
-        background: var(--card);
-        border: 1px solid var(--card-border);
-        border-radius: var(--radius);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border-card);
+        border-radius: var(--spacing-m);
         box-shadow: var(--shadow);
         padding: 18px;
         max-width: 520px;
@@ -123,7 +118,7 @@
       .input {
         appearance: none;
         width: 100%;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         border-radius: 10px;
         padding: 10px 12px;
         font-size: 14px;
@@ -150,7 +145,7 @@
       }
       .divider {
         height: 1px;
-        background: var(--card-border);
+        background: var(--color-border-card);
         margin: 14px 0;
       }
       .alert {
@@ -188,11 +183,8 @@
           <div class="alert alert--success">{{success}}</div>
           {{/if}} {{#if error}}
           <div class="alert alert--error">{{error}}</div>
-          {{/if}}
-
-          {{!-- LOGIN FORM --}}
-          {{#unless forgot_mode}}
-          {{#unless reset_mode}}
+          {{/if}} {{!-- LOGIN FORM --}} {{#unless forgot_mode}} {{#unless
+          reset_mode}}
           <form class="form" method="post" action="/auth/login">
             <input type="hidden" name="return_to" value="{{return_to}}" />
             <div class="field">
@@ -232,11 +224,8 @@
               <a class="link" href="/register">Create account</a></span
             >
           </div>
-          {{/unless}}
-          {{/unless}}
-
-          {{!-- FORGOT PASSWORD FORM --}}
-          {{#if forgot_mode}}
+          {{/unless}} {{/unless}} {{!-- FORGOT PASSWORD FORM --}} {{#if
+          forgot_mode}}
           <form class="form" method="post" action="/auth/password/forgot">
             <div class="field">
               <label for="email">Email</label>
@@ -259,15 +248,12 @@
             {{#if dev_reset_url}}
             <div class="divider"></div>
             <div class="actions">
-              <span style="color:#64748b; font-size:12px;">Dev:</span>
+              <span style="color: #64748b; font-size: 12px">Dev:</span>
               <a class="link" href="{{dev_reset_url}}">Open reset link</a>
             </div>
             {{/if}}
           </form>
-          {{/if}}
-
-          {{!-- RESET PASSWORD FORM --}}
-          {{#if reset_mode}}
+          {{/if}} {{!-- RESET PASSWORD FORM --}} {{#if reset_mode}}
           <form class="form" method="post" action="/auth/password/reset">
             <input type="hidden" name="token" value="{{token}}" />
             <div class="field">
