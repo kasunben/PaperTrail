@@ -30,6 +30,32 @@ npx prisma db push
 
 Use `npm run dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
 
+## Configuration
+
+PaperTrail can be configured using environment variables in a `.env` file:
+
+### Guest Login
+
+The guest login feature allows you to add a simple authentication layer to your PaperTrail instance. When enabled, users must click "Continue as Guest" before accessing the application.
+
+To enable guest login, set the following in your `.env` file:
+
+```
+GUEST_LOGIN_ENABLED=true
+```
+
+When guest login is enabled:
+- Users will see a modal dialog when first accessing the application
+- They must click "Continue as Guest" to proceed
+- The guest session is stored in localStorage
+- All API requests are authenticated with a guest token
+
+To disable guest login (default behavior), set:
+
+```
+GUEST_LOGIN_ENABLED=false
+```
+
 ## License
 
 The community version licensed under MIT.

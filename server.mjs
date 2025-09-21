@@ -15,6 +15,9 @@ import 'dotenv/config';
 // --> Prisma (SQLite) ---
 const prisma = new PrismaClient();
 
+// --> Guest Login Configuration ---
+const GUEST_LOGIN_ENABLED = process.env.GUEST_LOGIN_ENABLED === 'true';
+
 // Handle Prisma connection errors and graceful shutdown
 async function connectPrisma() {
   try {
@@ -346,6 +349,29 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: "10mb" }));
+
+// --> Guest Login Middleware ---
+function requireGuestLogin(req, res, next) {
+  if (!GUEST_LOGIN_ENABLED) {
+    return next(); // Skip auth if guest login is disabled
+  }
+  
+  // Check if user has a valid guest session
+  const guestToken = req.headers['x-guest-token'] || req.query.guest;
+  if (guestToken === 'guest-access-token') {
+    return next();
+  }
+  
+  // For API routes, return 401
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Guest login required' });
+  }
+  
+  // For static files and root, allow through (login page will handle auth)
+  next();
+}
+
+app.use(requireGuestLogin);
 app.use(express.static(path.join(__dirname, "public")));
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
@@ -942,6 +968,27 @@ app.post("/api/link-preview", async (req, res) => {
     console.error("/api/link-preview error", err);
     res.status(500).json({ error: "Preview failed" });
   }
+});
+
+// --> Guest Login API ---
+app.post("/api/guest-login", (req, res) => {
+  if (!GUEST_LOGIN_ENABLED) {
+    return res.status(404).json({ error: "Guest login not enabled" });
+  }
+  
+  // Simple guest authentication - in a real app, you might want more sophisticated logic
+  res.json({
+    success: true,
+    token: 'guest-access-token',
+    message: 'Guest login successful'
+  });
+});
+
+app.get("/api/guest-status", (req, res) => {
+  res.json({
+    guestLoginEnabled: GUEST_LOGIN_ENABLED,
+    authenticated: !GUEST_LOGIN_ENABLED || req.headers['x-guest-token'] === 'guest-access-token'
+  });
 });
 
 // --> Expose version + schema information for the client

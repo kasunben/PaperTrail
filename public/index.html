@@ -930,6 +930,34 @@
         </div>
       </div>
     </div>
+    
+    <!-- Guest Login Modal -->
+    <div
+      id="guestLoginModal"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="guestLoginTitle"
+      style="display: none;"
+    >
+      <div class="modal">
+        <header>
+          <h3 id="guestLoginTitle">Guest Access Required</h3>
+        </header>
+        <div class="body">
+          <p>
+            Guest login is enabled for this PaperTrail instance. Click the button below to continue as a guest.
+          </p>
+          <p style="text-align: center; margin-top: 20px;">
+            <button type="button" id="guestLoginBtn" style="padding: 12px 24px; font-size: 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Continue as Guest
+            </button>
+          </p>
+          <div id="guestLoginError" style="color: #dc2626; margin-top: 10px; text-align: center; display: none;"></div>
+        </div>
+      </div>
+    </div>
+    
     <script>
       /** Types (informal)
        * Node = { id, type: 'text'|'image'|'imageText'|'link', x, y, w?, h?, data: { text?, imageUrl?, linkUrl?, title? } }
@@ -2798,7 +2826,82 @@
       });
       // End of image upload handling
 
-      loadBoard();
+      // Guest Login System
+      let guestToken = localStorage.getItem('guest-token');
+      
+      async function checkGuestStatus() {
+        try {
+          const res = await fetch('/api/guest-status');
+          const status = await res.json();
+          
+          if (status.guestLoginEnabled && !status.authenticated) {
+            showGuestLoginModal();
+            return false;
+          }
+          return true;
+        } catch (err) {
+          console.error('Failed to check guest status:', err);
+          return true; // Proceed if can't check status
+        }
+      }
+      
+      function showGuestLoginModal() {
+        const modal = document.getElementById('guestLoginModal');
+        const loginBtn = document.getElementById('guestLoginBtn');
+        const errorDiv = document.getElementById('guestLoginError');
+        
+        modal.style.display = 'flex';
+        
+        loginBtn.onclick = async () => {
+          loginBtn.disabled = true;
+          loginBtn.textContent = 'Logging in...';
+          errorDiv.style.display = 'none';
+          
+          try {
+            const res = await fetch('/api/guest-login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              localStorage.setItem('guest-token', data.token);
+              guestToken = data.token;
+              modal.style.display = 'none';
+              loadBoard(); // Now load the board
+            } else {
+              const error = await res.json();
+              errorDiv.textContent = error.error || 'Login failed';
+              errorDiv.style.display = 'block';
+            }
+          } catch (err) {
+            errorDiv.textContent = 'Network error. Please try again.';
+            errorDiv.style.display = 'block';
+          }
+          
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Continue as Guest';
+        };
+      }
+      
+      // Override fetch to include guest token
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options = {}) {
+        if (guestToken && url.startsWith('/api/')) {
+          options.headers = {
+            ...options.headers,
+            'X-Guest-Token': guestToken
+          };
+        }
+        return originalFetch(url, options);
+      };
+
+      // Initialize app
+      checkGuestStatus().then(canProceed => {
+        if (canProceed) {
+          loadBoard();
+        }
+      });
     </script>
   </body>
 </html>
