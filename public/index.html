@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PaperTrail — Boards</title>
+    <title>PaperTrail — map your evidence, follow the story.</title>
     <style>
       :root {
         --color-bg: #ffffff;
@@ -365,7 +365,7 @@
             <span class="boards__badge">{{this.visibility}}</span>
           </div>
           <div class="boards__meta">
-            <span>{{this.createdAt}}</span>
+            <span class="created-at" data-date="{{this.createdAt}}"></span>
             <span class="boards__badge">{{this.status}}</span>
           </div>
           <a class="boards__link" href="{{this.url}}">Open</a>
@@ -373,5 +373,13 @@
         {{/each}}
       </section>
     </main>
+    <script>
+      document.querySelectorAll(".created-at").forEach(el => {
+        const d = new Date(el.dataset.date);
+        if (!isNaN(d)) {
+          el.textContent = d.toLocaleString();
+        }
+      });
+    </script>
   </body>
 </html>
