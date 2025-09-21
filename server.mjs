@@ -70,7 +70,32 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 
 // > Immediately connect to the database on startup
-await connectPrisma();
+
+// Helper to wait for a given number of milliseconds
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Retry logic for connecting to Prisma
+async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      await connectPrisma();
+      return;
+    } catch (err) {
+      attempt++;
+      if (attempt >= maxRetries) {
+        console.error(`Failed to connect to the database after ${maxRetries} attempts. Exiting.`);
+        process.exit(1);
+      }
+      console.warn(`Database connection failed (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`);
+      await sleep(delayMs);
+    }
+  }
+}
+
+await connectPrismaWithRetry();
 /**  eof::$DB.Prisma -- */
 
 /** $Route.Middlewares */
