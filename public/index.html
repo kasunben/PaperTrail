@@ -134,6 +134,28 @@
         align-self: flex-start;
         display: inline-block;
       }
+      .boards__card--new {
+        border: 2px dashed var(--card-border);
+        background: #f9fafb;
+        color: #475569;
+        text-align: center;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        text-decoration: none;
+      }
+      .boards__card--new:hover {
+        background: #f3f4f6;
+      }
+      .boards__card--new .boards__add-icon {
+        font-size: 28px;
+        line-height: 0.7;
+      }
+      .boards__card--new span {
+        font-weight: 600;
+        font-size: 14px;
+      }
       /* Toolbar (shared with board.html) */
       .toolbar__title {
         display: flex;
@@ -251,26 +273,6 @@
         object-fit: cover;
         display: block;
       }
-      .toolbar__button {
-        appearance: none;
-        border: 0;
-        outline: 0;
-        cursor: pointer;
-        padding: 5px 10px;
-        color: #fff;
-        font-weight: 600;
-        font-size: 13px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        box-shadow: var(--shadow);
-        background: var(--color-accent);
-        border-radius: 5px;
-        text-decoration: none;
-      }
-      .toolbar__button:active {
-        transform: translateY(1px);
-      }
       @media (max-width: 640px) {
         .toolbar {
           flex-wrap: wrap;
@@ -296,7 +298,6 @@
         <div class="toolbar__brand">PaperTrail</div>
         <div class="toolbar__tagline">map your evidence, follow the story.</div>
       </div>
-      <a class="toolbar__button" href="/b/create-new">+ Create</a>
       <div class="toolbar__spacer"></div>
       <div class="toolbar__user" role="navigation" aria-label="User toolbar">
         <span class="toolbar__greeting">Ayubowan! <strong>{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}</strong></span>
@@ -320,6 +321,10 @@
 
       {{#if boards.length}}
       <section id="grid" class="boards__grid">
+        <a href="/b/create-new" class="boards__card boards__card--new">
+          <div class="boards__add-icon">+</div>
+          <span>Create new board</span>
+        </a>
         {{#each boards}}
         <article class="boards__card">
           <div class="boards__row">
