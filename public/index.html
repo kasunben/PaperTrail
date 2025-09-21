@@ -10,12 +10,10 @@
         --color-muted: #9ca3af;
         --color-ink: #0f172a;
         --color-accent: #ff0000;
-        --card: #ffffff;
-        --card-border: #e2e8f0; /* slate-200 */
-        --muted: #64748b; /* slate-500 */
+        --color-border-card: #e2e8f0; /* slate-200 */
         --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
-        --radius: 12px;
-        --radius-sm: 10px;
+        --spacing-m: 12px;
+        --spacing-s: 10px;
       }
       * {
         box-sizing: border-box;
@@ -63,9 +61,9 @@
       }
       .boards__empty {
         color: #475569;
-        border: 2px dashed var(--card-border);
+        border: 2px dashed var(--color-border-card);
         background: #fff;
-        border-radius: var(--radius-sm);
+        border-radius: var(--spacing-s);
         padding: 150px 0;
         text-align: center;
         font-size: small;
@@ -89,9 +87,9 @@
         }
       }
       .boards__card {
-        background: var(--card);
-        border: 1px solid var(--card-border);
-        border-radius: var(--radius);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border-card);
+        border-radius: var(--spacing-m);
         box-shadow: var(--shadow);
         padding: 18px;
         display: flex;
@@ -123,7 +121,7 @@
         font-size: 12px;
         padding: 4px 10px;
         border-radius: 999px;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         background: #fff;
         text-transform: capitalize;
       }
@@ -139,7 +137,7 @@
         display: inline-block;
       }
       .boards__card--new {
-        border: 2px dashed var(--card-border);
+        border: 2px dashed var(--color-border-card);
         background: #f9fafb;
         color: #475569;
         text-align: center;
@@ -151,7 +149,7 @@
       }
       .boards__card--new:hover {
         background: #f3f4f6;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
       }
       .boards__card--new .boards__add-icon {
         font-size: 28px;
@@ -224,14 +222,14 @@
       }
       .toolbar__menu[open] .toolbar__avatar {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
-          0 0 0 1px var(--card-border) inset;
+          0 0 0 1px var(--color-border-card) inset;
       }
       .toolbar__menu-panel {
         position: absolute;
         top: calc(100% + 6px);
         right: 0;
         background: #fff;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         border-radius: 10px;
         box-shadow: var(--shadow);
         min-width: 160px;
@@ -251,7 +249,7 @@
       }
       .toolbar__icon {
         appearance: none;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         background: #fff;
         width: 30px;
         height: 30px;
@@ -269,7 +267,7 @@
         background: #e5e7eb; /* slate-200 */
         display: grid;
         place-items: center;
-        border: 1px solid var(--card-border);
+        border: 1px solid var(--color-border-card);
         box-shadow: var(--shadow);
       }
       .toolbar__avatar > img {
@@ -340,8 +338,8 @@
               fill="none"
               aria-hidden="true"
             >
-              <circle cx="12" cy="8" r="4" fill="#9ca3af" />
-              <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#9ca3af" />
+              <circle cx="12" cy="8" r="4" fill="#111" />
+              <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
             </svg>
           </summary>
           <div class="toolbar__menu-panel" role="menu" aria-label="User menu">

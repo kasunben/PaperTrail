@@ -55,6 +55,7 @@
         --color-muted: #9ca3af;
         --color-ink: #e5e7eb;
         --color-accent: #60a5fa;
+        --color-border-card: #e2e8f0; /* slate-200 */
       }
       html,
       body {
@@ -73,6 +74,7 @@
         font-weight: 700;
         font-size: 16px;
         color: #111827;
+        text-decoration: none;
       }
       .toolbar__tagline {
         font-size: 11px;
@@ -172,6 +174,62 @@
         padding-right: 1.8em; /* reserve space */
         box-sizing: border-box;
       }
+      /* Avatar dropdown (context menu) */
+      .toolbar__menu {
+        position: relative;
+      }
+      .toolbar__menu summary {
+        list-style: none;
+        outline: none;
+        cursor: pointer;
+      }
+      .toolbar__menu summary::-webkit-details-marker {
+        display: none;
+      }
+      .toolbar__menu[open] .toolbar__avatar {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+          0 0 0 1px var(--color-border-card) inset;
+      }
+      .toolbar__menu-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--color-border-card);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        min-width: 160px;
+        padding: 6px;
+        z-index: 20;
+      }
+      .toolbar__avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #e5e7eb; /* slate-200 */
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--color-border-card);
+        box-shadow: var(--shadow);
+      }
+      .toolbar__avatar > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .menu__item {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #0f172a;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .menu__item:hover {
+        background: #f1f5f9;
+      }
       #clearSearch {
         position: absolute;
         top: 50%;
@@ -240,7 +298,8 @@
         #importBtn,
         #save,
         #reset,
-        #infoBtn {
+        #infoBtn,
+        #userBtn {
           order: 12;
         }
       }
@@ -748,7 +807,7 @@
   <body>
     <div class="toolbar">
       <div class="toolbar__title">
-        <div class="toolbar__brand">PaperTrail</div>
+        <a class="toolbar__brand" href="/">PaperTrail</a>
         <div class="toolbar__tagline">map your evidence, follow the story.</div>
         <div
           class="toolbar__board-name"
@@ -905,6 +964,27 @@
           <path d="M12 11v5" stroke-linecap="round" />
         </svg>
       </button>
+      <details id="userBtn" class="toolbar__menu">
+        <summary
+          class="toolbar__avatar"
+          title="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}"
+        >
+          <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}'s avatar"> -->
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4" fill="#111" />
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
+          </svg>
+        </summary>
+        <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
+          <a class="menu__item" href="/logout" role="menuitem">Logout</a>
+        </div>
+      </details>
     </div>
     <div class="board" id="board">
       <div id="boardSizer"></div>
@@ -1786,7 +1866,10 @@
         el.classList.toggle("selected", selectedNodeId === n.id);
         // Ensure node type modifier class follows BEM: node--{type}
         el.classList.forEach((c) => {
-          if ((c.startsWith("node-") || c.startsWith("node--")) && c !== "node") {
+          if (
+            (c.startsWith("node-") || c.startsWith("node--")) &&
+            c !== "node"
+          ) {
             el.classList.remove(c);
           }
         });
