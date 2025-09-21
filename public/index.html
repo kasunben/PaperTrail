@@ -158,7 +158,6 @@
         line-height: 0.6;
       }
       .boards__card--new span {
-        font-weight: 600;
         font-size: 14px;
       }
       /* Toolbar (shared with board.html) */
@@ -294,6 +293,22 @@
         }
         .toolbar__tagline {
           font-size: 10px;
+        }
+        /* Mobile header tweaks: keep user cluster top-right and reduce header height */
+        .toolbar {
+          align-items: flex-start; /* align children to the top on mobile */
+          padding: 8px 10px;       /* tighter */
+        }
+        .toolbar__title {
+          flex: 0 1 auto;          /* don't force full width */
+        }
+        .toolbar__user {
+          margin-left: auto;       /* push to right */
+          align-self: flex-start;  /* stick to the top */
+          padding-top: 2px;        /* nudge closer to top edge */
+        }
+        .toolbar__greeting {
+          font-size: 13px;         /* slightly smaller on mobile */
         }
       }
     </style>
