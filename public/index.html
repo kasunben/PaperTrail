@@ -41,110 +41,25 @@
         -moz-osx-font-smoothing: grayscale;
         display: grid;
         place-items: start center;
+        align-content: start;   /* prevent extra vertical distribution */
+        row-gap: 0;             /* remove any implicit row gap between toolbar and content */
       }
       .page__wrap {
         width: min(1100px, 100%);
-        padding: 40px 20px 80px;
+        padding: 8px 20px 36px; /* tighter spacing below toolbar */
+        margin-top: 36px;
+        display: flow-root;
       }
-      /* Hero */
-      .hero {
-        text-align: left;
-        margin: 4vh 0 30px;
-      }
-      .hero__title {
-        font-size: clamp(32px, 5vw, 56px);
-        letter-spacing: -0.02em;
-        margin: 0 0 2px;
-      }
-      .hero__tagline {
-        color: #475569;
-        font-size: clamp(14px, 2.5vw, 18px);
-        margin: 0 0 22px;
-      }
-      .hero__actions {
-        margin-top: 10px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        flex-wrap: wrap;
-      }
-      .hero__userbar {
-        margin-top: 0;
-        font-size: 15px;
-        color: #64748b; /* subtle slate */
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .hero__userbar a {
-        color: var(--color-accent);
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .hero__userbar a:hover {
-        text-decoration: underline;
-      }
-      .link--quiet {
-        color: #94a3b8; /* slate-400 */
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .link--quiet:hover {
-        color: #64748b; /* slate-500 */
-        text-decoration: underline;
-      }
-      .button {
-        appearance: none;
-        border: 0;
-        outline: 0;
-        cursor: pointer;
-        padding: 10px 15px;
-        color: #fff;
-        font-weight: 700;
-        font-size: 14px;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        box-shadow: var(--shadow);
-        transition: transform 0.02s ease, filter 0.15s ease;
-        text-decoration: none;
-      }
-      .button--primary {
-        background: var(--color-accent);
-      }
-      .button:active {
-        transform: translateY(1px);
-      }
-      .button__icon {
-        width: 18px;
-        height: 18px;
-        position: relative;
-        display: inline-block;
-      }
-      .button__icon::before,
-      .button__icon::after {
-        content: "";
-        position: absolute;
-        background: #fff;
-        border-radius: 2px;
-      }
-      .button__icon::before {
-        width: 100%;
-        height: 3px;
-        top: 7.5px;
-        left: 0;
-      }
-      .button__icon::after {
-        height: 100%;
-        width: 3px;
-        left: 7.5px;
-        top: 0;
+      .page__wrap > :first-child {
+        margin-top: 0 !important;
       }
       /* Boards block */
       .boards__title {
         font-size: 18px;
         font-weight: 700;
         color: #0f172a;
+        margin: 6px 0 12px; /* eliminate large top gap under toolbar */
+        padding: 0 0 2px 18px;
       }
       .boards__empty {
         color: #475569;
@@ -246,6 +161,7 @@
         top: 0;
         z-index: 10;
         width: 100%;
+        margin-bottom: 0;
       }
       .toolbar__spacer {
         flex: 1;
@@ -335,6 +251,26 @@
         object-fit: cover;
         display: block;
       }
+      .toolbar__button {
+        appearance: none;
+        border: 0;
+        outline: 0;
+        cursor: pointer;
+        padding: 5px 10px;
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: var(--shadow);
+        background: var(--color-accent);
+        border-radius: 5px;
+        text-decoration: none;
+      }
+      .toolbar__button:active {
+        transform: translateY(1px);
+      }
       @media (max-width: 640px) {
         .toolbar {
           flex-wrap: wrap;
@@ -360,6 +296,7 @@
         <div class="toolbar__brand">PaperTrail</div>
         <div class="toolbar__tagline">map your evidence, follow the story.</div>
       </div>
+      <a class="toolbar__button" href="/b/create-new">+ Create</a>
       <div class="toolbar__spacer"></div>
       <div class="toolbar__user" role="navigation" aria-label="User toolbar">
         <span class="toolbar__greeting">Ayubowan! <strong>{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}</strong></span>
@@ -378,20 +315,6 @@
       </div>
     </div>
     <main class="page__wrap">
-      <section class="hero" aria-label="Intro">
-        <h1 class="hero__title">PaperTrail</h1>
-        <p class="hero__tagline">map your evidence, follow the story.</p>
-        <div class="hero__actions">
-          <a class="button button--primary" href="/b/create-new">
-            <span class="button__icon" aria-hidden="true"></span> Create
-          </a>
-          <div class="hero__userbar">
-            <span>Ayubowan, <strong>{{username}}</strong></span>
-            <span aria-hidden="true">·</span>
-            <a href="/logout" class="link--quiet" aria-label="Log out of your account">Log out</a>
-          </div>
-        </div>
-      </section>
 
       <h2 class="boards__title">Boards</h2>
 
