@@ -86,10 +86,14 @@ async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
     } catch (err) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(`Failed to connect to the database after ${maxRetries} attempts. Exiting.`);
+        console.error(
+          `Failed to connect to the database after ${maxRetries} attempts. Exiting.`
+        );
         process.exit(1);
       }
-      console.warn(`Database connection failed (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`);
+      console.warn(
+        `Database connection failed (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`
+      );
       await sleep(delayMs);
     }
   }
@@ -142,9 +146,6 @@ async function disallowIfAuthed(req, res, next) {
 
 /** $Route.Handlers */
 const miscHandler = {
-  getVersion: async (_, res) => {
-    return res.json({ version: appVersion, schemaVersion });
-  },
   fetchLinkPreview: async (req, res) => {
     try {
       const { url } = req.body || {};
@@ -714,18 +715,18 @@ const uiHandler = {
         url: `/b/${b.id}`,
       }));
 
-      let username = "";
+      let handler = "";
       if (req.user) {
         try {
           const u = await prisma.user.findUnique({
             where: { id: req.user.id },
             select: { handler: true },
           });
-          if (u) username = u.handler;
+          if (u) handler = u.handler;
         } catch {}
       }
 
-      return res.render("index", { boards, username });
+      return res.render("index", { boards, handler });
     } catch (err) {
       console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
@@ -739,7 +740,8 @@ const uiHandler = {
   viewLoginPage: async (req, res) => {
     const justRegistered = String(req.query.registered || "") === "1";
     const justReset = String(req.query.reset || "") === "1";
-    const returnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const returnTo =
+      typeof req.query.return_to === "string" ? req.query.return_to : "";
     const forgotMode = String(req.query.forgot || "") === "1";
     const token = typeof req.query.token === "string" ? req.query.token : "";
     const resetMode = !!token;
@@ -786,7 +788,7 @@ const uiHandler = {
         });
       }
       // Serve the SPA shell (renamed from index.html to board.html)
-      return res.render("board");
+      return res.render("board", { appVersion, schemaVersion, boardId: id });
     } catch (err) {
       console.error("route /b/:id error", err);
       return res.status(500).render("error", {
@@ -801,7 +803,7 @@ const uiHandler = {
     try {
       const id = uuid("b_");
       const userId = req.user?.id || null;
-      
+
       await prisma.board.create({
         data: { id, schemaVersion, userId },
         select: { id: true },
@@ -824,7 +826,8 @@ const authHandler = {
     try {
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
       const { token, password, confirm_password } = req.body || {};
       const tkn = typeof token === "string" ? token : "";
       const pwd = typeof password === "string" ? password : "";
@@ -842,14 +845,19 @@ const authHandler = {
       if (pwd.length < 6 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
         if (isFormContent) {
           return res.status(400).render("login", {
-            error: "Password must be at least 6 characters and include a letter and a number.",
+            error:
+              "Password must be at least 6 characters and include a letter and a number.",
             reset_mode: true,
             token: tkn,
           });
         }
         return res.status(400).json({ error: "Weak password" });
       }
-      if (isFormContent && typeof confirm_password === "string" && pwd !== confirm_password) {
+      if (
+        isFormContent &&
+        typeof confirm_password === "string" &&
+        pwd !== confirm_password
+      ) {
         return res.status(400).render("login", {
           error: "Passwords do not match.",
           reset_mode: true,
@@ -857,7 +865,9 @@ const authHandler = {
         });
       }
 
-      const t = await prisma.passwordResetToken.findUnique({ where: { token: tkn } });
+      const t = await prisma.passwordResetToken.findUnique({
+        where: { token: tkn },
+      });
       if (!t || t.expiresAt < new Date()) {
         if (isFormContent) {
           return res.status(400).render("login", {
@@ -870,7 +880,10 @@ const authHandler = {
       }
 
       const passwordHash = await hashPassword(pwd);
-      await prisma.user.update({ where: { id: t.userId }, data: { passwordHash } });
+      await prisma.user.update({
+        where: { id: t.userId },
+        data: { passwordHash },
+      });
       await prisma.passwordResetToken.delete({ where: { token: tkn } });
 
       if (isFormContent) {
@@ -881,7 +894,8 @@ const authHandler = {
       console.error("/auth/password/reset error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("login", {
           error: "Failed to reset password. Please try again.",
@@ -896,9 +910,11 @@ const authHandler = {
     try {
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
       const { email } = req.body || {};
-      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
+      const emailNorm =
+        typeof email === "string" ? email.trim().toLowerCase() : "";
 
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)) {
         if (isFormContent) {
@@ -913,7 +929,9 @@ const authHandler = {
       }
 
       let devResetUrl = "";
-      const user = await prisma.user.findUnique({ where: { email: emailNorm } });
+      const user = await prisma.user.findUnique({
+        where: { email: emailNorm },
+      });
       if (user) {
         const token = randomToken(32);
         await prisma.passwordResetToken.create({
@@ -944,7 +962,8 @@ const authHandler = {
       console.error("/auth/password/forgot error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") ||
+        accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("login", {
           error: "Failed to process request.",
@@ -1361,17 +1380,23 @@ function uuid(prefix = "", salt = "") {
   const maxTotal = 32;
   const ts = Date.now().toString(36); // ~8–9 chars
   const rand = crypto.randomBytes(4).toString("base64url"); // 6 chars, url-safe
-  
+
   // Optional short digest from salt to add entropy while keeping it compact
   const extra = salt
-    ? crypto.createHash("sha1").update(salt + ts + rand).digest("base64url").slice(0, 6)
+    ? crypto
+        .createHash("sha1")
+        .update(salt + ts + rand)
+        .digest("base64url")
+        .slice(0, 6)
     : "";
 
   // Build core and ensure only allowed characters, then clamp to budget
   const maxCore = Math.max(3, maxTotal - String(prefix).length);
-  const core = `${ts}${rand}${extra}`.replace(/[^A-Za-z0-9_-]/g, "").slice(0, maxCore);
+  const core = `${ts}${rand}${extra}`
+    .replace(/[^A-Za-z0-9_-]/g, "")
+    .slice(0, maxCore);
 
-  return (`${prefix}${core}`).trim();
+  return `${prefix}${core}`.trim();
 }
 
 function isValidBoardId(v) {
@@ -1690,7 +1715,6 @@ app.post(
 app.get("/api/board/:id/export", boardHandler.exportBoard);
 
 // $Routes.Misc (API)
-app.get("/api/version", miscHandler.getVersion);
 app.post("/api/link-preview", miscHandler.fetchLinkPreview);
 
 // 404 handler for unknown routes
