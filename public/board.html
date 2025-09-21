@@ -212,11 +212,9 @@
           max-width: 100%;
           font-size: 12px;
         }
-
         .toolbar__spacer {
           display: none;
         }
-
         .toolbar__btn {
           padding: 0.35rem;
         }
@@ -337,20 +335,20 @@
       .node__title {
         padding-left: 18px;
       }
-      .node-link .node__content .rich {
+      .node--link .node__content .rich {
         margin-top: 5px;
       }
       body.connect-mode .node .node__port {
         background: #ef4444; /* red */
         border-color: #b91c1c;
       }
-      #connect.active {
+      .toolbar__btn--active {
         background: #ef4444;
         color: #fff;
         border-color: #b91c1c;
         box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
       }
-      #connect.active:hover {
+      .toolbar__btn--active:hover {
         background: #dc2626;
         box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
       }
@@ -415,7 +413,7 @@
         stroke-dasharray: 6 6;
         pointer-events: none; /* don't block clicks */
       }
-      .edge-label {
+      .edge__label {
         fill: #374151;
         font-size: 11px;
         font-weight: 500;
@@ -1172,7 +1170,7 @@
         ui.connectMode = !!on;
         document.body.classList.toggle("connect-mode", ui.connectMode);
         const connectBtn = document.getElementById("connect");
-        connectBtn.classList.toggle("active", ui.connectMode);
+        connectBtn.classList.toggle("toolbar__btn--active", ui.connectMode);
 
         // Disable/enable other toolbar controls
         document.querySelectorAll(".toolbar button").forEach((btn) => {
@@ -1580,7 +1578,7 @@
         let el = document.getElementById(n.id);
         if (!el) {
           el = document.createElement("div");
-          el.className = "node node-" + n.type;
+          el.className = "node node--" + n.type;
           el.id = n.id;
           el.innerHTML = `
             <div class="node__title editable-hint" contenteditable="false" data-placeholder="Untitled"></div>
@@ -1786,11 +1784,13 @@
         if (n.h) el.style.height = n.h + "px";
         else el.style.removeProperty("height");
         el.classList.toggle("selected", selectedNodeId === n.id);
-        // Ensure node type class is correct (in case type changed)
+        // Ensure node type modifier class follows BEM: node--{type}
         el.classList.forEach((c) => {
-          if (c.startsWith("node-") && c !== "node") el.classList.remove(c);
+          if ((c.startsWith("node-") || c.startsWith("node--")) && c !== "node") {
+            el.classList.remove(c);
+          }
         });
-        el.classList.add("node-" + n.type);
+        el.classList.add("node--" + n.type);
 
         const titleEl = el.querySelector(".node__title");
         titleEl.setAttribute(
@@ -2245,7 +2245,7 @@
             );
             text.setAttribute("x", tx);
             text.setAttribute("y", ty);
-            text.setAttribute("class", "edge-label");
+            text.setAttribute("class", "edge__label");
             text.textContent = e.label;
 
             // Click/ctx on label behave like the edge
