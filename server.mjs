@@ -1656,7 +1656,12 @@ app.use(cookieParser());
 // Block direct access to template files under /public (e.g., *.html, *.hbs)
 app.use((req, res, next) => {
   if (/\.(html|hbs|handlebars)$/i.test(req.path)) {
-    return res.status(404).end();
+    return res.status(404).render("error", {
+      code: 404,
+      message: "Page not found",
+      description:
+        "The page you’re looking for doesn’t exist or may have been moved.",
+    });
   }
   next();
 });
