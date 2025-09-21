@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PaperTrail — map your evidence, follow the story.</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
     <style>
       :root {
         --color-bg: #ffffff;
@@ -295,18 +296,18 @@
         /* Mobile header tweaks: keep user cluster top-right and reduce header height */
         .toolbar {
           align-items: flex-start; /* align children to the top on mobile */
-          padding: 8px 10px;       /* tighter */
+          padding: 8px 10px; /* tighter */
         }
         .toolbar__title {
-          flex: 0 1 auto;          /* don't force full width */
+          flex: 0 1 auto; /* don't force full width */
         }
         .toolbar__user {
-          margin-left: auto;       /* push to right */
-          align-self: flex-start;  /* stick to the top */
-          padding-top: 2px;        /* nudge closer to top edge */
+          margin-left: auto; /* push to right */
+          align-self: flex-start; /* stick to the top */
+          padding-top: 2px; /* nudge closer to top edge */
         }
         .toolbar__greeting {
-          font-size: 13px;         /* slightly smaller on mobile */
+          font-size: 13px; /* slightly smaller on mobile */
         }
       }
     </style>
@@ -320,17 +321,11 @@
       <div class="toolbar__spacer"></div>
       <div class="toolbar__user" role="navigation" aria-label="User toolbar">
         <span class="toolbar__greeting"
-          >Ayubowan!
-          <strong
-            >{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}</strong
-          ></span
+          >Ayubowan! <strong>{{handler}}</strong></span
         >
         <details class="toolbar__menu">
-          <summary
-            class="toolbar__avatar"
-            title="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}"
-          >
-            <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}'s avatar"> -->
+          <summary class="toolbar__avatar" title="{{handler}}">
+            <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
             <svg
               width="18"
               height="18"
@@ -374,7 +369,7 @@
       </section>
     </main>
     <script>
-      document.querySelectorAll(".created-at").forEach(el => {
+      document.querySelectorAll(".created-at").forEach((el) => {
         const d = new Date(el.dataset.date);
         if (!isNaN(d)) {
           el.textContent = d.toLocaleString();

@@ -967,9 +967,9 @@
       <details id="userBtn" class="toolbar__menu">
         <summary
           class="toolbar__avatar"
-          title="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}"
+          title="{{handler}}"
         >
-          <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{#if handler}}{{handler}}{{else}}{{username}}{{/if}}'s avatar"> -->
+          <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
           <svg
             width="18"
             height="18"
@@ -1064,11 +1064,15 @@
       </div>
     </div>
     <script>
-      /** Types (informal)
-       * Node = { id, type: 'text'|'image'|'imageText'|'link', x, y, w?, h?, data: { text?, imageUrl?, linkUrl?, title? } }
-       * Edge = { id, sourceId, targetId }
-       * Board = { id, title, nodes: Node[], edges: Edge[], createdAt, updatedAt }
-       */
+      // Binding for dynamic values from server
+      // (injected by server-side templating)
+      window.__globals = {
+        appVersion: "{{appVersion}}",
+        schemaVersion: "{{schemaVersion}}",
+        board: { id: "{{board.id}}" },
+      };
+
+      // --- App State ---
       const $ = (sel) => document.querySelector(sel);
       const toolbarEl = $(".toolbar");
       const boardEl = $("#board");
@@ -1083,7 +1087,6 @@
       const aboutModal = document.getElementById("aboutModal");
       const aboutClose = document.getElementById("aboutClose");
       let lastSavedJSON = null;
-      let APP_VERSION = "—"; // populated from /api/version
 
       // --- Ensure DOM positions/sizes are synced to the model prior to save
       function syncDomToModel() {
@@ -2732,21 +2735,9 @@
       renderStatusBar();
       adjustBoardHeight();
 
-      // Load app + schema version from server
-      (async () => {
-        try {
-          const r = await fetch("/api/version");
-          if (r.ok) {
-            const j = await r.json();
-            if (j && typeof j.version === "string") APP_VERSION = j.version;
-            if (j && typeof j.schemaVersion !== "undefined") {
-              if (!board.schemaVersion) board.schemaVersion = j.schemaVersion;
-            }
-          }
-        } catch {}
-      })();
       function openAbout() {
-        document.getElementById("aboutAppVersion").textContent = APP_VERSION;
+        document.getElementById("aboutAppVersion").textContent =
+          window.__globals.appVersion;
         document.getElementById("aboutSchemaVersion").textContent = String(
           board.schemaVersion || 1
         );
@@ -2910,7 +2901,8 @@
 
       /** Info Button */
       function openAbout() {
-        document.getElementById("aboutAppVersion").textContent = APP_VERSION;
+        document.getElementById("aboutAppVersion").textContent =
+          window.__globals.appVersion;
         document.getElementById("aboutSchemaVersion").textContent = String(
           board.schemaVersion || 1
         );
