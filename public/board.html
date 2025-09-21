@@ -55,8 +55,10 @@
         --color-muted: #9ca3af;
         --color-ink: #e5e7eb;
         --color-accent: #60a5fa;
-        --color-border-card: #e2e8f0; /* slate-200 */
+        --color-border-card: #e2e8f0;
+        /* slate-200 */
       }
+
       html,
       body {
         margin: 0;
@@ -65,27 +67,32 @@
         color: var(--color-ink);
         font: 14px/1.4 ui-sans-serif, system-ui;
       }
+
       .toolbar__title {
         display: flex;
         flex-direction: column;
         margin-right: 1rem;
       }
+
       .toolbar__brand {
         font-weight: 700;
         font-size: 16px;
         color: #111827;
         text-decoration: none;
       }
+
       .toolbar__tagline {
         font-size: 11px;
         color: #6b7280;
       }
+
       .toolbar__board-name {
         font-size: 12px;
         color: #374151;
         margin-top: 2px;
         font-style: italic;
       }
+
       .toolbar__board-name[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
@@ -95,14 +102,17 @@
         white-space: normal;
         overflow-wrap: anywhere;
       }
+
       .toolbar__board-name[contenteditable="true"]:focus {
         outline: none;
         border-bottom: 1px dashed #60a5fa;
       }
+
       .toolbar__board-name[contenteditable="true"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
+
       .toolbar {
         display: flex;
         gap: 0.5rem;
@@ -115,6 +125,7 @@
         top: 0;
         z-index: 10;
       }
+
       .toolbar input,
       .toolbar button,
       .toolbar select {
@@ -129,12 +140,14 @@
         transition: background 0.2s, box-shadow 0.2s;
         outline: none;
       }
+
       .toolbar__btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 0.45rem;
       }
+
       .toolbar__btn--icon svg {
         width: 18px;
         height: 18px;
@@ -142,54 +155,67 @@
         fill: none;
         stroke-width: 2;
       }
+
       .toolbar__btn--icon svg.filled {
         fill: currentColor;
         stroke: none;
       }
+
       .toolbar button:hover,
       .toolbar select:hover {
         background: #f3f4f6;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+
       .toolbar button:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
+
       .toolbar__spacer {
         flex: 1;
       }
+
       .toolbar__search {
         min-width: 250px;
         cursor: text;
       }
+
       .toolbar__search-wrap {
         position: relative;
         display: inline-flex;
         align-items: center;
         max-width: 100%;
       }
+
       .toolbar__search-wrap input.toolbar__search {
         flex: 1 1 auto;
         width: 100%;
-        padding-right: 1.8em; /* reserve space */
+        padding-right: 1.8em;
+        /* reserve space */
         box-sizing: border-box;
       }
+
       /* Avatar dropdown (context menu) */
       .toolbar__menu {
         position: relative;
       }
+
       .toolbar__menu summary {
         list-style: none;
         outline: none;
         cursor: pointer;
       }
+
       .toolbar__menu summary::-webkit-details-marker {
         display: none;
       }
+
       .toolbar__menu[open] .toolbar__avatar {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
           0 0 0 1px var(--color-border-card) inset;
       }
+
       .toolbar__menu-panel {
         position: absolute;
         top: calc(100% + 6px);
@@ -202,23 +228,27 @@
         padding: 6px;
         z-index: 20;
       }
+
       .toolbar__avatar {
         width: 30px;
         height: 30px;
         border-radius: 999px;
         overflow: hidden;
-        background: #e5e7eb; /* slate-200 */
+        background: #e5e7eb;
+        /* slate-200 */
         display: grid;
         place-items: center;
         border: 1px solid var(--color-border-card);
         box-shadow: var(--shadow);
       }
+
       .toolbar__avatar > img {
         width: 100%;
         height: 100%;
         object-fit: cover;
         display: block;
       }
+
       .menu__item {
         display: block;
         padding: 8px 10px;
@@ -227,9 +257,11 @@
         text-decoration: none;
         font-size: 14px;
       }
+
       .menu__item:hover {
         background: #f1f5f9;
       }
+
       #clearSearch {
         position: absolute;
         top: 50%;
@@ -243,12 +275,15 @@
         cursor: pointer;
         color: #6b7280;
       }
+
       #clearSearch:hover {
         color: #111;
       }
+
       #clearSearch:disabled {
         display: none;
       }
+
       /* Responsive toolbar */
       @media (max-width: 640px) {
         .toolbar {
@@ -256,30 +291,38 @@
           gap: 6px;
           padding: 0.5rem 0.5rem 0.35rem;
         }
+
         .toolbar__title {
           flex: 1 1 100%;
           margin-right: 0;
         }
+
         .toolbar__brand {
           font-size: 15px;
         }
+
         .toolbar__tagline {
           font-size: 10px;
         }
+
         .toolbar__board-name {
           max-width: 100%;
           font-size: 12px;
         }
+
         .toolbar__spacer {
           display: none;
         }
+
         .toolbar__btn {
           padding: 0.35rem;
         }
+
         .toolbar__btn--icon svg {
           width: 16px;
           height: 16px;
         }
+
         /* Search gets its own row when wrapping */
         .toolbar__search-wrap {
           flex: 1 1 100%;
@@ -289,9 +332,11 @@
           display: flex;
           align-items: center;
         }
+
         .toolbar__search-wrap input.toolbar__search {
           width: 100%;
         }
+
         /* Right-side controls come after search */
         #autoLayout,
         #export,
@@ -303,12 +348,12 @@
           order: 12;
         }
       }
+
       /* Board Styles */
       .board {
         position: relative;
-        height: calc(
-          100% - 24px
-        ); /* refined by JS to subtract toolbar height */
+        height: calc(100% - 24px);
+        /* refined by JS to subtract toolbar height */
         overflow: auto;
         background-image: radial-gradient(
           var(--color-muted) 1px,
@@ -317,15 +362,19 @@
         background-size: 16px 16px;
         background-position: -1px -1px;
       }
+
       #boardSizer {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100%; /* will be expanded via JS */
-        height: 100%; /* will be expanded via JS */
+        width: 100%;
+        /* will be expanded via JS */
+        height: 100%;
+        /* will be expanded via JS */
         pointer-events: none;
         visibility: hidden;
       }
+
       /* SVG underlay for edges */
       svg#edges {
         position: absolute;
@@ -335,6 +384,7 @@
         pointer-events: auto;
         overflow: visible;
       }
+
       .node {
         position: absolute;
         min-width: 120px;
@@ -349,9 +399,11 @@
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         box-sizing: border-box;
       }
+
       .node:active {
         cursor: grabbing;
       }
+
       .node__title {
         font-weight: 600;
         margin-bottom: 0.25rem;
@@ -361,11 +413,13 @@
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+
       .node__content {
         font-size: 13px;
         color: #1f2937;
         word-wrap: break-word;
       }
+
       .node img {
         display: block;
         width: 100%;
@@ -374,15 +428,19 @@
         border-radius: 0.3rem;
         margin-bottom: 0.35rem;
       }
+
       .node__ports {
         position: absolute;
-        top: 12px; /* better vertical centering with 13px title */
-        left: 10px; /* balances with 20px title padding */
+        top: 12px;
+        /* better vertical centering with 13px title */
+        left: 10px;
+        /* balances with 20px title padding */
         display: flex;
         gap: 4px;
         margin-top: 0;
         align-items: center;
       }
+
       .node__port {
         width: 8px;
         height: 8px;
@@ -391,29 +449,37 @@
         transition: background 0.2s, border-color 0.2s;
         flex-shrink: 0;
       }
+
       .node__title {
         padding-left: 18px;
       }
+
       .node--link .node__content .rich {
         margin-top: 5px;
       }
+
       body.connect-mode .node .node__port {
-        background: #ef4444; /* red */
+        background: #ef4444;
+        /* red */
         border-color: #b91c1c;
       }
+
       .toolbar__btn--active {
         background: #ef4444;
         color: #fff;
         border-color: #b91c1c;
         box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
       }
+
       .toolbar__btn--active:hover {
         background: #dc2626;
         box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
       }
+
       .node.selected {
         outline: 2px solid var(--color-accent);
       }
+
       /* Resize handle */
       .node__resizer {
         position: absolute;
@@ -425,6 +491,7 @@
         cursor: se-resize;
         display: none;
       }
+
       .node__resizer::after {
         content: "";
         position: absolute;
@@ -436,42 +503,53 @@
         border-bottom: 2px solid #9ca3af;
         box-sizing: border-box;
       }
+
       .node:hover .node__resizer,
       .node:focus-within .node__resizer {
         display: block;
       }
+
       .edge {
         stroke: red;
         stroke-width: 2;
         fill: none;
         stroke-linecap: round;
         stroke-linejoin: round;
-        pointer-events: stroke; /* enable clicks on the line only */
+        pointer-events: stroke;
+        /* enable clicks on the line only */
         cursor: pointer;
       }
+
       .edge__endpoint {
         fill: red;
         stroke: #b91c1c;
         stroke-width: 1.2;
         pointer-events: none;
       }
+
       .edge--selected {
         stroke: var(--color-accent);
         stroke-width: 3;
       }
+
       .edge:hover {
         stroke-width: 3;
       }
+
       .edge--dashed {
         stroke-dasharray: 6 6;
       }
+
       .edge--ghost {
-        stroke: #9ca3af; /* muted */
+        stroke: #9ca3af;
+        /* muted */
         stroke-width: 2;
         fill: none;
         stroke-dasharray: 6 6;
-        pointer-events: none; /* don't block clicks */
+        pointer-events: none;
+        /* don't block clicks */
       }
+
       .edge__label {
         fill: #374151;
         font-size: 11px;
@@ -481,10 +559,12 @@
         stroke: #f9fafb;
         stroke-width: 2px;
       }
+
       .statusbar__hint {
         color: #000000;
         margin-left: 0.5rem;
       }
+
       .context-menu {
         position: absolute;
         min-width: 180px;
@@ -497,6 +577,7 @@
         display: none;
         color: #111;
       }
+
       .context-menu__item {
         width: 100%;
         display: block;
@@ -509,9 +590,11 @@
         cursor: pointer;
         transition: background 0.15s ease-in-out;
       }
+
       .context-menu__item:hover {
         background: #f3f4f6;
       }
+
       /* Inline rich text toolbar */
       .rtb {
         position: absolute;
@@ -526,10 +609,12 @@
         z-index: 5;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
+
       .node:hover .rtb,
       .node:focus-within .rtb {
         display: flex;
       }
+
       .rtb button {
         border: 0;
         background: transparent;
@@ -540,38 +625,48 @@
         cursor: pointer;
         transition: background 0.15s ease-in-out;
       }
+
       .rtb button:hover {
         background: #f3f4f6;
       }
+
       .rich {
         outline: none;
         white-space: pre-wrap;
       }
+
       .rich a {
         color: #93c5fd;
         text-decoration: underline;
       }
+
       /* Discoverable editable areas */
       .node__title[contenteditable="false"] {
-        cursor: pointer; /* single-click selects; dblclick enables editing */
+        cursor: pointer;
+        /* single-click selects; dblclick enables editing */
       }
+
       .node__title[contenteditable="true"] {
         cursor: text;
         border-bottom: 1px dashed #e5e7eb;
         padding-bottom: 2px;
       }
+
       .node:hover .node__title[contenteditable="true"] {
         border-bottom-color: #d1d5db;
       }
+
       .node__title[contenteditable="true"]:focus {
         outline: none;
         border-bottom-color: #60a5fa;
         box-shadow: inset 0 -1px 0 #60a5fa;
       }
+
       .node__title[contenteditable="true"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
+
       .rich[contenteditable="true"] {
         cursor: text;
         min-height: 56px;
@@ -581,19 +676,23 @@
         border-radius: 6px;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
       }
+
       .node:hover .rich[contenteditable="true"] {
         border-color: #cbd5e1;
       }
+
       .rich[contenteditable="true"]:focus {
         outline: none;
         border-color: #60a5fa;
         box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
         background: #fff;
       }
+
       .rich[contenteditable="true"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
+
       /* Small edit affordance on hover */
       .editable-hint::after {
         content: "✎";
@@ -603,10 +702,12 @@
         opacity: 0;
         transition: opacity 0.15s ease;
       }
+
       .node:hover .editable-hint::after,
       .editable-hint:focus::after {
         opacity: 1;
       }
+
       /* Tags */
       .tags {
         display: flex;
@@ -614,6 +715,7 @@
         gap: 6px;
         margin-top: 6px;
       }
+
       .chip {
         display: inline-flex;
         align-items: center;
@@ -625,6 +727,7 @@
         font-size: 11px;
         border: 1px solid #d1d5db;
       }
+
       .chip button {
         border: 0;
         background: transparent;
@@ -633,9 +736,11 @@
         font-size: 11px;
         padding: 0;
       }
+
       .chip button:hover {
         color: #e5e7eb;
       }
+
       .add-tag {
         margin-top: 6px;
         background: #f3f4f6;
@@ -646,13 +751,16 @@
         font-size: 11px;
         cursor: pointer;
       }
+
       .node.dim {
         opacity: 0.35;
         filter: grayscale(0.3);
       }
+
       .highlight {
         outline: 2px dashed var(--color-accent);
       }
+
       .add-desc {
         margin-top: 6px;
         background: #ffffff;
@@ -663,6 +771,7 @@
         font-size: 11px;
         cursor: pointer;
       }
+
       /* Link preview card */
       .link-card {
         display: grid;
@@ -675,6 +784,7 @@
         background: #ffffff;
         text-decoration: none;
       }
+
       .link-card .thumb {
         width: 56px;
         height: 56px;
@@ -683,9 +793,11 @@
         object-fit: cover;
         display: block;
       }
+
       .link-card .meta {
         min-width: 0;
       }
+
       .link-card .title {
         font-weight: 600;
         color: #111827;
@@ -695,16 +807,21 @@
         white-space: nowrap;
         padding: 0;
       }
+
       .link-card .desc {
         color: #374151;
         font-size: 12px;
         max-height: 2.6em;
         overflow: hidden;
-        display: -webkit-box; /* legacy clamp layout */
-        line-clamp: 2; /* standard property */
-        -webkit-line-clamp: 2; /* vendor fallback */
+        display: -webkit-box;
+        /* legacy clamp layout */
+        line-clamp: 2;
+        /* standard property */
+        -webkit-line-clamp: 2;
+        /* vendor fallback */
         -webkit-box-orient: vertical;
       }
+
       .link-card .site {
         color: #6b7280;
         font-size: 11px;
@@ -713,6 +830,7 @@
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+
       .link-card .icon {
         width: 14px;
         height: 14px;
@@ -720,10 +838,12 @@
         margin-right: 6px;
         border-radius: 3px;
       }
+
       .link-card a {
         color: #2563eb;
         text-decoration: none;
       }
+
       /* Status bar */
       .statusbar {
         position: fixed;
@@ -742,9 +862,11 @@
         z-index: 20;
         font-size: smaller;
       }
+
       .statusbar .statusbar__text {
         color: #000;
       }
+
       /* About modal */
       .modal__backdrop {
         position: fixed;
@@ -755,9 +877,11 @@
         justify-content: center;
         z-index: 10000;
       }
+
       .modal__backdrop.show {
         display: flex;
       }
+
       .modal {
         background: #fff;
         color: #111827;
@@ -768,6 +892,7 @@
         overflow: auto;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
       }
+
       .modal__header {
         padding: 14px 16px;
         border-bottom: 1px solid #f3f4f6;
@@ -775,10 +900,12 @@
         align-items: center;
         justify-content: space-between;
       }
+
       .modal__title {
         margin: 0;
         font-size: 16px;
       }
+
       .modal__close {
         border: 0;
         background: transparent;
@@ -786,24 +913,29 @@
         font-size: 18px;
         color: #6b7280;
       }
+
       .modal__close:hover {
         color: #111827;
       }
+
       .modal__body {
         padding: 0 25px 25px;
         font-size: smaller;
       }
+
       .kv {
         display: grid;
         grid-template-columns: 140px 1fr;
         gap: 5px;
         margin-top: 8px;
       }
+
       .kv div {
         padding: 2px 0;
       }
     </style>
   </head>
+
   <body>
     <div class="toolbar">
       <div class="toolbar__title">
@@ -965,10 +1097,7 @@
         </svg>
       </button>
       <details id="userBtn" class="toolbar__menu">
-        <summary
-          class="toolbar__avatar"
-          title="{{handler}}"
-        >
+        <summary class="toolbar__avatar" title="{{handler}}">
           <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
           <svg
             width="18"
@@ -1069,7 +1198,7 @@
       window.__globals = {
         appVersion: "{{appVersion}}",
         schemaVersion: "{{schemaVersion}}",
-        board: { id: "{{board.id}}" },
+        board: { id: "{{boardId}}" },
       };
 
       // --- App State ---
@@ -1115,17 +1244,17 @@
             newBtn.disabled = true;
             // Always sync the latest DOM position/size state before snapshot + POST
             syncDomToModel();
-            const payload = { ...board, id: BOARD_ID };
-            const res = await fetch(
-              `/api/board/${encodeURIComponent(BOARD_ID)}`,
+            const payload = { ...board, id: window.__globals.board.id };
+            const resp = await fetch(
+              `/api/board/${encodeURIComponent(window.__globals.board.id)}`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
               }
             );
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok)
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok)
               throw new Error(data && data.error ? data.error : "Save failed");
             // Update local model with canonical server state
             board = data;
@@ -1142,37 +1271,6 @@
           }
         });
       }
-
-      // Derive :id from /b/:id
-      const PATH_PARTS = location.pathname.split("/").filter(Boolean);
-      const BOARD_ID =
-        PATH_PARTS[0] === "b" && PATH_PARTS[1] ? PATH_PARTS[1] : null;
-      if (!BOARD_ID) {
-        window.location.href = "/404.html";
-      }
-
-      // Remap legacy API paths to new board-scoped endpoints
-      function fixedApi(url) {
-        const id = encodeURIComponent(BOARD_ID);
-        if (url === "/api/board") return `/api/board/${id}`;
-        if (url === "/api/upload-image") return `/api/board/${id}/upload-image`;
-        if (url === "/api/board/export") return `/api/board/${id}/export`;
-        if (url === "/api/board/validate-import")
-          return `/api/board/${id}/validate-import`;
-        if (url === "/api/board/import") return `/api/board/${id}/import`;
-        return url;
-      }
-      const _origFetch = window.fetch.bind(window);
-      window.fetch = (input, init) => {
-        if (typeof input === "string") {
-          return _origFetch(fixedApi(input), init);
-        } else if (input && typeof input === "object" && "url" in input) {
-          try {
-            input = new Request(fixedApi(input.url), input);
-          } catch {}
-        }
-        return _origFetch(input, init);
-      };
 
       // Ghost edge state
       let ghostPath = null; // SVGPathElement
@@ -1534,16 +1632,18 @@
 
       (async function loadInitialBoard() {
         try {
-          const r = await fetch(`/api/board/${encodeURIComponent(BOARD_ID)}`);
-          if (!r.ok) throw new Error("not found");
-          const b = await r.json();
-          board = b;
-          boardNameEl.textContent = board.title || "Untitled Board";
+          const resp = await fetch(
+            `/api/board/${encodeURIComponent(window.__globals.board.id)}`
+          );
+          if (!resp.ok) throw new Error("not found");
+          const board = await resp.json();
+          boardNameEl.textContent = board.title;
           lastSavedJSON = computeSnapshot();
           render();
           updateSaveButton();
           wireSaveButton();
         } catch (e) {
+          console.error("Failed to load board:", window.__globals.board.id, e);
           window.location.href = "/404.html";
         }
       })();
@@ -2532,7 +2632,7 @@
         showStatus("Export in progress…", { sticky: true });
         // Trigger the download
         window.location.href = `/api/board/${encodeURIComponent(
-          BOARD_ID
+          window.__globals.board.id
         )}/export`;
         // After a short delay, update the message to guide user
         setTimeout(() => {
@@ -2545,13 +2645,13 @@
 
       async function fetchLinkPreview(url) {
         try {
-          const res = await fetch("/api/link-preview", {
+          const resp = await fetch("/api/link-preview", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url }),
           });
-          if (!res.ok) throw new Error("Failed");
-          return await res.json();
+          if (!resp.ok) throw new Error("Failed");
+          return await resp.json();
         } catch (e) {
           return null;
         }
@@ -2791,13 +2891,18 @@
             // Probe first
             const probeFd = new FormData();
             probeFd.append("bundle", file);
-            const probeRes = await fetch("/api/board/validate-import", {
-              method: "POST",
-              body: probeFd,
-            });
-            if (!probeRes.ok)
-              throw new Error(`Probe failed (${probeRes.status})`);
-            const meta = await probeRes.json();
+            const probeResp = await fetch(
+              `/api/board/${encodeURIComponent(
+                window.__globals.board.id
+              )}/validate-import`,
+              {
+                method: "POST",
+                body: probeFd,
+              }
+            );
+            if (!probeResp.ok)
+              throw new Error(`Probe failed (${probeResp.status})`);
+            const meta = await probeResp.json();
 
             if (meta.boardId === board.id) {
               const ok = confirm(
@@ -2817,12 +2922,17 @@
             setStatus("Importing zip…");
             const fd = new FormData();
             fd.append("bundle", file);
-            const res = await fetch("/api/board/import", {
-              method: "POST",
-              body: fd,
-            });
-            if (!res.ok) throw new Error(`Import failed (${res.status})`);
-            const json = await res.json();
+            const resp = await fetch(
+              `/api/board/${encodeURIComponent(
+                window.__globals.board.id
+              )}/import`,
+              {
+                method: "POST",
+                body: fd,
+              }
+            );
+            if (!resp.ok) throw new Error(`Import failed (${resp.status})`);
+            const json = await resp.json();
             board = json;
             render();
             markDirty();
@@ -2987,8 +3097,10 @@
       // Load existing board
       async function loadBoard() {
         try {
-          const res = await fetch("/api/board");
-          const data = await res.json();
+          const resp = await fetch(
+            `/api/board/${encodeURIComponent(window.__globals.board.id)}`
+          );
+          const data = await resp.json();
           board = data;
           render();
           boardNameEl.textContent = board.title || "";
@@ -3010,12 +3122,15 @@
         saveBtn.disabled = true;
         setStatus("Saving…");
         try {
-          const res = await fetch("/api/board", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(board),
-          });
-          const data = await res.json();
+          const resp = await fetch(
+            `/api/board/${encodeURIComponent(window.__globals.board.id)}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(board),
+            }
+          );
+          const data = await resp.json();
           board = data;
           boardNameEl.textContent = board.title || "";
           lastSavedJSON = computeSnapshot();
@@ -3064,10 +3179,15 @@
           setStatus("Uploading…");
           const fd = new FormData();
           fd.append("image", file);
-          const res = await fetch("/api/upload-image", {
-            method: "POST",
-            body: fd,
-          });
+          const res = await fetch(
+            `/api/board/${encodeURIComponent(
+              window.__globals.board.id
+            )}/upload-image`,
+            {
+              method: "POST",
+              body: fd,
+            }
+          );
           if (!res.ok) throw new Error("Upload failed");
           const data = await res.json();
           addNode("image", viewCenter(), {
