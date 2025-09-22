@@ -407,13 +407,13 @@
         /* red */
         border-color: #b91c1c;
       }
-      .toolbar__btn--active {
+      .toolbar button.toolbar__btn--active {
         background: #ef4444;
         color: #fff;
         border-color: #b91c1c;
         box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
       }
-      .toolbar__btn--active:hover {
+      .toolbar button.toolbar__btn--active:hover {
         background: #dc2626;
         box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35);
       }
@@ -535,8 +535,8 @@
         z-index: 5;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
       }
-      .node:hover .rtb,
-      .node:focus-within .rtb {
+      /* Show richtext toolbar only while editing */
+      .node--editing .rtb {
         display: flex;
       }
       .rtb button {
@@ -579,6 +579,21 @@
         box-shadow: inset 0 -1px 0 #60a5fa;
       }
       .node__title[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .rich[contenteditable="false"] {
+        cursor: pointer; /* indicates it can be activated */
+        min-height: 56px;
+        padding: 6px 8px;
+        background: #ffffff; /* previous background color */
+        border: 1px dashed #d1d5db; /* dashed affordance while non-editable */
+        border-radius: 6px;
+      }
+      .node:hover .rich[contenteditable="false"] {
+        border-color: #cbd5e1; /* subtle hover cue */
+      }
+      .rich[contenteditable="false"]:empty:before {
         content: attr(data-placeholder);
         color: #9ca3af;
       }
@@ -1369,15 +1384,46 @@
           `;
         } else {
           const node = board.nodes.find((n) => n.id === target.id);
-          if (node && node.type === "link") {
+          if (!node) {
+            menu.innerHTML = "";
+          } else if (node.type === "link") {
+            const canEditText = !!(
+              node.data &&
+              typeof node.data.descHtml === "string" &&
+              node.data.descHtml.trim().length
+            );
             menu.innerHTML = `
-              <button class="context-menu__item" data-action="edit-link-url">Edit link URL…</button>
-              <button class="context-menu__item" data-action="delete">Delete</button>
-            `;
+      <button class="context-menu__item" data-action="edit-link-url">Edit link URL…</button>
+      ${
+        canEditText
+          ? '<button class="context-menu__item" data-action="edit-text">Edit text…</button>'
+          : ""
+      }
+      <button class="context-menu__item" data-action="delete">Delete</button>
+    `;
+          } else if (node.type === "image") {
+            const canEditText = !!(
+              node.data &&
+              typeof node.data.descHtml === "string" &&
+              node.data.descHtml.trim().length
+            );
+            menu.innerHTML = `
+      ${
+        canEditText
+          ? '<button class="context-menu__item" data-action="edit-text">Edit text…</button>'
+          : ""
+      }
+      <button class="context-menu__item" data-action="delete">Delete</button>
+    `;
+          } else if (node.type === "text") {
+            menu.innerHTML = `
+      <button class="context-menu__item" data-action="edit-text">Edit text…</button>
+      <button class="context-menu__item" data-action="delete">Delete</button>
+    `;
           } else {
             menu.innerHTML = `
-              <button class="context-menu__item" data-action="delete">Delete</button>
-            `;
+      <button class="context-menu__item" data-action="delete">Delete</button>
+    `;
           }
         }
 
@@ -1425,6 +1471,26 @@
         if (ctxTarget.type === "node") {
           const node = board.nodes.find((n) => n.id === ctxTarget.id);
           if (!node) {
+            hideContextMenu();
+            return;
+          }
+
+          if (action === "edit-text") {
+            const nodeEl = document.getElementById(node.id);
+            if (nodeEl) {
+              const rich = nodeEl.querySelector(".rich");
+              if (rich) {
+                // enter edit mode
+                rich.setAttribute("contenteditable", "true");
+                nodeEl.classList.add("node--editing");
+                setTimeout(() => {
+                  try {
+                    placeCaretAtEnd(rich);
+                  } catch (_) {}
+                  rich.focus();
+                }, 0);
+              }
+            }
             hideContextMenu();
             return;
           }
@@ -1740,6 +1806,14 @@
           });
           // right-click to open context menu for this node
           el.addEventListener("contextmenu", (ev) => {
+            // If right-click occurs inside an editable rich text area, allow native menu for copy/paste
+            const richTarget = ev.target && ev.target.closest(".rich");
+            if (
+              richTarget &&
+              richTarget.getAttribute("contenteditable") === "true"
+            ) {
+              return; // let the browser show its native menu
+            }
             ev.preventDefault();
             selectedEdgeId = null;
             selectedNodeId = n.id;
@@ -1820,10 +1894,18 @@
           });
           el.addEventListener("dblclick", (ev) => {
             if (n.type === "text") {
-              // Focus the rich editor instead of opening a prompt
               const rich = el.querySelector(".rich");
+              const rtb = el.querySelector(".rtb");
               if (rich) {
-                rich.focus();
+                rich.setAttribute("contenteditable", "true");
+                el.classList.add("node--editing");
+                setTimeout(() => {
+                  try {
+                    placeCaretAtEnd(rich);
+                  } catch (_) {}
+                  rich.focus();
+                }, 0);
+                if (rtb) rtb.style.display = "";
               }
               return; // no prompt
             }
@@ -1893,7 +1975,7 @@
               <button data-action="link" title="Insert link">🔗</button>
               <button data-action="clear" title="Clear formatting">⨯</button>
             </div>
-            <div class="rich" contenteditable="true" data-placeholder="Type text…">${html}</div>`;
+            <div class="rich" contenteditable="false" data-placeholder="Type text…">${html}</div>`;
         } else if (n.type === "image") {
           const desc = n.data.descHtml ?? "";
           contentEl.innerHTML = n.data.imageUrl
@@ -1915,7 +1997,7 @@
                     <button data-action="link" title="Insert link">🔗</button>
                     <button data-action="clear" title="Clear formatting">⨯</button>
                   </div>
-                  <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${
+                  <div class="rich" contenteditable="false" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${
                   n.data.descHtml ?? ""
                 }</div>
                 `;
@@ -1929,7 +2011,17 @@
               const rtb = el.querySelector(".rtb");
               const rich = el.querySelector('.rich[data-field="descHtml"]');
               if (rtb) rtb.style.display = "";
-              if (rich) rich.style.display = "";
+              if (rich) {
+                rich.style.display = "";
+                rich.setAttribute("contenteditable", "true");
+                el.classList.add("node--editing");
+                setTimeout(() => {
+                  try {
+                    placeCaretAtEnd(rich);
+                  } catch (_) {}
+                  rich.focus();
+                }, 0);
+              }
               addDescBtn.remove();
             });
           }
@@ -1956,7 +2048,7 @@
                  <button data-action="link" title="Insert link">🔗</button>
                  <button data-action="clear" title="Clear formatting">⨯</button>
                </div>
-               <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
+               <div class="rich" contenteditable="false" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
           } else {
             // initial minimal view while loading
             const hasDesc = !!(n.data.descHtml && n.data.descHtml.trim());
@@ -1979,7 +2071,7 @@
                  <button data-action="link" title="Insert link">🔗</button>
                  <button data-action="clear" title="Clear formatting">⨯</button>
                </div>
-               <div class="rich" contenteditable="true" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
+               <div class="rich" contenteditable="false" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${desc}</div>`;
             // kick off preview fetch (once)
             (async () => {
               const p = await fetchLinkPreview(u);
@@ -1999,7 +2091,17 @@
               const rtb = el.querySelector(".rtb");
               const rich = el.querySelector('.rich[data-field="descHtml"]');
               if (rtb) rtb.style.display = "";
-              if (rich) rich.style.display = "";
+              if (rich) {
+                rich.style.display = "";
+                rich.setAttribute("contenteditable", "true");
+                el.classList.add("node--editing");
+                setTimeout(() => {
+                  try {
+                    placeCaretAtEnd(rich);
+                  } catch (_) {}
+                  rich.focus();
+                }, 0);
+              }
               addDescBtnL.remove();
             });
           }
@@ -2045,6 +2147,23 @@
             const isOptionalDesc =
               field === "descHtml" && (n.type === "image" || n.type === "link");
 
+            function startEditing() {
+              if (rich.getAttribute("contenteditable") === "true") return;
+              rich.setAttribute("contenteditable", "true");
+              el.classList.add("node--editing");
+              setTimeout(() => {
+                try {
+                  placeCaretAtEnd(rich);
+                } catch (_) {}
+                rich.focus();
+              }, 0);
+            }
+            function stopEditing() {
+              if (rich.getAttribute("contenteditable") !== "true") return;
+              rich.setAttribute("contenteditable", "false");
+              el.classList.remove("node--editing");
+            }
+
             function ensureAddDescButton() {
               if (!isOptionalDesc) return;
               let addBtn = el.querySelector(".add-desc");
@@ -2056,9 +2175,11 @@
                 addBtn.addEventListener("click", (ev) => {
                   ev.stopPropagation();
                   if (rtb) rtb.style.display = "";
-                  if (rich) rich.style.display = "";
+                  if (rich) {
+                    rich.style.display = "";
+                    startEditing();
+                  }
                   addBtn.remove();
-                  rich.focus();
                 });
                 el.querySelector(".node__content").insertBefore(addBtn, rtb);
               }
@@ -2067,9 +2188,7 @@
             function maybeCollapseIfEmpty() {
               if (!isOptionalDesc) return;
               const plain = (rich.textContent || "").trim();
-              const has = plain.length > 0;
-              if (!has) {
-                // clear stored value and collapse UI
+              if (!plain.length) {
                 n.data.descHtml = "";
                 if (rtb) rtb.style.display = "none";
                 if (rich) {
@@ -2080,17 +2199,23 @@
               }
             }
 
-            // Keep focus inside editor when clicking toolbar
+            // Enter editing on double click inside the rich area
+            rich.addEventListener("dblclick", (ev) => {
+              ev.stopPropagation();
+              startEditing();
+            });
+
+            // Keep focus and ensure editing when interacting with the toolbar
             rtb.addEventListener("mousedown", (ev) => {
               ev.preventDefault();
-              rich.focus();
+              startEditing();
             });
             rtb.addEventListener("click", (ev) => {
               const btn = ev.target.closest("button");
               if (!btn) return;
               const cmd = btn.getAttribute("data-cmd");
               const act = btn.getAttribute("data-action");
-              rich.focus();
+              startEditing();
               if (cmd) {
                 document.execCommand(cmd, false, null);
                 n.data[field] = rich.innerHTML;
@@ -2123,7 +2248,22 @@
               maybeCollapseIfEmpty();
             };
             rich.addEventListener("input", syncHtml);
-            rich.addEventListener("blur", syncHtml);
+            rich.addEventListener("blur", () => {
+              syncHtml();
+              stopEditing();
+            });
+            rich.addEventListener("keydown", (ev) => {
+              if (ev.key === "Escape") {
+                ev.preventDefault();
+                stopEditing();
+                rich.blur();
+              } else if (ev.key === "Enter" && !ev.shiftKey) {
+                ev.preventDefault();
+                syncHtml();
+                stopEditing();
+                rich.blur();
+              }
+            });
           }
         }
         // Toggle resizer visibility based on node type (text, image, link are resizable)

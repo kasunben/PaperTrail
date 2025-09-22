@@ -4,14 +4,11 @@ PaperTrail is a lightweight visual evidence board for organizing ideas, document
 
 ## Getting Started
 
-At this stage, PaperTrail is designed as a single-user, single-workspace app. That means there is only one active board available at a time. Features such as real-time collaboration, multi-user access, or simultaneous editing are not yet supported.
+We use Node.js/Express with the Handlebars template engine as the core stack for this application. SQLite serves as the primary database, with straightforward extensibility to PostgreSQL (or any other SQL database) through Prisma.
 
-If you want to manage multiple boards or workspaces, you can still do so manually using the Import/Export features:
-- Export your current board as a .zip file to save it.
-- Import a previously exported board to continue working on it.
-- You are responsible for organizing these exported files if you wish to maintain multiple workspaces.
+All uploaded assets are stored under `/data/uploads/*`, organized by board IDs.
 
-This setup is lightweight and simple, making it ideal for solo use, prototyping, or testing out ideas. Future versions of PaperTrail may add multi-board support and collaboration features.`
+Portability is currently managed via the **Import/Export** functionality.
 
 ### Development
 
