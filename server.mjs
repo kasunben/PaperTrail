@@ -12,37 +12,31 @@ import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import argon2 from "argon2";
 import { engine as hbsEngine } from "express-handlebars";
-import { createRequire } from "module"; // added
+import { createRequire } from "module";
 
 import "dotenv/config";
-// REMOVE the failing JSON import line:
-// import pkg from "./package.json" assert { type: "json" }; // add
+
 const require = createRequire(import.meta.url);
-const pkg = require("./package.json"); // added
+const pkg = require("./package.json");
 
 /** $Global Vars */
-// ESM-safe __dirname/__filename + public dir
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const PUBLIC_DIR = path.join(__dirname, "public");
+const __templatedir = path.join(__dirname, "public");
+const __datadir = path.resolve(
+  process.env.__datadir || path.join(process.cwd(), "data")
+);
 
-// Add appVersion (from package.json)
-const appVersion = pkg.version || "0.0.0";
-
-// Schema version for boards (bump if board JSON structure changes)
+// Fetch appVersion  and schemaVersion (from package.json)
+const appVersion = pkg.version;
 const schemaVersion = pkg.schemaVersion;
 
-// Data directory (for uploads, etc.)
-const DATA_DIR = path.resolve(
-  process.env.DATA_DIR || path.join(process.cwd(), "data")
-);
-// Ensure data + uploads root exist (top‑level await is fine in ESM)
-await fs.mkdir(DATA_DIR, { recursive: true });
-await fs.mkdir(path.join(DATA_DIR, "uploads"), { recursive: true });
+// Ensure data + uploads root exist at startup
+await fs.mkdir(__datadir, { recursive: true });
+await fs.mkdir(path.join(__datadir, "uploads"), { recursive: true });
 
 // Guest login feature flags
-const GUEST_LOGIN_ENABLED =
-  process.env.GUEST_LOGIN_ENABLED === "true";
+const GUEST_LOGIN_ENABLED = process.env.GUEST_LOGIN_ENABLED === "true";
 const GUEST_LOGIN_ENABLED_BYPASS_LOGIN =
   process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
 
@@ -126,7 +120,6 @@ async function createRandomGuestUser() {
     });
   }
 }
-
 async function getOrCreateSingletonGuestUser() {
   let user = await prisma.user.findFirst({ where: { handler: "guest" } });
   if (user) return user;
@@ -146,8 +139,6 @@ async function getOrCreateSingletonGuestUser() {
     return prisma.user.findFirst({ where: { handler: "guest" } });
   }
 }
-
-/** $DB.Prisma -- */
 
 /** $Route.Middlewares */
 async function requireAuth(req, res, next) {
@@ -385,8 +376,8 @@ const boardHandler = {
 
       // uploads/if present
       try {
-        await fs.access(boardUploadsDir(DATA_DIR, b.id));
-        archive.directory(boardUploadsDir(DATA_DIR, b.id), "uploads");
+        await fs.access(boardUploadsDir(__datadir, b.id));
+        archive.directory(boardUploadsDir(__datadir, b.id), "uploads");
       } catch {
         /* no uploads yet */
       }
@@ -406,7 +397,7 @@ const boardHandler = {
 
       // Create a temp workspace
       const tmpDir = path.join(
-        DATA_DIR,
+        __datadir,
         ".import-" + crypto.randomBytes(4).toString("hex")
       );
       await fs.mkdir(tmpDir, { recursive: true });
@@ -486,7 +477,7 @@ const boardHandler = {
           } catch {
             return;
           }
-          const dest = boardUploadsDir(DATA_DIR, targetId);
+          const dest = boardUploadsDir(__datadir, targetId);
           await fs.mkdir(dest, { recursive: true });
           const files = await fs.readdir(up);
           for (const f of files) {
@@ -524,7 +515,7 @@ const boardHandler = {
       if (!req.file) return res.status(400).json({ error: "No file" });
 
       const tmpDir = path.join(
-        DATA_DIR,
+        __datadir,
         ".probe-" + crypto.randomBytes(4).toString("hex")
       );
       await fs.mkdir(tmpDir, { recursive: true });
@@ -643,7 +634,7 @@ const boardHandler = {
           .replace(/[^a-zA-Z0-9-_\.]/g, "_")
           .slice(0, 40) || "img";
 
-      const UP_DIR = boardUploadsDir(DATA_DIR, id);
+      const UP_DIR = boardUploadsDir(__datadir, id);
       await fs.mkdir(UP_DIR, { recursive: true });
       const fileName = `${safeBase}-${hash}-${stamp}.webp`;
       const outPath = path.join(UP_DIR, fileName);
@@ -748,7 +739,7 @@ const fileHandler = {
       const rel = path.posix.normalize("/" + relRaw).replace(/^\/+/, "");
       if (rel.includes("..")) return res.status(400).end();
 
-      const uploadsRoot = path.join(DATA_DIR, "uploads");
+      const uploadsRoot = path.join(__datadir, "uploads");
 
       let filePath;
       if (!rel.includes("/")) {
@@ -781,9 +772,9 @@ const uiHandler = {
           title: true,
           visibility: true,
           status: true,
+          userId: true,
           createdAt: true,
           updatedAt: true,
-          userId: true,
         },
       });
 
@@ -825,7 +816,6 @@ const uiHandler = {
         show_user_menu: showUserMenu,
       });
     } catch (err) {
-      console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
         code: 500,
         message: "Oops!",
@@ -855,8 +845,7 @@ const uiHandler = {
       forgot_mode: forgotMode && !resetMode,
       reset_mode: resetMode,
       token,
-      guest_enabled:
-        GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN,
+      guest_enabled: GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN,
     });
   },
   viewRegisterPage: async (_, res) => {
@@ -1378,7 +1367,7 @@ function sanitizeBoard(incoming, fallbackId) {
     title:
       typeof incoming.title === "string"
         ? incoming.title.slice(0, 256)
-        : "My Evidence Board",
+        : "Untitled",
     visibility:
       typeof incoming.visibility === "string" &&
       incoming.visibility.toLowerCase() === "private"
@@ -1439,9 +1428,12 @@ function sanitizeNode(node, i = 0) {
   const d = n.data;
   if (typeof d.title === "string") d.title = d.title.slice(0, 512);
   if (typeof d.text === "string") d.text = d.text.slice(0, 8000);
-  if (typeof d.html === "string") d.html = d.html.slice(0, 8000);
-  if (typeof d.descHtml === "string")
-    d.descHtml = d.descHtml.slice(0, 8000);
+  if (typeof d.html === "string") {
+    d.html = stripDangerousHtml(d.html.slice(0, 8000));
+  }
+  if (typeof d.descHtml === "string") {
+    d.descHtml = stripDangerousHtml(d.descHtml.slice(0, 8000));
+  }
   if (typeof d.linkUrl === "string") d.linkUrl = sanitizeUrl(d.linkUrl);
   if (typeof d.imageUrl === "string") d.imageUrl = sanitizeUrl(d.imageUrl);
   d.tags = normalizeTags(d.tags);
@@ -1477,7 +1469,6 @@ function normalizeTags(arr) {
 function sanitizeUrl(u, opts = { allowRelative: true }) {
   if (!u || typeof u !== "string") return "";
   const s = u.trim();
-
   // 1) Absolute http/https URLs
   try {
     const abs = new URL(s);
@@ -1488,7 +1479,6 @@ function sanitizeUrl(u, opts = { allowRelative: true }) {
   } catch {
     // not absolute; continue
   }
-
   // 2) Site-relative URLs (begin with "/")
   if (opts.allowRelative && s.startsWith("/")) {
     try {
@@ -1755,10 +1745,13 @@ app.engine(
   hbsEngine({
     extname: ".html",
     defaultLayout: false,
+    // You can enable these later if you add folders:
+    // partialsDir: path.join(__dirname, "public", "partials"),
+    // layoutsDir: path.join(__dirname, "public", "layouts"),
   })
 );
 app.set("view engine", "html");
-app.set("views", PUBLIC_DIR);
+app.set("views", __templatedir);
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -1796,7 +1789,7 @@ app.use((req, res, next) => {
   next();
 });
 // Serve static assets (CSS/JS/images/fonts, etc.) without directory index
-app.use(express.static(PUBLIC_DIR, { index: false }));
+app.use(express.static(__templatedir, { index: false }));
 
 app.get(/^\/uploads\/(.+)$/, fileHandler.serveUpload);
 
@@ -1806,7 +1799,9 @@ app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
-// Protect board view with auth (so req.user is present for ownership check)
+// TODO: Protect board view with auth (so req.user is present for ownership check)
+// - Show public boards to all, private boards only to owner
+// - Show 403 for private boards if not owner, 404 if board doesn't exist
 app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
 
 // $Routes.Auth

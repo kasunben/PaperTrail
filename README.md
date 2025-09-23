@@ -14,7 +14,7 @@ Portability is currently managed via the **Import/Export** functionality.
 
 You can allow frictionless exploration via a guest account.
 
-Environment flags (set in `.env`):
+Use following environment variables as feature toggles (set in `.env`):
 
 ```
 GUEST_LOGIN_ENABLED=true|false
@@ -23,23 +23,19 @@ GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true|false
 
 Behavior:
 
-- GUEST_LOGIN_ENABLED=false → Normal auth only (default).
-- GUEST_LOGIN_ENABLED=true and GUEST_LOGIN_ENABLED_BYPASS_LOGIN=false → Login page shows a “Continue as guest” link. Each click creates a fresh random guest (handler like `guest_ab12cd34`).
-- GUEST_LOGIN_ENABLED=true and GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true → No login screen. First visitor creates (or reuses) a singleton guest (handler `guest`); all users share that session pattern (until cookie expires).
+- `GUEST_LOGIN_ENABLED=false` → Normal auth only (default).
+- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=false` → Login page shows a “Continue as guest” link. Each click creates a fresh random guest (handler like `guest_ab12cd34`).
+- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true` → No login screen. First visitor creates (or reuses) a singleton guest (handler `guest`); all users share that session pattern (until cookie expires).
 
 Notes:
 
 - Guest boards you create are still tied to the guest user id.
 - Disable in production if multi‑user accountability is required.
-- Consider adding rate limiting if exposed publicly.
 
 ### Seeding (Demo Board)
 
 A public demo board (“Sri Lanka Protests — 2022”) is embedded in `prisma/seed.mjs`.  
 It is inserted only if it does not already exist (non‑destructive).
-
-Board id: `board-sri-lanka-protests-2022`  
-Properties: `visibility=public`, `status=published`, `userId=null` (shown to every authenticated user, including guest).
 
 Run the seed after pushing the schema:
 
