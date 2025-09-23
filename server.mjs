@@ -12,32 +12,33 @@ import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import argon2 from "argon2";
 import { engine as hbsEngine } from "express-handlebars";
+import { createRequire } from "module";
 
 import "dotenv/config";
+
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json");
 
 /** $Global Vars */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const __templatedir = path.join(__dirname, "public");
+const __datadir = path.resolve(
+  process.env.__datadir || path.join(process.cwd(), "data")
+);
 
-// > Read app/schema versions from package.json once at startup
-let appVersion = "0.0.0";
-let schemaVersion = 1;
-try {
-  const pkgRaw = await fs.readFile(
-    path.join(__dirname, "package.json"),
-    "utf-8"
-  );
-  const pkg = JSON.parse(pkgRaw);
-  if (pkg && typeof pkg.version === "string") appVersion = pkg.version;
-  if (pkg && typeof pkg.schemaVersion === "number")
-    schemaVersion = pkg.schemaVersion;
-} catch {}
+// Fetch appVersion  and schemaVersion (from package.json)
+const appVersion = pkg.version;
+const schemaVersion = pkg.schemaVersion;
 
-// > Create data directory at startup if missing
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
-await fs.mkdir(DATA_DIR, { recursive: true });
-/** eof::$Global Vars -- */
+// Ensure data + uploads root exist at startup
+await fs.mkdir(__datadir, { recursive: true });
+await fs.mkdir(path.join(__datadir, "uploads"), { recursive: true });
+
+// Guest login feature flags
+const GUEST_LOGIN_ENABLED = process.env.GUEST_LOGIN_ENABLED === "true";
+const GUEST_LOGIN_ENABLED_BYPASS_LOGIN =
+  process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
 
 /** $DB.Prisma (SQLite/PostgreSQL) */
 const prisma = new PrismaClient();
@@ -102,6 +103,43 @@ async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
 await connectPrismaWithRetry();
 /**  eof::$DB.Prisma -- */
 
+// Guest user helpers (needed for guest login + bypass)
+async function createRandomGuestUser() {
+  while (true) {
+    const suffix = crypto.randomBytes(4).toString("hex");
+    const handler = `guest_${suffix}`;
+    const email = `guest+${suffix}@guest.local`;
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ handler }, { email }] },
+      select: { id: true },
+    });
+    if (existing) continue;
+    const passwordHash = await hashPassword(randomToken(12));
+    return prisma.user.create({
+      data: { handler, email, passwordHash },
+    });
+  }
+}
+async function getOrCreateSingletonGuestUser() {
+  let user = await prisma.user.findFirst({ where: { handler: "guest" } });
+  if (user) return user;
+  // Attempt to create singleton; handle race by retry fetch
+  try {
+    const passwordHash = await hashPassword(randomToken(16));
+    user = await prisma.user.create({
+      data: {
+        handler: "guest",
+        email: "guest@guest.local",
+        passwordHash,
+      },
+    });
+    return user;
+  } catch {
+    // Another request likely created it; fetch again
+    return prisma.user.findFirst({ where: { handler: "guest" } });
+  }
+}
+
 /** $Route.Middlewares */
 async function requireAuth(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
@@ -120,6 +158,13 @@ async function htmlRequireAuth(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
   const session = await getSessionWithUser(token);
   if (!session) {
+    if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+      // Auto guest login (singleton)
+      const guest = await getOrCreateSingletonGuestUser();
+      await createSession(res, guest, req);
+      req.user = { id: guest.id, email: guest.email };
+      return next();
+    }
     res.clearCookie(SESSION_COOKIE, cookieOpts);
     const returnTo = encodeURIComponent(req.originalUrl || "/");
     return res.redirect(302, `/login?return_to=${returnTo}`);
@@ -134,11 +179,16 @@ async function disallowIfAuthed(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
   const session = await getSessionWithUser(token);
   if (session) {
-    // Prefer explicit return_to if provided and safe (path-only)
     const rt =
       typeof req.query.return_to === "string" ? req.query.return_to : "";
     const dest = rt && rt.startsWith("/") ? rt : "/";
     return res.redirect(302, dest);
+  }
+  if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+    // Skip login page entirely, auto guest
+    const guest = await getOrCreateSingletonGuestUser();
+    await createSession(res, guest, req);
+    return res.redirect(302, "/");
   }
   next();
 }
@@ -324,10 +374,10 @@ const boardHandler = {
       // board.json at zip root
       archive.append(JSON.stringify(b, null, 2), { name: "board.json" });
 
-      // uploads/ if present
+      // uploads/if present
       try {
-        await fs.access(boardUploadsDir(DATA_DIR, b.id));
-        archive.directory(boardUploadsDir(DATA_DIR, b.id), "uploads");
+        await fs.access(boardUploadsDir(__datadir, b.id));
+        archive.directory(boardUploadsDir(__datadir, b.id), "uploads");
       } catch {
         /* no uploads yet */
       }
@@ -347,7 +397,7 @@ const boardHandler = {
 
       // Create a temp workspace
       const tmpDir = path.join(
-        DATA_DIR,
+        __datadir,
         ".import-" + crypto.randomBytes(4).toString("hex")
       );
       await fs.mkdir(tmpDir, { recursive: true });
@@ -427,7 +477,7 @@ const boardHandler = {
           } catch {
             return;
           }
-          const dest = boardUploadsDir(DATA_DIR, targetId);
+          const dest = boardUploadsDir(__datadir, targetId);
           await fs.mkdir(dest, { recursive: true });
           const files = await fs.readdir(up);
           for (const f of files) {
@@ -465,7 +515,7 @@ const boardHandler = {
       if (!req.file) return res.status(400).json({ error: "No file" });
 
       const tmpDir = path.join(
-        DATA_DIR,
+        __datadir,
         ".probe-" + crypto.randomBytes(4).toString("hex")
       );
       await fs.mkdir(tmpDir, { recursive: true });
@@ -584,7 +634,7 @@ const boardHandler = {
           .replace(/[^a-zA-Z0-9-_\.]/g, "_")
           .slice(0, 40) || "img";
 
-      const UP_DIR = boardUploadsDir(DATA_DIR, id);
+      const UP_DIR = boardUploadsDir(__datadir, id);
       await fs.mkdir(UP_DIR, { recursive: true });
       const fileName = `${safeBase}-${hash}-${stamp}.webp`;
       const outPath = path.join(UP_DIR, fileName);
@@ -654,6 +704,27 @@ const boardHandler = {
     const id = String(req.params.id || "").trim();
     if (!isValidBoardId(id))
       return res.status(400).json({ error: "Invalid board id" });
+
+    // Populate req.user (soft) if session exists (needed for ownership check)
+    try {
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session)
+          req.user = { id: session.userId, email: session.user.email };
+      }
+    } catch {}
+
+    const meta = await prisma.board.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!meta) return res.status(404).json({ error: "Board not found" });
+    if (meta.userId && meta.userId !== req.user?.id) {
+      // Hide existence
+      return res.status(404).json({ error: "Board not found" });
+    }
+
     const board = await readBoardFromDb(id);
     if (!board) return res.status(404).json({ error: "Board not found" });
     return res.json(board);
@@ -668,7 +739,7 @@ const fileHandler = {
       const rel = path.posix.normalize("/" + relRaw).replace(/^\/+/, "");
       if (rel.includes("..")) return res.status(400).end();
 
-      const uploadsRoot = path.join(DATA_DIR, "uploads");
+      const uploadsRoot = path.join(__datadir, "uploads");
 
       let filePath;
       if (!rel.includes("/")) {
@@ -688,12 +759,20 @@ const fileHandler = {
 const uiHandler = {
   viewIndexPage: async (req, res) => {
     try {
+      // Only list boards:
+      // - owned by current user (userId = req.user.id)
+      // - or global boards (userId == null)
       const rows = await prisma.board.findMany({
+        where: {
+          OR: [{ userId: null }, { userId: req.user?.id || "__none__" }],
+        },
         orderBy: { updatedAt: "desc" },
         select: {
           id: true,
           title: true,
           visibility: true,
+          status: true,
+          userId: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -703,15 +782,18 @@ const uiHandler = {
         id: b.id,
         title: b.title || "Untitled",
         visibility: (b.visibility || "public").toLowerCase(),
-        status: "draft", // TODO: placeholder for now, implement this later
+        status: b.status,
         createdAt:
           b.createdAt instanceof Date
             ? b.createdAt.toISOString()
-            : new Date(b.createdAt).toISOString(), // TODO: convert to human-friendly format
+            : new Date(b.createdAt).toISOString(),
         updatedAt:
           b.updatedAt instanceof Date
             ? b.updatedAt.toISOString()
             : new Date(b.updatedAt).toISOString(),
+        // Mark global vs owned (optional – could help UI later)
+        owned: !!b.userId && b.userId === req.user?.id,
+        global: !b.userId,
         url: `/b/${b.id}`,
       }));
 
@@ -725,10 +807,15 @@ const uiHandler = {
           if (u) handler = u.handler;
         } catch {}
       }
-
-      return res.render("index", { boards, handler });
+      const showUserMenu = !(
+        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
+      );
+      return res.render("index", {
+        boards,
+        handler,
+        show_user_menu: showUserMenu,
+      });
     } catch (err) {
-      console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
         code: 500,
         message: "Oops!",
@@ -738,6 +825,9 @@ const uiHandler = {
     }
   },
   viewLoginPage: async (req, res) => {
+    if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+      return res.redirect(302, "/");
+    }
     const justRegistered = String(req.query.registered || "") === "1";
     const justReset = String(req.query.reset || "") === "1";
     const returnTo =
@@ -755,6 +845,7 @@ const uiHandler = {
       forgot_mode: forgotMode && !resetMode,
       reset_mode: resetMode,
       token,
+      guest_enabled: GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN,
     });
   },
   viewRegisterPage: async (_, res) => {
@@ -764,7 +855,6 @@ const uiHandler = {
     try {
       const id = String(req.params.id || "").trim();
 
-      // basic id sanity check
       if (!isValidBoardId(id)) {
         return res.status(404).render("error", {
           code: 404,
@@ -774,12 +864,12 @@ const uiHandler = {
         });
       }
 
-      const exists = await prisma.board.findUnique({
+      // Fetch only minimal data to check ownership
+      const meta = await prisma.board.findUnique({
         where: { id },
-        select: { id: true },
+        select: { id: true, userId: true },
       });
-
-      if (!exists) {
+      if (!meta) {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
@@ -787,8 +877,26 @@ const uiHandler = {
             "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
-      // Serve the SPA shell (renamed from index.html to board.html)
-      return res.render("board", { appVersion, schemaVersion, boardId: id });
+
+      // Enforce: if board has a userId it must match current user
+      if (meta.userId && meta.userId !== req.user?.id) {
+        return res.status(404).render("error", {
+          code: 404,
+          message: "Board not found",
+          description:
+            "The board you’re looking for doesn’t exist or may have been moved.",
+        });
+      }
+
+      const showUserMenu = !(
+        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
+      );
+      return res.render("board", {
+        appVersion,
+        schemaVersion,
+        boardId: id,
+        show_user_menu: showUserMenu,
+      });
     } catch (err) {
       console.error("route /b/:id error", err);
       return res.status(500).render("error", {
@@ -801,7 +909,7 @@ const uiHandler = {
   },
   createNewBoard: async (req, res) => {
     try {
-      const id = uuid("b_");
+      const id = uuid("b-");
       const userId = req.user?.id || null;
 
       await prisma.board.create({
@@ -1235,6 +1343,19 @@ const authHandler = {
       return res.status(500).json({ error: "Register failed" });
     }
   },
+  guestLogin: async (req, res) => {
+    if (!(GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN)) {
+      return res.status(404).json({ error: "Disabled" });
+    }
+    try {
+      const guest = await createRandomGuestUser();
+      await createSession(res, guest, req);
+      return res.redirect(302, "/");
+    } catch (e) {
+      console.error("guestLogin error", e);
+      return res.status(500).json({ error: "Guest login failed" });
+    }
+  },
 };
 /** -- eof::$Route.Handlers -- */
 
@@ -1246,7 +1367,7 @@ function sanitizeBoard(incoming, fallbackId) {
     title:
       typeof incoming.title === "string"
         ? incoming.title.slice(0, 256)
-        : "My Evidence Board",
+        : "Untitled",
     visibility:
       typeof incoming.visibility === "string" &&
       incoming.visibility.toLowerCase() === "private"
@@ -1276,7 +1397,7 @@ function sanitizeBoard(incoming, fallbackId) {
 }
 function sanitizeEdge(edge, i = 0) {
   const e = {
-    id: typeof edge.id === "string" ? edge.id : `e_${i}`,
+    id: typeof edge.id === "string" ? edge.id : `e-${i}`,
     sourceId: String(edge.sourceId || ""),
     targetId: String(edge.targetId || ""),
   };
@@ -1294,7 +1415,7 @@ function sanitizeEdge(edge, i = 0) {
 }
 function sanitizeNode(node, i = 0) {
   const n = {
-    id: typeof node.id === "string" ? node.id : `n_${i}`,
+    id: typeof node.id === "string" ? node.id : `n-${i}`,
     type: ["text", "image", "link", "imageText"].includes(node.type)
       ? node.type
       : "text",
@@ -1307,9 +1428,12 @@ function sanitizeNode(node, i = 0) {
   const d = n.data;
   if (typeof d.title === "string") d.title = d.title.slice(0, 512);
   if (typeof d.text === "string") d.text = d.text.slice(0, 8000);
-  if (typeof d.html === "string") d.html = stripDangerousHtml(d.html);
-  if (typeof d.descHtml === "string")
-    d.descHtml = stripDangerousHtml(d.descHtml);
+  if (typeof d.html === "string") {
+    d.html = stripDangerousHtml(d.html.slice(0, 8000));
+  }
+  if (typeof d.descHtml === "string") {
+    d.descHtml = stripDangerousHtml(d.descHtml.slice(0, 8000));
+  }
   if (typeof d.linkUrl === "string") d.linkUrl = sanitizeUrl(d.linkUrl);
   if (typeof d.imageUrl === "string") d.imageUrl = sanitizeUrl(d.imageUrl);
   d.tags = normalizeTags(d.tags);
@@ -1345,7 +1469,6 @@ function normalizeTags(arr) {
 function sanitizeUrl(u, opts = { allowRelative: true }) {
   if (!u || typeof u !== "string") return "";
   const s = u.trim();
-
   // 1) Absolute http/https URLs
   try {
     const abs = new URL(s);
@@ -1356,7 +1479,6 @@ function sanitizeUrl(u, opts = { allowRelative: true }) {
   } catch {
     // not absolute; continue
   }
-
   // 2) Site-relative URLs (begin with "/")
   if (opts.allowRelative && s.startsWith("/")) {
     try {
@@ -1405,7 +1527,7 @@ function isValidBoardId(v) {
 function ensureBoardId(candidate, fallbackCurrent) {
   if (isValidBoardId(candidate)) return candidate;
   if (isValidBoardId(fallbackCurrent)) return fallbackCurrent;
-  return uuid("b_");
+  return uuid("b-");
 }
 
 // Per-board storage helpers
@@ -1611,6 +1733,7 @@ async function getSessionWithUser(token) {
   }
   return s;
 }
+
 /** $Utils::eof -- */
 
 // Bootstrap the app ---
@@ -1628,7 +1751,7 @@ app.engine(
   })
 );
 app.set("view engine", "html");
-app.set("views", path.join(__dirname, "public"));
+app.set("views", __templatedir);
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -1676,11 +1799,15 @@ app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
-app.get("/b/:id", uiHandler.viewBoard);
+// TODO: Protect board view with auth (so req.user is present for ownership check)
+// - Show public boards to all, private boards only to owner
+// - Show 403 for private boards if not owner, 404 if board doesn't exist
+app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
 
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);
 app.post("/auth/login", authHandler.login);
+app.get("/auth/guest", authHandler.guestLogin);
 app.post("/auth/logout", authHandler.logout);
 app.get("/auth/me", requireAuth, authHandler.getCurrentUser);
 app.get("/auth/verify", authHandler.verifyToken); // Request /?token=...

@@ -10,6 +10,54 @@ All uploaded assets are stored under `/data/uploads/*`, organized by board IDs.
 
 Portability is currently managed via the **Import/Export** functionality.
 
+### Guest Login (Optional Feature)
+
+You can allow frictionless exploration via a guest account.
+
+Use following environment variables as feature toggles (set in `.env`):
+
+```
+GUEST_LOGIN_ENABLED=true|false
+GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true|false
+```
+
+Behavior:
+
+- `GUEST_LOGIN_ENABLED=false` → Normal auth only (default).
+- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=false` → Login page shows a “Continue as guest” link. Each click creates a fresh random guest (handler like `guest_ab12cd34`).
+- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true` → No login screen. First visitor creates (or reuses) a singleton guest (handler `guest`); all users share that session pattern (until cookie expires).
+
+Notes:
+
+- Guest boards you create are still tied to the guest user id.
+- Disable in production if multi‑user accountability is required.
+
+### Seeding (Demo Board)
+
+A public demo board (“Sri Lanka Protests — 2022”) is embedded in `prisma/seed.mjs`.  
+It is inserted only if it does not already exist (non‑destructive).
+
+Run the seed after pushing the schema:
+
+```bash
+npx prisma db push
+node prisma/seed.mjs
+# or if configured:
+npx prisma db seed // or npm run prisma:seed
+```
+
+Force re-seed (optional):
+
+```bash
+sqlite3 data/papertrail.db "DELETE FROM boards WHERE id='board-sri-lanka-protests-2022';"
+node prisma/seed.mjs
+```
+
+If you later bump the board JSON format, also update:
+
+- `schemaVersion` in `seed.mjs`
+- `schemaVersion` constant in `package.json`
+
 ### Development
 
 ```bash
@@ -42,6 +90,7 @@ We use [Prisma](https://www.prisma.io/) as intermediate abstraction layer betwee
 We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) inspired branching strategy to keep development organized and production stable.
 
 **Branches**
+
 - `main` → production branch (always deployable).
 - `develop` → integration branch (latest development work).
 - `feat/` → short-lived branches for new features or fixes.
@@ -88,7 +137,6 @@ git push origin v1.2.0
 > - Do not rebase shared branches (`main`, `develop`).
 > - Rebase your local feature branches before opening a PR to keep history linear.
 > - Squash merges ensure each feature is a single, clean commit in history.
-
 
 ## License
 

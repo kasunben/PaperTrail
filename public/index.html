@@ -97,7 +97,7 @@
         flex-direction: column;
         gap: 10px;
         min-height: 110px;
-        height: 135px;
+        height: 148px;
       }
       .boards__card-title {
         font-weight: 700;
@@ -337,9 +337,11 @@
               <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
             </svg>
           </summary>
+          {{#if show_user_menu}}
           <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
             <a class="menu__item" href="/logout" role="menuitem">Logout</a>
           </div>
+          {{/if}}
         </details>
       </div>
     </div>
