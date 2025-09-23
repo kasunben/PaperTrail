@@ -12,32 +12,39 @@ import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 import argon2 from "argon2";
 import { engine as hbsEngine } from "express-handlebars";
+import { createRequire } from "module"; // added
 
 import "dotenv/config";
+// REMOVE the failing JSON import line:
+// import pkg from "./package.json" assert { type: "json" }; // add
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json"); // added
 
 /** $Global Vars */
+// ESM-safe __dirname/__filename + public dir
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const __templatedir = path.join(__dirname, "public");
+const PUBLIC_DIR = path.join(__dirname, "public");
 
-// > Read app/schema versions from package.json once at startup
-let appVersion = "0.0.0";
-let schemaVersion = 1;
-try {
-  const pkgRaw = await fs.readFile(
-    path.join(__dirname, "package.json"),
-    "utf-8"
-  );
-  const pkg = JSON.parse(pkgRaw);
-  if (pkg && typeof pkg.version === "string") appVersion = pkg.version;
-  if (pkg && typeof pkg.schemaVersion === "number")
-    schemaVersion = pkg.schemaVersion;
-} catch {}
+// Add appVersion (from package.json)
+const appVersion = pkg.version || "0.0.0";
 
-// > Create data directory at startup if missing
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
+// Schema version for boards (bump if board JSON structure changes)
+const schemaVersion = pkg.schemaVersion;
+
+// Data directory (for uploads, etc.)
+const DATA_DIR = path.resolve(
+  process.env.DATA_DIR || path.join(process.cwd(), "data")
+);
+// Ensure data + uploads root exist (top‑level await is fine in ESM)
 await fs.mkdir(DATA_DIR, { recursive: true });
-/** eof::$Global Vars -- */
+await fs.mkdir(path.join(DATA_DIR, "uploads"), { recursive: true });
+
+// Guest login feature flags
+const GUEST_LOGIN_ENABLED =
+  process.env.GUEST_LOGIN_ENABLED === "true";
+const GUEST_LOGIN_ENABLED_BYPASS_LOGIN =
+  process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
 
 /** $DB.Prisma (SQLite/PostgreSQL) */
 const prisma = new PrismaClient();
@@ -102,6 +109,46 @@ async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
 await connectPrismaWithRetry();
 /**  eof::$DB.Prisma -- */
 
+// Guest user helpers (needed for guest login + bypass)
+async function createRandomGuestUser() {
+  while (true) {
+    const suffix = crypto.randomBytes(4).toString("hex");
+    const handler = `guest_${suffix}`;
+    const email = `guest+${suffix}@guest.local`;
+    const existing = await prisma.user.findFirst({
+      where: { OR: [{ handler }, { email }] },
+      select: { id: true },
+    });
+    if (existing) continue;
+    const passwordHash = await hashPassword(randomToken(12));
+    return prisma.user.create({
+      data: { handler, email, passwordHash },
+    });
+  }
+}
+
+async function getOrCreateSingletonGuestUser() {
+  let user = await prisma.user.findFirst({ where: { handler: "guest" } });
+  if (user) return user;
+  // Attempt to create singleton; handle race by retry fetch
+  try {
+    const passwordHash = await hashPassword(randomToken(16));
+    user = await prisma.user.create({
+      data: {
+        handler: "guest",
+        email: "guest@guest.local",
+        passwordHash,
+      },
+    });
+    return user;
+  } catch {
+    // Another request likely created it; fetch again
+    return prisma.user.findFirst({ where: { handler: "guest" } });
+  }
+}
+
+/** $DB.Prisma -- */
+
 /** $Route.Middlewares */
 async function requireAuth(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
@@ -120,6 +167,13 @@ async function htmlRequireAuth(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
   const session = await getSessionWithUser(token);
   if (!session) {
+    if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+      // Auto guest login (singleton)
+      const guest = await getOrCreateSingletonGuestUser();
+      await createSession(res, guest, req);
+      req.user = { id: guest.id, email: guest.email };
+      return next();
+    }
     res.clearCookie(SESSION_COOKIE, cookieOpts);
     const returnTo = encodeURIComponent(req.originalUrl || "/");
     return res.redirect(302, `/login?return_to=${returnTo}`);
@@ -134,11 +188,16 @@ async function disallowIfAuthed(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
   const session = await getSessionWithUser(token);
   if (session) {
-    // Prefer explicit return_to if provided and safe (path-only)
     const rt =
       typeof req.query.return_to === "string" ? req.query.return_to : "";
     const dest = rt && rt.startsWith("/") ? rt : "/";
     return res.redirect(302, dest);
+  }
+  if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+    // Skip login page entirely, auto guest
+    const guest = await getOrCreateSingletonGuestUser();
+    await createSession(res, guest, req);
+    return res.redirect(302, "/");
   }
   next();
 }
@@ -324,7 +383,7 @@ const boardHandler = {
       // board.json at zip root
       archive.append(JSON.stringify(b, null, 2), { name: "board.json" });
 
-      // uploads/ if present
+      // uploads/if present
       try {
         await fs.access(boardUploadsDir(DATA_DIR, b.id));
         archive.directory(boardUploadsDir(DATA_DIR, b.id), "uploads");
@@ -725,8 +784,10 @@ const uiHandler = {
           if (u) handler = u.handler;
         } catch {}
       }
-
-      return res.render("index", { boards, handler });
+      const showUserMenu = !(
+        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
+      );
+      return res.render("index", { boards, handler, show_user_menu: showUserMenu });
     } catch (err) {
       console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
@@ -738,6 +799,9 @@ const uiHandler = {
     }
   },
   viewLoginPage: async (req, res) => {
+    if (GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN) {
+      return res.redirect(302, "/");
+    }
     const justRegistered = String(req.query.registered || "") === "1";
     const justReset = String(req.query.reset || "") === "1";
     const returnTo =
@@ -755,6 +819,8 @@ const uiHandler = {
       forgot_mode: forgotMode && !resetMode,
       reset_mode: resetMode,
       token,
+      guest_enabled:
+        GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN,
     });
   },
   viewRegisterPage: async (_, res) => {
@@ -787,8 +853,16 @@ const uiHandler = {
             "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
+      const showUserMenu = !(
+        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
+      );
       // Serve the SPA shell (renamed from index.html to board.html)
-      return res.render("board", { appVersion, schemaVersion, boardId: id });
+      return res.render("board", {
+        appVersion,
+        schemaVersion,
+        boardId: id,
+        show_user_menu: showUserMenu,
+      });
     } catch (err) {
       console.error("route /b/:id error", err);
       return res.status(500).render("error", {
@@ -1235,6 +1309,19 @@ const authHandler = {
       return res.status(500).json({ error: "Register failed" });
     }
   },
+  guestLogin: async (req, res) => {
+    if (!(GUEST_LOGIN_ENABLED && !GUEST_LOGIN_ENABLED_BYPASS_LOGIN)) {
+      return res.status(404).json({ error: "Disabled" });
+    }
+    try {
+      const guest = await createRandomGuestUser();
+      await createSession(res, guest, req);
+      return res.redirect(302, "/");
+    } catch (e) {
+      console.error("guestLogin error", e);
+      return res.status(500).json({ error: "Guest login failed" });
+    }
+  },
 };
 /** -- eof::$Route.Handlers -- */
 
@@ -1307,9 +1394,9 @@ function sanitizeNode(node, i = 0) {
   const d = n.data;
   if (typeof d.title === "string") d.title = d.title.slice(0, 512);
   if (typeof d.text === "string") d.text = d.text.slice(0, 8000);
-  if (typeof d.html === "string") d.html = stripDangerousHtml(d.html);
+  if (typeof d.html === "string") d.html = d.html.slice(0, 8000);
   if (typeof d.descHtml === "string")
-    d.descHtml = stripDangerousHtml(d.descHtml);
+    d.descHtml = d.descHtml.slice(0, 8000);
   if (typeof d.linkUrl === "string") d.linkUrl = sanitizeUrl(d.linkUrl);
   if (typeof d.imageUrl === "string") d.imageUrl = sanitizeUrl(d.imageUrl);
   d.tags = normalizeTags(d.tags);
@@ -1611,6 +1698,7 @@ async function getSessionWithUser(token) {
   }
   return s;
 }
+
 /** $Utils::eof -- */
 
 // Bootstrap the app ---
@@ -1622,13 +1710,10 @@ app.engine(
   hbsEngine({
     extname: ".html",
     defaultLayout: false,
-    // You can enable these later if you add folders:
-    // partialsDir: path.join(__dirname, "public", "partials"),
-    // layoutsDir: path.join(__dirname, "public", "layouts"),
   })
 );
 app.set("view engine", "html");
-app.set("views", path.join(__dirname, "public"));
+app.set("views", PUBLIC_DIR);
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -1666,7 +1751,7 @@ app.use((req, res, next) => {
   next();
 });
 // Serve static assets (CSS/JS/images/fonts, etc.) without directory index
-app.use(express.static(__templatedir, { index: false }));
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 app.get(/^\/uploads\/(.+)$/, fileHandler.serveUpload);
 
@@ -1681,6 +1766,7 @@ app.get("/b/:id", uiHandler.viewBoard);
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);
 app.post("/auth/login", authHandler.login);
+app.get("/auth/guest", authHandler.guestLogin);
 app.post("/auth/logout", authHandler.logout);
 app.get("/auth/me", requireAuth, authHandler.getCurrentUser);
 app.get("/auth/verify", authHandler.verifyToken); // Request /?token=...
