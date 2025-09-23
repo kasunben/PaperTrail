@@ -705,7 +705,6 @@ const boardHandler = {
     if (!isValidBoardId(id))
       return res.status(400).json({ error: "Invalid board id" });
 
-    // Populate req.user (soft) if session exists (needed for ownership check)
     try {
       if (!req.user) {
         const token = req.cookies?.[SESSION_COOKIE];
@@ -717,11 +716,15 @@ const boardHandler = {
 
     const meta = await prisma.board.findUnique({
       where: { id },
-      select: { id: true, userId: true },
+      select: { id: true, userId: true, visibility: true },
     });
     if (!meta) return res.status(404).json({ error: "Board not found" });
-    if (meta.userId && meta.userId !== req.user?.id) {
-      // Hide existence
+
+    if (
+      meta.visibility === "private" &&
+      meta.userId &&
+      meta.userId !== req.user?.id
+    ) {
       return res.status(404).json({ error: "Board not found" });
     }
 
@@ -780,8 +783,8 @@ const uiHandler = {
 
       const boards = rows.map((b) => ({
         id: b.id,
-        title: b.title || "Untitled",
-        visibility: (b.visibility || "public").toLowerCase(),
+        title: b.title,
+        visibility: b.visibility,
         status: b.status,
         createdAt:
           b.createdAt instanceof Date
@@ -791,7 +794,6 @@ const uiHandler = {
           b.updatedAt instanceof Date
             ? b.updatedAt.toISOString()
             : new Date(b.updatedAt).toISOString(),
-        // Mark global vs owned (optional – could help UI later)
         owned: !!b.userId && b.userId === req.user?.id,
         global: !b.userId,
         url: `/b/${b.id}`,
@@ -864,10 +866,9 @@ const uiHandler = {
         });
       }
 
-      // Fetch only minimal data to check ownership
       const meta = await prisma.board.findUnique({
         where: { id },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, visibility: true },
       });
       if (!meta) {
         return res.status(404).render("error", {
@@ -878,8 +879,12 @@ const uiHandler = {
         });
       }
 
-      // Enforce: if board has a userId it must match current user
-      if (meta.userId && meta.userId !== req.user?.id) {
+      // Private boards: only owner may view
+      if (
+        meta.visibility === "private" &&
+        meta.userId &&
+        meta.userId !== req.user?.id
+      ) {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
@@ -1799,10 +1804,7 @@ app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
-// TODO: Protect board view with auth (so req.user is present for ownership check)
-// - Show public boards to all, private boards only to owner
-// - Show 403 for private boards if not owner, 404 if board doesn't exist
-app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
+app.get("/b/:id", uiHandler.viewBoard);
 
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);
