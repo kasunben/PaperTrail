@@ -122,6 +122,21 @@ git merge --ff-only develop
 git push origin main
 ```
 
+Alternatively:
+
+```bash
+git fetch origin
+git checkout develop
+git pull               # update local develop
+git rebase origin/main # replay develop on top of main
+# resolve any conflicts, then:
+git push --force-with-lease
+
+git checkout main
+git merge --ff-only develop
+git push
+``` 
+
 - Tag the release:
 
 ```bash
