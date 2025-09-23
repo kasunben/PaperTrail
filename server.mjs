@@ -1804,7 +1804,7 @@ app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
-app.get("/b/:id", uiHandler.viewBoard);
+app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
 
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);
