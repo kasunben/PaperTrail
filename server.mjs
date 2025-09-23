@@ -713,6 +713,27 @@ const boardHandler = {
     const id = String(req.params.id || "").trim();
     if (!isValidBoardId(id))
       return res.status(400).json({ error: "Invalid board id" });
+
+    // Populate req.user (soft) if session exists (needed for ownership check)
+    try {
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session)
+          req.user = { id: session.userId, email: session.user.email };
+      }
+    } catch {}
+
+    const meta = await prisma.board.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!meta) return res.status(404).json({ error: "Board not found" });
+    if (meta.userId && meta.userId !== req.user?.id) {
+      // Hide existence
+      return res.status(404).json({ error: "Board not found" });
+    }
+
     const board = await readBoardFromDb(id);
     if (!board) return res.status(404).json({ error: "Board not found" });
     return res.json(board);
@@ -747,14 +768,22 @@ const fileHandler = {
 const uiHandler = {
   viewIndexPage: async (req, res) => {
     try {
+      // Only list boards:
+      // - owned by current user (userId = req.user.id)
+      // - or global boards (userId == null)
       const rows = await prisma.board.findMany({
+        where: {
+          OR: [{ userId: null }, { userId: req.user?.id || "__none__" }],
+        },
         orderBy: { updatedAt: "desc" },
         select: {
           id: true,
           title: true,
           visibility: true,
+          status: true,
           createdAt: true,
           updatedAt: true,
+          userId: true,
         },
       });
 
@@ -762,15 +791,18 @@ const uiHandler = {
         id: b.id,
         title: b.title || "Untitled",
         visibility: (b.visibility || "public").toLowerCase(),
-        status: "draft", // TODO: placeholder for now, implement this later
+        status: b.status,
         createdAt:
           b.createdAt instanceof Date
             ? b.createdAt.toISOString()
-            : new Date(b.createdAt).toISOString(), // TODO: convert to human-friendly format
+            : new Date(b.createdAt).toISOString(),
         updatedAt:
           b.updatedAt instanceof Date
             ? b.updatedAt.toISOString()
             : new Date(b.updatedAt).toISOString(),
+        // Mark global vs owned (optional – could help UI later)
+        owned: !!b.userId && b.userId === req.user?.id,
+        global: !b.userId,
         url: `/b/${b.id}`,
       }));
 
@@ -787,7 +819,11 @@ const uiHandler = {
       const showUserMenu = !(
         GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
       );
-      return res.render("index", { boards, handler, show_user_menu: showUserMenu });
+      return res.render("index", {
+        boards,
+        handler,
+        show_user_menu: showUserMenu,
+      });
     } catch (err) {
       console.error("viewIndexPage error", err);
       return res.status(500).render("error", {
@@ -830,7 +866,6 @@ const uiHandler = {
     try {
       const id = String(req.params.id || "").trim();
 
-      // basic id sanity check
       if (!isValidBoardId(id)) {
         return res.status(404).render("error", {
           code: 404,
@@ -840,12 +875,12 @@ const uiHandler = {
         });
       }
 
-      const exists = await prisma.board.findUnique({
+      // Fetch only minimal data to check ownership
+      const meta = await prisma.board.findUnique({
         where: { id },
-        select: { id: true },
+        select: { id: true, userId: true },
       });
-
-      if (!exists) {
+      if (!meta) {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
@@ -853,10 +888,20 @@ const uiHandler = {
             "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
+
+      // Enforce: if board has a userId it must match current user
+      if (meta.userId && meta.userId !== req.user?.id) {
+        return res.status(404).render("error", {
+          code: 404,
+          message: "Board not found",
+          description:
+            "The board you’re looking for doesn’t exist or may have been moved.",
+        });
+      }
+
       const showUserMenu = !(
         GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
       );
-      // Serve the SPA shell (renamed from index.html to board.html)
       return res.render("board", {
         appVersion,
         schemaVersion,
@@ -875,7 +920,7 @@ const uiHandler = {
   },
   createNewBoard: async (req, res) => {
     try {
-      const id = uuid("b_");
+      const id = uuid("b-");
       const userId = req.user?.id || null;
 
       await prisma.board.create({
@@ -1363,7 +1408,7 @@ function sanitizeBoard(incoming, fallbackId) {
 }
 function sanitizeEdge(edge, i = 0) {
   const e = {
-    id: typeof edge.id === "string" ? edge.id : `e_${i}`,
+    id: typeof edge.id === "string" ? edge.id : `e-${i}`,
     sourceId: String(edge.sourceId || ""),
     targetId: String(edge.targetId || ""),
   };
@@ -1381,7 +1426,7 @@ function sanitizeEdge(edge, i = 0) {
 }
 function sanitizeNode(node, i = 0) {
   const n = {
-    id: typeof node.id === "string" ? node.id : `n_${i}`,
+    id: typeof node.id === "string" ? node.id : `n-${i}`,
     type: ["text", "image", "link", "imageText"].includes(node.type)
       ? node.type
       : "text",
@@ -1492,7 +1537,7 @@ function isValidBoardId(v) {
 function ensureBoardId(candidate, fallbackCurrent) {
   if (isValidBoardId(candidate)) return candidate;
   if (isValidBoardId(fallbackCurrent)) return fallbackCurrent;
-  return uuid("b_");
+  return uuid("b-");
 }
 
 // Per-board storage helpers
@@ -1761,7 +1806,8 @@ app.get("/login", disallowIfAuthed, uiHandler.viewLoginPage);
 app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
-app.get("/b/:id", uiHandler.viewBoard);
+// Protect board view with auth (so req.user is present for ownership check)
+app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
 
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);
