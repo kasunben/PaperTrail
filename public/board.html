@@ -995,6 +995,7 @@
       </button>
       <details id="userBtn" class="toolbar__menu">
         <summary class="toolbar__avatar" title="{{handler}}">
+          <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
           <svg
             width="18"
             height="18"
@@ -1007,9 +1008,9 @@
           </svg>
         </summary>
         {{#if show_user_menu}}
-          <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
-            <a class="menu__item" href="/logout" role="menuitem">Logout</a>
-          </div>
+        <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
+          <a class="menu__item" href="/logout" role="menuitem">Logout</a>
+        </div>
         {{/if}}
       </details>
     </div>
