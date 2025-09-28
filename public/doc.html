@@ -275,6 +275,130 @@
       }
 
       /* Removed board, node, edge, context menu, rich text, tags, and statusbar styles */
+
+      /* Document editor (Google Docs–like) */
+      .doc {
+        background: #f3f4f6;
+        min-height: calc(100vh - 56px);
+      }
+      .editorbar {
+        position: sticky;
+        top: 50px; /* sits under the main toolbar */
+        z-index: 9;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: var(--shadow);
+      }
+      .editorbar .btn-group {
+        display: inline-flex;
+        gap: 6px;
+      }
+      .editorbar button,
+      .editorbar select {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #111;
+        padding: 6px 8px;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow);
+      }
+      .editorbar button:hover,
+      .editorbar select:hover {
+        background: #f3f4f6;
+      }
+      .editorbar button.active {
+        background: #e5e7eb;
+      }
+
+      .page {
+        width: 816px; /* ~8.5in @ 96dpi */
+        margin: 18px auto 48px;
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      }
+      .page__content {
+        padding: 96px; /* ~1in margins */
+      }
+
+      .editor {
+        min-height: 900px;
+        outline: none;
+        font-family: Arial, ui-sans-serif, system-ui;
+        font-size: 11pt;
+        line-height: 1.15;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .editor[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .editor p {
+        margin: 0 0 12pt;
+      }
+      .editor h1 {
+        font-size: 24pt;
+        margin: 0 0 10pt;
+        font-weight: 700;
+      }
+      .editor h2 {
+        font-size: 20pt;
+        margin: 0 0 10pt;
+        font-weight: 700;
+      }
+      .editor h3 {
+        font-size: 16pt;
+        margin: 0 0 8pt;
+        font-weight: 700;
+      }
+      .editor ul,
+      .editor ol {
+        margin: 0 0 12pt 2em;
+      }
+      .editor blockquote {
+        margin: 0 0 12pt;
+        padding-left: 1em;
+        border-left: 3px solid #e5e7eb;
+        color: #374151;
+      }
+      .editor a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+      .editor img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      @media print {
+        .toolbar,
+        .editorbar,
+        .toolbar__menu-panel,
+        #aboutModal {
+          display: none !important;
+        }
+        .doc {
+          background: #fff;
+        }
+        .page {
+          width: auto;
+          border: 0;
+          box-shadow: none;
+          margin: 0;
+        }
+        .page__content {
+          padding: 96px;
+        }
+      }
     </style>
   </head>
 
@@ -323,7 +447,55 @@
       </details>
     </div>
 
-    <!-- Removed board, edges SVG, context menu and status bar -->
+    <div id="document" class="doc">
+      <div class="editorbar" role="toolbar" aria-label="Editor toolbar">
+        <select id="blockFmt" aria-label="Paragraph style" title="Paragraph style">
+          <option value="p">Normal text</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+        </select>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="bold" title="Bold (⌘B)">B</button>
+          <button type="button" data-cmd="italic" title="Italic (⌘I)"><em>I</em></button>
+          <button type="button" data-cmd="underline" title="Underline (⌘U)"><u>U</u></button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="insertUnorderedList" title="Bulleted list">• List</button>
+          <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="justifyLeft" title="Align left">⟸</button>
+          <button type="button" data-cmd="justifyCenter" title="Align center">⇔</button>
+          <button type="button" data-cmd="justifyRight" title="Align right">⟹</button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" id="linkBtn" title="Insert link">Link</button>
+          <button type="button" id="imageBtn" title="Insert image">Image</button>
+          <button type="button" id="clearBtn" title="Clear formatting">Clear</button>
+          <button type="button" id="undoBtn" title="Undo (⌘Z)">Undo</button>
+          <button type="button" id="redoBtn" title="Redo (⇧⌘Z)">Redo</button>
+        </div>
+      </div>
+
+      <div class="page" role="region" aria-label="Document page">
+        <div class="page__content">
+          <div
+            id="editor"
+            class="editor"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            spellcheck="true"
+            data-placeholder="Start typing..."
+          ></div>
+        </div>
+      </div>
+    </div>
 
     <div
       id="aboutModal"
@@ -400,6 +572,92 @@
         if (e.key === "Escape" && aboutModal.classList.contains("show"))
           closeAbout();
       });
+
+      // Rich text editor wiring
+      const editor = document.getElementById("editor");
+      const STORAGE_KEY = `papertrail.doc.${window.__globals.board?.id || "default"}`;
+
+      function loadDoc() {
+        const html = localStorage.getItem(STORAGE_KEY);
+        if (html) {
+          editor.innerHTML = html;
+        } else {
+          editor.innerHTML = "<p></p>";
+        }
+      }
+      function saveDoc() {
+        localStorage.setItem(STORAGE_KEY, editor.innerHTML);
+      }
+      function exec(cmd, val = null) {
+        document.execCommand(cmd, false, val);
+        editor.focus();
+        saveDoc();
+        refreshToolbar();
+      }
+      // Toolbar handlers
+      document.querySelectorAll(".editorbar [data-cmd]").forEach((btn) => {
+        btn.addEventListener("click", () => exec(btn.dataset.cmd));
+      });
+      document.getElementById("blockFmt").addEventListener("change", (e) => {
+        exec("formatBlock", e.target.value);
+      });
+      document.getElementById("linkBtn").addEventListener("click", () => {
+        let url = prompt("Link URL");
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+        exec("createLink", url);
+      });
+      document.getElementById("imageBtn").addEventListener("click", () => {
+        const url = prompt("Image URL");
+        if (!url) return;
+        exec("insertImage", url);
+      });
+      document.getElementById("clearBtn").addEventListener("click", () => exec("removeFormat"));
+      document.getElementById("undoBtn").addEventListener("click", () => exec("undo"));
+      document.getElementById("redoBtn").addEventListener("click", () => exec("redo"));
+
+      // Keep toolbar state in sync
+      function refreshToolbar() {
+        document
+          .querySelectorAll('.editorbar [data-cmd="bold"], .editorbar [data-cmd="italic"], .editorbar [data-cmd="underline"]')
+          .forEach((btn) => {
+            const active = document.queryCommandState(btn.dataset.cmd);
+            btn.classList.toggle("active", !!active);
+          });
+        const block = (document.queryCommandValue("formatBlock") || "p").toLowerCase();
+        const blockFmt = document.getElementById("blockFmt");
+        const normalized = block.replace(/[<>]/g, "");
+        if (["p", "h1", "h2", "h3"].includes(normalized)) blockFmt.value = normalized;
+      }
+
+      // Basic paste sanitization (plain text)
+      editor.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      });
+
+      // Save on input, and Tab to indent lists
+      editor.addEventListener("input", saveDoc);
+      editor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          exec(e.shiftKey ? "outdent" : "indent");
+        }
+      });
+      document.addEventListener("selectionchange", () => {
+        // Only refresh when selection is within the editor
+        const sel = document.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        const within = editor.contains(range.commonAncestorContainer);
+        if (within) refreshToolbar();
+      });
+
+      // Init
+      loadDoc();
+      refreshToolbar();
+      window.addEventListener("beforeunload", saveDoc);
     </script>
   </body>
 </html>
