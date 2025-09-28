@@ -103,7 +103,7 @@ We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
 ###### Start a feature
 
 ```bash
-git switch -c feature/my-feature develop
+git switch -c feat/my-feature develop
 ```
 
 Work, commit, and rebase with develop to stay updated.
