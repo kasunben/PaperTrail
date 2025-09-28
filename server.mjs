@@ -932,6 +932,9 @@ const uiHandler = {
       });
     }
   },
+  viewDocument: async (_, res) => {
+    return res.render("doc");
+  }
 };
 
 const authHandler = {
@@ -1805,6 +1808,7 @@ app.get("/register", disallowIfAuthed, uiHandler.viewRegisterPage);
 app.get("/logout", authHandler.logout);
 app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
 app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
+app.get("/d/:id", uiHandler.viewDocument);
 
 // $Routes.Auth
 app.post("/auth/register", authHandler.register);

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PaperTrail — map your evidence, follow the story.</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+
+    <!-- Primary SEO -->
+    <meta name="application-name" content="PaperTrail" />
+    <meta
+      name="description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta
+      name="keywords"
+      content="evidence board, investigation, graph, nodes, links, mind map, research, PaperTrail"
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="/" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:site_name" content="PaperTrail" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="PaperTrail — map your evidence, follow the story."
+    />
+    <meta
+      property="og:description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/assets/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="PaperTrail — map your evidence, follow the story."
+    />
+    <meta
+      name="twitter:description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta name="twitter:image" content="/assets/og-image.png" />
+
+    <style>
+      :root {
+        --color-bg: #ffffff;
+        --color-muted: #9ca3af;
+        --color-ink: #e5e7eb;
+        --color-accent: #60a5fa;
+        --color-border-card: #e2e8f0;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--color-bg);
+        color: #111;
+        font: 14px/1.4 ui-sans-serif, system-ui;
+      }
+      .toolbar__title {
+        display: flex;
+        flex-direction: column;
+        margin-right: 1rem;
+      }
+      .toolbar__brand {
+        font-weight: 700;
+        font-size: 16px;
+        color: #111827;
+        text-decoration: none;
+      }
+      .toolbar__tagline {
+        font-size: 11px;
+        color: #6b7280;
+      }
+      .toolbar__board-name {
+        font-size: 12px;
+        color: #374151;
+        margin-top: 2px;
+        font-style: italic;
+      }
+      .toolbar__board-name[contenteditable="true"] {
+        cursor: text;
+        border-bottom: 1px dashed #e5e7eb;
+        padding-bottom: 1px;
+        line-height: 1.2;
+        max-width: 280px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .toolbar__board-name[contenteditable="true"]:focus {
+        outline: none;
+        border-bottom: 1px dashed #60a5fa;
+      }
+      .toolbar__board-name[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: #f9fafb;
+        color: #111;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        align-items: flex-end;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .toolbar input,
+      .toolbar button,
+      .toolbar select {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #111;
+        padding: 0.45rem 0.8rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: var(--shadow);
+        transition: background 0.2s, box-shadow 0.2s;
+        outline: none;
+      }
+      .toolbar__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem;
+      }
+      .toolbar__btn--icon svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .toolbar__btn--icon svg.filled {
+        fill: currentColor;
+        stroke: none;
+      }
+      .toolbar button:hover,
+      .toolbar select:hover {
+        background: #f3f4f6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .toolbar button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .toolbar__spacer {
+        flex: 1;
+      }
+      /* Avatar dropdown (context menu) */
+      .toolbar__menu {
+        position: relative;
+      }
+      .toolbar__menu summary {
+        list-style: none;
+        outline: none;
+        cursor: pointer;
+      }
+      .toolbar__menu summary::-webkit-details-marker {
+        display: none;
+      }
+      .toolbar__menu[open] .toolbar__avatar {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+          0 0 0 1px var(--color-border-card) inset;
+      }
+      .toolbar__menu-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--color-border-card);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        min-width: 160px;
+        padding: 6px;
+        z-index: 20;
+      }
+      .toolbar__avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #e5e7eb;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--color-border-card);
+        box-shadow: var(--shadow);
+      }
+      .toolbar__avatar > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .menu__item {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #0f172a;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .menu__item:hover {
+        background: #f1f5f9;
+      }
+
+      /* About modal */
+      .modal__backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .modal__backdrop.show {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        width: min(560px, 90vw);
+        max-height: 80vh;
+        overflow: auto;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      }
+      .modal__header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .modal__title {
+        margin: 0;
+        font-size: 16px;
+      }
+      .modal__close {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6b7280;
+      }
+      .modal__close:hover {
+        color: #111827;
+      }
+      .modal__body {
+        padding: 0 25px 25px;
+        font-size: smaller;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .kv div {
+        padding: 2px 0;
+      }
+
+      /* Removed board, node, edge, context menu, rich text, tags, and statusbar styles */
+    </style>
+  </head>
+
+  <body>
+    <div class="toolbar">
+      <div class="toolbar__title">
+        <a class="toolbar__brand" href="/">PaperTrail</a>
+        <div class="toolbar__tagline">map your evidence, follow the story.</div>
+        <div
+          class="toolbar__board-name"
+          id="boardName"
+          contenteditable="true"
+          data-placeholder="Untitled Board"
+        ></div>
+      </div>
+      <div class="toolbar__spacer"></div>
+      <button
+        id="infoBtn"
+        class="toolbar__btn toolbar__btn--icon"
+        title="About / Info"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="8" r="1.4" />
+          <path d="M12 11v5" stroke-linecap="round" />
+        </svg>
+      </button>
+      <details id="userBtn" class="toolbar__menu">
+        <summary class="toolbar__avatar" title="{{handler}}">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4" fill="#111" />
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
+          </svg>
+        </summary>
+        {{#if show_user_menu}}
+        <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
+          <a class="menu__item" href="/logout" role="menuitem">Logout</a>
+        </div>
+        {{/if}}
+      </details>
+    </div>
+
+    <!-- Removed board, edges SVG, context menu and status bar -->
+
+    <div
+      id="aboutModal"
+      class="modal__backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="aboutTitle"
+    >
+      <div class="modal">
+        <header class="modal__header">
+          <h3 id="aboutTitle" class="modal__title">
+            PaperTrail — map your evidence, follow the story
+          </h3>
+          <button
+            type="button"
+            id="aboutClose"
+            class="modal__close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </header>
+        <div class="modal__body">
+          <p>
+            <em>PaperTrail</em> is a lightweight visual evidence board for
+            organizing ideas, documents, images, and links. It lets you pin down
+            pieces of information, connect them freely, and uncover patterns.
+          </p>
+          <div class="kv">
+            <div>App version</div>
+            <div id="aboutAppVersion">—</div>
+            <div>Schema version</div>
+            <div id="aboutSchemaVersion">—</div>
+            <div>Current board</div>
+            <div id="aboutBoardName">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Binding for dynamic values from server
+      window.__globals = {
+        appVersion: "{{appVersion}}",
+        schemaVersion: "{{schemaVersion}}",
+        board: { id: "{{boardId}}" },
+      };
+
+      // Minimal JS: About modal only
+      const infoBtn = document.getElementById("infoBtn");
+      const aboutModal = document.getElementById("aboutModal");
+      const aboutClose = document.getElementById("aboutClose");
+      const boardNameEl = document.getElementById("boardName");
+
+      function openAbout() {
+        document.getElementById("aboutAppVersion").textContent =
+          window.__globals.appVersion || "—";
+        document.getElementById("aboutSchemaVersion").textContent =
+          String(window.__globals.schemaVersion || "—");
+        document.getElementById("aboutBoardName").textContent =
+          (boardNameEl.textContent || "").trim() || "Untitled Board";
+        aboutModal.classList.add("show");
+      }
+      function closeAbout() {
+        aboutModal.classList.remove("show");
+      }
+
+      infoBtn.addEventListener("click", openAbout);
+      aboutClose.addEventListener("click", closeAbout);
+      aboutModal.addEventListener("click", (e) => {
+        if (e.target === aboutModal) closeAbout();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && aboutModal.classList.contains("show"))
+          closeAbout();
+      });
+    </script>
+  </body>
+</html>
