@@ -974,8 +974,8 @@ const uiHandler = {
         board_title: meta.title,
         board_visibility: meta.visibility,
         board_status: meta.status,
-        show_user_menu: showUserMenu,
         is_owner: isOwner,
+        show_user_menu: showUserMenu,
         // default status; fetch actual via DB to avoid extra call if needed
         // but we only selected visibility above, so select status too
       });

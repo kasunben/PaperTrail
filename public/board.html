@@ -1045,7 +1045,7 @@
             id="settingsNotice"
             style="
               display: none;
-              margin: 10px 0px 15px;
+              margin: 10px 0px 0px;
               color: #b45309;
               background: #fff7ed;
               border: 1px solid #fde68a;
@@ -1056,7 +1056,13 @@
             You can view settings on public boards, but only the owner can make changes.
           </p>
           <div
-            style="display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center"
+            style="
+              display: grid;
+              grid-template-columns: 140px 1fr;
+              gap: 10px;
+              align-items: center;
+              margin-top: 15px;
+            "
           >
             <label for="titleInput">Title</label>
             <input id="titleInput" type="text" />
@@ -1077,19 +1083,22 @@
           <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px">
             <button id="saveMetaBtn">Save changes</button>
           </div>
-
-          <details style="margin-top: 10px;">
+          {{#if is_owner}}
+          <details style="margin-top: 10px">
             <summary><strong>Danger zone</strong></summary>
-            <div style="border: 1px solid #ccc; margin-top: 5px; padding: 10px; border-radius: 0.3rem;">
+            <div
+              style="border: 1px solid #ccc; margin-top: 5px; padding: 10px; border-radius: 0.3rem"
+            >
               <span style="color: #b91c1c">
                 Deleting this board is permanent. This removes nodes, edges, and uploads.
               </span>
-              <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+              <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px">
                 <input id="confirmIdInput" type="text" placeholder="Type: {{boardId}}" />
                 <button id="deleteBoardBtn">Delete</button>
               </div>
             </div>
           </details>
+          {{/if}}
         </div>
       </div>
     </div>
@@ -1151,14 +1160,11 @@
             // Always sync the latest DOM position/size state before snapshot + POST
             syncDomToModel();
             const payload = { ...board, id: window.__globals.boardId };
-            const resp = await fetch(
-              `/api/board/${encodeURIComponent(window.__globals.boardId)}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              }
-            );
+            const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data && data.error ? data.error : "Save failed");
             // Update local model with canonical server state
@@ -3030,12 +3036,15 @@
         if (!isOwner) {
           settingsNotice.style.display = "block";
           titleInput.setAttribute("readonly", "true");
+          titleInput.setAttribute("disabled", "true");
           visibilitySelect.setAttribute("disabled", "true");
           statusSelect.setAttribute("disabled", "true");
           saveMetaBtn.setAttribute("disabled", "true");
-          deleteBoardBtn.setAttribute("disabled", "true");
-          deleteBoardBtn.style.opacity = "0.6";
-          deleteBoardBtn.style.cursor = "not-allowed";
+          if (deleteBoardBtn) {
+            deleteBoardBtn.setAttribute("disabled", "true");
+            deleteBoardBtn.style.opacity = "0.6";
+            deleteBoardBtn.style.cursor = "not-allowed";
+          }
         }
 
         settingsBtn?.addEventListener("click", openSettings);
@@ -3088,14 +3097,11 @@
           }
           if (!confirm("This will permanently delete the board and its data. Continue?")) return;
           try {
-            const resp = await fetch(
-              `/api/board/${encodeURIComponent(window.__globals.boardId)}`,
-              {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ confirm: true, confirmId }),
-              }
-            );
+            const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ confirm: true, confirmId }),
+            });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data?.error || "Delete failed");
             window.location.href = "/";
