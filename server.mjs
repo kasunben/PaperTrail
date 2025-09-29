@@ -801,7 +801,7 @@ const boardHandler = {
         return res.status(403).json({ error: "Forbidden" });
 
       const { confirm, confirmId } = req.body || {};
-      if (!((confirm === true || confirm === "true") && confirmId === id)) {
+      if (!(confirm === true || confirm === "true" || confirmId === id)) {
         return res.status(400).json({ error: "Confirmation required" });
       }
 
