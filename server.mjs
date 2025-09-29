@@ -756,7 +756,7 @@ const boardHandler = {
       if (nextStatus) data.status = nextStatus;
       if (typeof nextTitle === "string") data.title = nextTitle || "Untitled Board";
       // Ownership: preserve owner even if board is public so the creator still controls it.
-      if (nextVisibility === "private") data.userId = req.user.id;
+      data.userId = meta.userId;
 
       if (Object.keys(data).length === 0)
         return res.json({
