@@ -1002,8 +1002,6 @@ const uiHandler = {
         is_owner: isOwner,
         show_user_menu: !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN),
         show_settings: isOwner, // only owner may change settings
-        // default status; fetch actual via DB to avoid extra call if needed
-        // but we only selected visibility above, so select status too
       });
     } catch (err) {
       console.error("route /b/:id error", err);

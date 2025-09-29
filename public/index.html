@@ -134,6 +134,28 @@
         background: #fff;
         text-transform: capitalize;
       }
+      .boards__actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: auto;
+      }
+      .boards__delete {
+        appearance: none;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        background-color: transparent;
+      }
+      .boards__delete:hover {
+        background: #fef2f2;
+      }
+      .boards__delete svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
       .boards__link {
         background: #f1f5f9;
         color: #475569;
@@ -144,7 +166,6 @@
         font-weight: 600;
         align-self: flex-start;
         display: inline-block;
-        margin-top: auto; /* pin "Open" button to bottom of the card */
       }
       .boards__card--new {
         border: 2px dashed var(--color-border-card);
@@ -358,16 +379,52 @@
           </article>
         </a>
         {{#each boards}}
-        <article class="boards__card">
+        <article class="boards__card" data-board-id="{{this.id}}">
           <div class="boards__row">
-            <div class="boards__card-title">{{this.title}}</div>
+            <div
+              class="boards__card-title"
+              data-title
+              data-owned="{{this.owned}}"
+              contenteditable="{{#if this.owned}}true{{else}}false{{/if}}"
+            >
+              {{this.title}}
+            </div>
             <span class="boards__badge">{{this.visibility}}</span>
           </div>
           <div class="boards__meta">
             <span class="created-at" data-date="{{this.createdAt}}"></span>
             <span class="boards__badge">{{this.status}}</span>
           </div>
-          <a class="boards__link" href="{{this.url}}">Open</a>
+          <div class="boards__actions">
+            <a class="boards__link" href="{{this.url}}">Open</a>
+            {{#if this.owned}}
+            <button
+              class="boards__delete"
+              type="button"
+              title="Delete board"
+              aria-label="Delete board"
+              data-action="delete"
+              data-id="{{this.id}}"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                />
+              </svg>
+            </button>
+            {{/if}}
+          </div>
         </article>
         {{/each}}
       </section>
@@ -378,6 +435,87 @@
         if (!isNaN(d)) {
           el.textContent = d.toLocaleString();
         }
+      });
+
+      // Helpers
+      function findCardById(id) {
+        return document.querySelector(`.boards__card[data-board-id="${CSS.escape(id)}"]`);
+      }
+      // Commit title change on Enter (owned boards only)
+      async function commitTitleEdit(titleEl) {
+        const card = titleEl.closest(".boards__card");
+        const id = card?.getAttribute("data-board-id");
+        if (!id) return;
+        const owned = String(titleEl.getAttribute("data-owned")) === "true";
+        const prev = (titleEl.getAttribute("data-prev") || "").trim();
+        const next = (titleEl.textContent || "").trim().slice(0, 256);
+        if (!owned) {
+          // Revert if not owner
+          titleEl.textContent = prev || titleEl.textContent;
+          alert("Only the owner can rename this board.");
+          return;
+        }
+        if (!next || next === prev) {
+          titleEl.textContent = prev; // normalize
+          return;
+        }
+        try {
+          const resp = await fetch(`/api/board/${encodeURIComponent(id)}/meta`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: next }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) throw new Error(data?.error || "Update failed");
+          titleEl.textContent = data.title || next;
+          titleEl.setAttribute("data-prev", titleEl.textContent.trim());
+        } catch (e) {
+          alert(e.message || "Update failed");
+          titleEl.textContent = prev;
+        }
+      }
+      async function deleteBoard(id) {
+        const card = findCardById(id);
+        if (!card) return;
+        if (!confirm("This will permanently delete the board. Continue?")) return;
+        try {
+          const resp = await fetch(`/api/board/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ confirm: true }),
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) throw new Error(data?.error || "Delete failed");
+          card.remove();
+        } catch (e) {
+          alert(e.message || "Delete failed");
+        }
+      }
+      // Click on delete bin next to Open
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest('[data-action="delete"]');
+        if (!btn) return;
+        const id = btn.getAttribute("data-id");
+        if (id) deleteBoard(id);
+      });
+      // Track start of edit for titles
+      document.querySelectorAll(".boards__card-title[data-title]").forEach((el) => {
+        el.setAttribute("data-prev", (el.textContent || "").trim());
+        el.addEventListener("focus", () => {
+          el.setAttribute("data-prev", (el.textContent || "").trim());
+        });
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            el.blur();
+            commitTitleEdit(el);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            const prev = el.getAttribute("data-prev") || "";
+            el.textContent = prev;
+            el.blur();
+          }
+        });
       });
     </script>
   </body>
