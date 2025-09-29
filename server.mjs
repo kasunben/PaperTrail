@@ -717,8 +717,10 @@ const boardHandler = {
         select: { id: true, userId: true, visibility: true, status: true, title: true },
       });
       if (!meta) return res.status(404).json({ error: "Board not found" });
-      if (!meta.userId || meta.userId !== req.user.id)
+      // Authorization: only the existing owner may update
+      if (!meta.userId || meta.userId !== req.user.id) {
         return res.status(403).json({ error: "Forbidden" });
+      }
 
       const { visibility, status, title } = req.body || {};
       let nextVisibility;
@@ -742,7 +744,8 @@ const boardHandler = {
       if (nextVisibility) data.visibility = nextVisibility;
       if (nextStatus) data.status = nextStatus;
       if (typeof nextTitle === "string") data.title = nextTitle || "Untitled Board";
-      if (nextVisibility) data.userId = nextVisibility === "private" ? req.user.id : null;
+      // Ownership: preserve owner even if board is public so the creator still controls it.
+      if (nextVisibility === "private") data.userId = req.user.id;
 
       if (Object.keys(data).length === 0)
         return res.json({
@@ -1630,13 +1633,16 @@ async function writeBoardToDb(cleanBoard, ownerUserId = null) {
         title,
         schemaVersion,
         visibility: cleanBoard.visibility === "private" ? "private" : "public",
-        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+        // On create, if there is an authenticated user, record ownership regardless of visibility.
+        userId: ownerUserId ?? null,
       },
       update: {
         title,
         schemaVersion,
         visibility: cleanBoard.visibility === "private" ? "private" : "public",
-        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+        // Preserve existing owner when toggling to public.
+        // Only set owner when switching to private and caller provided an ownerUserId.
+        ...(cleanBoard.visibility === "private" && ownerUserId ? { userId: ownerUserId } : {}),
       },
     });
 

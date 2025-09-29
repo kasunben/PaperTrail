@@ -817,7 +817,7 @@
         color: #111827;
       }
       .modal__body {
-        padding: 0 25px 25px;
+        padding: 20px 25px;
         font-size: smaller;
       }
       .kv {
@@ -937,7 +937,6 @@
           <path d="M12 11v5" stroke-linecap="round" />
         </svg>
       </button>
-      {{#if is_owner}}
       <button id="settingsBtn" class="toolbar__btn toolbar__btn--icon" title="Board settings">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />
@@ -946,7 +945,6 @@
           />
         </svg>
       </button>
-      {{/if}}
       <details id="userBtn" class="toolbar__menu">
         <summary class="toolbar__avatar" title="{{handler}}">
           <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
@@ -1028,7 +1026,6 @@
         </div>
       </div>
     </div>
-    {{#if is_owner}}
     <div
       id="settingsModal"
       class="modal__backdrop"
@@ -1044,6 +1041,20 @@
           </button>
         </header>
         <div class="modal__body">
+          <p
+            id="settingsNotice"
+            style="
+              display: none;
+              margin: 0 0 10px;
+              color: #b45309;
+              background: #fff7ed;
+              border: 1px solid #fde68a;
+              padding: 8px 10px;
+              border-radius: 8px;
+            "
+          >
+            You can view settings on public boards, but only the owner can make changes.
+          </p>
           <div
             style="display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center"
           >
@@ -1067,36 +1078,21 @@
             <button id="saveMetaBtn">Save changes</button>
           </div>
 
-          <hr style="margin: 18px 0" />
-          <details>
+          <details style="margin-top: 10px;">
             <summary><strong>Danger zone</strong></summary>
-            <p style="color: #b91c1c">
-              Deleting this board is permanent. This removes nodes, edges, and uploads.
-            </p>
-            <div style="display: flex; gap: 10px; align-items: center">
-              <input
-                id="confirmIdInput"
-                type="text"
-                placeholder="Type board id to confirm: {{boardId}}"
-              />
-              <button
-                id="deleteBoardBtn"
-                style="
-                  background: #ef4444;
-                  color: #fff;
-                  border: 0;
-                  padding: 8px 12px;
-                  border-radius: 8px;
-                "
-              >
-                Delete board
-              </button>
+            <div style="border: 1px solid #ccc; margin-top: 5px; padding: 10px; border-radius: 0.3rem;">
+              <span style="color: #b91c1c">
+                Deleting this board is permanent. This removes nodes, edges, and uploads.
+              </span>
+              <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                <input id="confirmIdInput" type="text" placeholder="Type: {{boardId}}" />
+                <button id="deleteBoardBtn">Delete</button>
+              </div>
             </div>
           </details>
         </div>
       </div>
     </div>
-    {{/if}}
     <script>
       // Binding for dynamic values from server
       // (injected by server-side templating)
@@ -3006,8 +3002,8 @@
         if (e.key === "Escape" && aboutModal.classList.contains("show")) closeAbout();
       });
 
-      // Settings modal wiring
-      if (isOwner) {
+      // Settings modal wiring (always visible; non-owners see read-only UI)
+      {
         const settingsBtn = document.getElementById("settingsBtn");
         const settingsModal = document.getElementById("settingsModal");
         const settingsClose = document.getElementById("settingsClose");
@@ -3017,6 +3013,7 @@
         const saveMetaBtn = document.getElementById("saveMetaBtn");
         const deleteBoardBtn = document.getElementById("deleteBoardBtn");
         const confirmIdInput = document.getElementById("confirmIdInput");
+        const settingsNotice = document.getElementById("settingsNotice");
 
         function openSettings() {
           // initialize values from server-globals and from current UI
@@ -3029,6 +3026,18 @@
         function closeSettings() {
           settingsModal.classList.remove("show");
         }
+        // Disable controls for non-owners
+        if (!isOwner) {
+          settingsNotice.style.display = "block";
+          titleInput.setAttribute("readonly", "true");
+          visibilitySelect.setAttribute("disabled", "true");
+          statusSelect.setAttribute("disabled", "true");
+          saveMetaBtn.setAttribute("disabled", "true");
+          deleteBoardBtn.setAttribute("disabled", "true");
+          deleteBoardBtn.style.opacity = "0.6";
+          deleteBoardBtn.style.cursor = "not-allowed";
+        }
+
         settingsBtn?.addEventListener("click", openSettings);
         settingsClose?.addEventListener("click", closeSettings);
         settingsModal?.addEventListener("click", (e) => {
@@ -3059,14 +3068,8 @@
             window.__globals.initialTitle = newTitle;
             if (data.visibility) window.__globals.initialVisibility = data.visibility;
             if (data.status) window.__globals.initialStatus = data.status;
-            // If visibility became public, we may lose ownership; hide settings
-            if (String(data.visibility).toLowerCase() === "public") {
-              const btn = document.getElementById("settingsBtn");
-              btn?.parentNode?.removeChild(btn);
-              closeSettings();
-            } else {
-              closeSettings();
-            }
+            // Keep settings button visible for owners regardless of visibility
+            closeSettings();
             showStatus("Settings updated", { ttl: 1500 });
           } catch (e) {
             showStatus(e.message || "Update failed", { sticky: true });
@@ -3074,6 +3077,10 @@
         });
 
         deleteBoardBtn?.addEventListener("click", async () => {
+          if (!isOwner) {
+            showStatus("Only the owner can delete this board.", { sticky: true });
+            return;
+          }
           const confirmId = (confirmIdInput?.value || "").trim();
           if (confirmId !== window.__globals.board.id) {
             alert("Type the exact board id to confirm deletion.");
