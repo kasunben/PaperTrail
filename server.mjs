@@ -968,14 +968,14 @@ const uiHandler = {
       const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
       const isOwner = !!meta.userId && meta.userId === req.user?.id;
       return res.render("board", {
-        appVersion,
-        schemaVersion,
-        boardId: id,
+        app_version: appVersion,
+        schema_version: schemaVersion,
+        board_id: id,
+        board_title: meta.title,
+        board_visibility: meta.visibility,
+        board_status: meta.status,
         show_user_menu: showUserMenu,
         is_owner: isOwner,
-        initial_visibility: meta.visibility,
-        initial_status: meta.status,
-        initial_title: meta.title,
         // default status; fetch actual via DB to avoid extra call if needed
         // but we only selected visibility above, so select status too
       });
