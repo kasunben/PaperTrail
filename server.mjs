@@ -171,24 +171,24 @@ function isGuestUser(user) {
 // Delete all boards owned by a specific user and their associated assets
 async function deleteUserBoards(userId) {
   if (!userId) return;
-  
+
   try {
     // Get all boards owned by this user
     const boards = await prisma.board.findMany({
       where: { userId },
       select: { id: true },
     });
-    
+
     if (boards.length === 0) return;
-    
+
     console.log(`Deleting ${boards.length} boards for user ${userId}`);
-    
+
     // Delete boards and associated data in transaction
     await prisma.$transaction(async (tx) => {
       // Delete all boards (cascade will handle nodes, edges, node_tags)
       await tx.board.deleteMany({ where: { userId } });
     });
-    
+
     // Remove associated upload directories
     for (const board of boards) {
       try {
@@ -198,7 +198,7 @@ async function deleteUserBoards(userId) {
         logFsWarning(`Failed to remove uploads dir for board ${board.id}`, err);
       }
     }
-    
+
     console.log(`Successfully deleted ${boards.length} boards for user ${userId}`);
   } catch (error) {
     console.error(`Failed to delete boards for user ${userId}:`, error);
@@ -209,34 +209,33 @@ async function deleteUserBoards(userId) {
 async function cleanupOldGuestBoards(hoursOld = 24) {
   try {
     const cutoffTime = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
-    
+
     // Find old guest boards
     const oldGuestBoards = await prisma.board.findMany({
       where: {
         createdAt: { lt: cutoffTime },
         user: {
-          OR: [
-            { handler: "guest" },
-            { handler: { startsWith: "guest_" } }
-          ]
-        }
+          OR: [{ handler: "guest" }, { handler: { startsWith: "guest_" } }],
+        },
       },
       select: { id: true, userId: true },
     });
-    
+
     if (oldGuestBoards.length === 0) {
       console.log("No old guest boards to cleanup");
       return;
     }
-    
-    console.log(`Found ${oldGuestBoards.length} guest boards older than ${hoursOld} hours to cleanup`);
-    
+
+    console.log(
+      `Found ${oldGuestBoards.length} guest boards older than ${hoursOld} hours to cleanup`
+    );
+
     // Delete boards and associated data
     await prisma.$transaction(async (tx) => {
-      const boardIds = oldGuestBoards.map(b => b.id);
+      const boardIds = oldGuestBoards.map((b) => b.id);
       await tx.board.deleteMany({ where: { id: { in: boardIds } } });
     });
-    
+
     // Remove associated upload directories
     for (const board of oldGuestBoards) {
       try {
@@ -246,7 +245,7 @@ async function cleanupOldGuestBoards(hoursOld = 24) {
         logFsWarning(`Failed to remove uploads dir for board ${board.id}`, err);
       }
     }
-    
+
     console.log(`Successfully cleaned up ${oldGuestBoards.length} old guest boards`);
   } catch (error) {
     console.error("Failed to cleanup old guest boards:", error);
@@ -1302,14 +1301,14 @@ const authHandler = {
       if (token) {
         // Get session with user info before deleting
         const session = await getSessionWithUser(token);
-        
+
         try {
           await prisma.session.delete({ where: { token } });
         } catch (error) {
           console.warn("Failed to delete session during logout", error);
         }
         res.clearCookie(SESSION_COOKIE, cookieOpts);
-        
+
         // If this was a guest user, delete their boards
         if (session?.user && isGuestUser(session.user)) {
           console.log(`Guest user ${session.user.handler} logging out, cleaning up boards`);
@@ -2021,10 +2020,13 @@ app.listen(PORT, () => {
 });
 
 // Schedule cleanup of old guest boards every hour
-setInterval(async () => {
-  console.log("Running scheduled cleanup of old guest boards...");
-  await cleanupOldGuestBoards(24); // Clean up boards older than 24 hours
-}, 60 * 60 * 1000); // Run every hour
+setInterval(
+  async () => {
+    console.log("Running scheduled cleanup of old guest boards...");
+    await cleanupOldGuestBoards(24); // Clean up boards older than 24 hours
+  },
+  60 * 60 * 1000
+); // Run every hour
 
 // Run initial cleanup on startup after a short delay
 setTimeout(async () => {
