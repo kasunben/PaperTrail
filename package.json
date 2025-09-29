@@ -11,7 +11,9 @@
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:reset": "prisma/reset.sh",
     "start": "node server.mjs",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "nodemonConfig": {
     "watch": [
@@ -40,6 +42,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "prisma": "^6.16.2"
+    "prisma": "^6.16.2",
+    "prettier": "^3.3.3"
   }
 }
