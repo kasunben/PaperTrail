@@ -186,13 +186,24 @@ async function htmlRequireAuth(req, res, next) {
       req.user = { id: guest.id, email: guest.email };
       return next();
     }
+    // Still continue to show the board if it is public
+    const id = String(req.params.id || "").trim();
+    const meta = await prisma.board.findUnique({
+      where: { id },
+      select: { visibility: true },
+    });
+    if (meta?.visibility === "public") {
+      return next();
+    }
+    // Redirect to login
     res.clearCookie(SESSION_COOKIE, cookieOpts);
     const returnTo = encodeURIComponent(req.originalUrl || "/");
     return res.redirect(302, `/login?return_to=${returnTo}`);
+  } else {
+    req.user = { id: session.userId, email: session.user.email };
+    req.sessionToken = token;
+    next();
   }
-  req.user = { id: session.userId, email: session.user.email };
-  req.sessionToken = token;
-  next();
 }
 
 // HTML-only: block login/register for already authed users
@@ -700,6 +711,117 @@ const boardHandler = {
     if (!board) return res.status(404).json({ error: "Board not found" });
     return res.json(board);
   },
+  updateMeta: async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
+
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session) req.user = { id: session.userId, email: session.user.email };
+      }
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
+      const meta = await prisma.board.findUnique({
+        where: { id },
+        select: { id: true, userId: true, visibility: true, status: true, title: true },
+      });
+      if (!meta) return res.status(404).json({ error: "Board not found" });
+      // Authorization: only the existing owner may update
+      if (!meta.userId || meta.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const { visibility, status, title } = req.body || {};
+      let nextVisibility;
+      if (typeof visibility === "string") {
+        const v = visibility.toLowerCase();
+        if (v !== "public" && v !== "private")
+          return res.status(400).json({ error: "Bad visibility" });
+        nextVisibility = v;
+      }
+      let nextStatus;
+      if (typeof status === "string") {
+        const s = status.toLowerCase();
+        if (s !== "draft" && s !== "published")
+          return res.status(400).json({ error: "Bad status" });
+        nextStatus = s;
+      }
+      let nextTitle;
+      if (typeof title === "string") nextTitle = title.trim().slice(0, 256);
+
+      const data = {};
+      if (nextVisibility) data.visibility = nextVisibility;
+      if (nextStatus) data.status = nextStatus;
+      if (typeof nextTitle === "string") data.title = nextTitle || "Untitled Board";
+      // Ownership: preserve owner even if board is public so the creator still controls it.
+      data.userId = meta.userId;
+
+      if (Object.keys(data).length === 0)
+        return res.json({
+          ok: true,
+          id,
+          visibility: meta.visibility,
+          status: meta.status,
+          title: meta.title,
+        });
+
+      const updated = await prisma.board.update({ where: { id }, data });
+      return res.json({
+        ok: true,
+        id,
+        visibility: updated.visibility,
+        status: updated.status,
+        title: updated.title,
+      });
+    } catch (e) {
+      console.error("updateMeta error", e);
+      return res.status(500).json({ error: "Update failed" });
+    }
+  },
+  deleteBoard: async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
+
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session) req.user = { id: session.userId, email: session.user.email };
+      }
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
+      const meta = await prisma.board.findUnique({
+        where: { id },
+        select: { id: true, userId: true },
+      });
+      if (!meta) return res.status(404).json({ error: "Board not found" });
+      if (!meta.userId || meta.userId !== req.user.id)
+        return res.status(403).json({ error: "Forbidden" });
+
+      const { confirm, confirmId } = req.body || {};
+      if (!(confirm === true || confirm === "true" || confirmId === id)) {
+        return res.status(400).json({ error: "Confirmation required" });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.board.delete({ where: { id } });
+      });
+
+      try {
+        const dir = boardUploadsDir(__datadir, id);
+        await fs.rm(dir, { recursive: true, force: true });
+      } catch (err) {
+        logFsWarning("Failed to remove uploads dir", err);
+      }
+
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error("deleteBoard error", e);
+      return res.status(500).json({ error: "Delete failed" });
+    }
+  },
 };
 
 const fileHandler = {
@@ -835,13 +957,28 @@ const uiHandler = {
 
       const meta = await prisma.board.findUnique({
         where: { id },
-        select: { id: true, userId: true, visibility: true },
+        select: { id: true, userId: true, visibility: true, status: true, title: true },
       });
       if (!meta) {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
           description: "The board you’re looking for doesn’t exist or may have been moved.",
+        });
+      }
+
+      // Public boards: anyone may view
+      if (!req.user && meta.visibility === "public") {
+        return res.render("board", {
+          app_version: appVersion,
+          schema_version: schemaVersion,
+          board_id: id,
+          board_title: meta.title,
+          board_visibility: meta.visibility,
+          board_status: meta.status,
+          is_owner: false,
+          show_user_menu: false,
+          show_settings: false,
         });
       }
 
@@ -854,12 +991,17 @@ const uiHandler = {
         });
       }
 
-      const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
+      const isOwner = !!meta.userId && meta.userId === req.user?.id;
       return res.render("board", {
-        appVersion,
-        schemaVersion,
-        boardId: id,
-        show_user_menu: showUserMenu,
+        app_version: appVersion,
+        schema_version: schemaVersion,
+        board_id: id,
+        board_title: meta.title,
+        board_visibility: meta.visibility,
+        board_status: meta.status,
+        is_owner: isOwner,
+        show_user_menu: !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN),
+        show_settings: isOwner, // only owner may change settings
       });
     } catch (err) {
       console.error("route /b/:id error", err);
@@ -1515,13 +1657,16 @@ async function writeBoardToDb(cleanBoard, ownerUserId = null) {
         title,
         schemaVersion,
         visibility: cleanBoard.visibility === "private" ? "private" : "public",
-        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+        // On create, if there is an authenticated user, record ownership regardless of visibility.
+        userId: ownerUserId ?? null,
       },
       update: {
         title,
         schemaVersion,
         visibility: cleanBoard.visibility === "private" ? "private" : "public",
-        userId: cleanBoard.visibility === "private" ? ownerUserId : null,
+        // Preserve existing owner when toggling to public.
+        // Only set owner when switching to private and caller provided an ownerUserId.
+        ...(cleanBoard.visibility === "private" && ownerUserId ? { userId: ownerUserId } : {}),
       },
     });
 
@@ -1724,6 +1869,8 @@ app.post("/auth/password/reset", authHandler.resetPassword); // Request Body { t
 // $Routes.Board (API)
 app.get("/api/board/:id", boardHandler.getBoardById);
 app.post("/api/board/:id", boardHandler.createBoard);
+app.patch("/api/board/:id/meta", requireAuth, boardHandler.updateMeta);
+app.delete("/api/board/:id", requireAuth, boardHandler.deleteBoard);
 
 const uploadImage = multer({
   storage: multer.memoryStorage(),

@@ -817,7 +817,7 @@
         color: #111827;
       }
       .modal__body {
-        padding: 0 25px 25px;
+        padding: 5px 20px 15px;
         font-size: smaller;
       }
       .kv {
@@ -917,6 +917,7 @@
         accept="application/zip,application/x-zip-compressed,.zip,application/json"
         style="display: none"
       />
+      {{#if is_owner}}
       <button id="save" class="toolbar__btn toolbar__btn--icon" disabled title="Save">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -924,6 +925,7 @@
           <rect x="9" y="14" width="6" height="6" />
         </svg>
       </button>
+      {{/if}}
       <button id="reset" class="toolbar__btn toolbar__btn--icon" title="Reset board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 12a9 9 0 1 0 3-6" />
@@ -937,6 +939,16 @@
           <path d="M12 11v5" stroke-linecap="round" />
         </svg>
       </button>
+      {{#if show_settings}}
+      <button id="settingsBtn" class="toolbar__btn toolbar__btn--icon" title="Board settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .66.26 1.3.73 1.77.47.47 1.11.73 1.77.73H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+          />
+        </svg>
+      </button>
+      {{/if}}
       <details id="userBtn" class="toolbar__menu">
         <summary class="toolbar__avatar" title="{{handler}}">
           <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
@@ -1018,13 +1030,93 @@
         </div>
       </div>
     </div>
+    <div
+      id="settingsModal"
+      class="modal__backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsTitle"
+    >
+      <div class="modal">
+        <header class="modal__header">
+          <h3 id="settingsTitle" class="modal__title">Board settings</h3>
+          <button type="button" id="settingsClose" class="modal__close" aria-label="Close">
+            ✕
+          </button>
+        </header>
+        <div class="modal__body">
+          <p
+            id="settingsNotice"
+            style="
+              display: none;
+              margin: 10px 0px 0px;
+              color: #b45309;
+              background: #fff7ed;
+              border: 1px solid #fde68a;
+              padding: 8px 10px;
+              border-radius: 8px;
+            "
+          >
+            You can view settings on public boards, but only the owner can make changes.
+          </p>
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 140px 1fr;
+              gap: 10px;
+              align-items: center;
+              margin-top: 15px;
+            "
+          >
+            <label for="titleInput">Title</label>
+            <input id="titleInput" type="text" />
+
+            <label for="visibilitySelect">Visibility</label>
+            <select id="visibilitySelect">
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+
+            <label for="statusSelect">Status</label>
+            <select id="statusSelect">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px">
+            <button id="saveMetaBtn">Save changes</button>
+          </div>
+          {{#if is_owner}}
+          <details style="margin-top: 10px">
+            <summary><strong>Danger zone</strong></summary>
+            <div
+              style="border: 1px solid #ccc; margin-top: 5px; padding: 10px; border-radius: 0.3rem"
+            >
+              <span style="color: #b91c1c">
+                Deleting this board is permanent. This removes nodes, edges, and uploads.
+              </span>
+              <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px">
+                <input id="confirmIdInput" type="text" placeholder="Type: {{board_id}}" />
+                <button id="deleteBoardBtn">Delete</button>
+              </div>
+            </div>
+          </details>
+          {{/if}}
+        </div>
+      </div>
+    </div>
     <script>
       // Binding for dynamic values from server
       // (injected by server-side templating)
       window.__globals = {
-        appVersion: "{{appVersion}}",
-        schemaVersion: "{{schemaVersion}}",
-        board: { id: "{{boardId}}" },
+        appVersion: "{{app_version}}",
+        schemaVersion: "{{schema_version}}",
+        boardId: "{{board_id}}",
+        boardTitle: "{{board_title}}",
+        boardVisibility: "{{board_visibility}}",
+        boardStatus: "{{board_status}}",
+        isOwner: "{{is_owner}}",
       };
 
       // --- App State ---
@@ -1041,6 +1133,7 @@
       const infoBtn = document.getElementById("infoBtn");
       const aboutModal = document.getElementById("aboutModal");
       const aboutClose = document.getElementById("aboutClose");
+      const isOwner = String(window.__globals.isOwner) === "true";
       let lastSavedJSON = null;
 
       // --- Ensure DOM positions/sizes are synced to the model prior to save
@@ -1060,6 +1153,7 @@
 
       // Rebind the Save button to guarantee our latest handler and avoid duplicate listeners
       function wireSaveButton() {
+        if (!saveBtn) return;
         const oldBtn = document.getElementById("save");
         const newBtn = oldBtn.cloneNode(true); // drops prior listeners
         oldBtn.parentNode.replaceChild(newBtn, oldBtn);
@@ -1070,15 +1164,12 @@
             newBtn.disabled = true;
             // Always sync the latest DOM position/size state before snapshot + POST
             syncDomToModel();
-            const payload = { ...board, id: window.__globals.board.id };
-            const resp = await fetch(
-              `/api/board/${encodeURIComponent(window.__globals.board.id)}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              }
-            );
+            const payload = { ...board, id: window.__globals.boardId };
+            const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
             const data = await resp.json().catch(() => ({}));
             if (!resp.ok) throw new Error(data && data.error ? data.error : "Save failed");
             // Update local model with canonical server state
@@ -1274,6 +1365,8 @@
         return JSON.stringify(stableBoardSnapshot(board));
       }
       function updateSaveButton() {
+        if (!saveBtn) return;
+
         const snap = computeSnapshot();
         // On first run, capture a clean baseline so Save starts disabled,
         // and subsequent changes correctly enable the button.
@@ -1505,7 +1598,7 @@
 
       (async function loadInitialBoard() {
         try {
-          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`);
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`);
           if (!resp.ok) throw new Error("not found");
           const board = await resp.json();
           boardNameEl.textContent = board.title;
@@ -1514,7 +1607,7 @@
           updateSaveButton();
           wireSaveButton();
         } catch (e) {
-          console.error("Failed to load board:", window.__globals.board.id, e);
+          console.error("Failed to load board:", window.__globals.boardId, e);
           window.location.href = "/404.html";
         }
       })();
@@ -2537,7 +2630,7 @@
         // Let the server stream a ZIP (includes board.json and uploads/)
         showStatus("Export in progress…", { sticky: true });
         // Trigger the download
-        window.location.href = `/api/board/${encodeURIComponent(window.__globals.board.id)}/export`;
+        window.location.href = `/api/board/${encodeURIComponent(window.__globals.boardId)}/export`;
         // After a short delay, update the message to guide user
         setTimeout(() => {
           showStatus("Export initiated. Please check your downloads folder once it completes.", {
@@ -2787,7 +2880,7 @@
             const probeFd = new FormData();
             probeFd.append("bundle", file);
             const probeResp = await fetch(
-              `/api/board/${encodeURIComponent(window.__globals.board.id)}/validate-import`,
+              `/api/board/${encodeURIComponent(window.__globals.boardId)}/validate-import`,
               {
                 method: "POST",
                 body: probeFd,
@@ -2813,7 +2906,7 @@
             const fd = new FormData();
             fd.append("bundle", file);
             const resp = await fetch(
-              `/api/board/${encodeURIComponent(window.__globals.board.id)}/import`,
+              `/api/board/${encodeURIComponent(window.__globals.boardId)}/import`,
               {
                 method: "POST",
                 body: fd,
@@ -2886,8 +2979,10 @@
         updateClearBtn();
         searchInput.focus();
       });
-      $("#save").onclick = saveBoard;
-      $("#reset").onclick = resetBoard;
+      if (isOwner) {
+        $("#save").onclick = saveBoard;
+        $("#reset").onclick = resetBoard;
+      }
 
       function viewCenter() {
         const rect = boardEl.getBoundingClientRect();
@@ -2921,6 +3016,109 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && aboutModal.classList.contains("show")) closeAbout();
       });
+
+      // Settings modal wiring (always visible; non-owners see read-only UI)
+      {
+        const settingsBtn = document.getElementById("settingsBtn");
+        const settingsModal = document.getElementById("settingsModal");
+        const settingsClose = document.getElementById("settingsClose");
+        const visibilitySelect = document.getElementById("visibilitySelect");
+        const statusSelect = document.getElementById("statusSelect");
+        const titleInput = document.getElementById("titleInput");
+        const saveMetaBtn = document.getElementById("saveMetaBtn");
+        const deleteBoardBtn = document.getElementById("deleteBoardBtn");
+        const confirmIdInput = document.getElementById("confirmIdInput");
+        const settingsNotice = document.getElementById("settingsNotice");
+
+        function openSettings() {
+          // initialize values from server-globals and from current UI
+          titleInput.value =
+            window.__globals.boardTitle || document.getElementById("boardName").textContent || "";
+          visibilitySelect.value = (window.__globals.boardVisibility || "public").toLowerCase();
+          statusSelect.value = (window.__globals.boardStatus || "draft").toLowerCase();
+          settingsModal.classList.add("show");
+        }
+        function closeSettings() {
+          settingsModal.classList.remove("show");
+        }
+        // Disable controls for non-owners
+        if (!isOwner) {
+          settingsNotice.style.display = "block";
+          titleInput.setAttribute("readonly", "true");
+          titleInput.setAttribute("disabled", "true");
+          visibilitySelect.setAttribute("disabled", "true");
+          statusSelect.setAttribute("disabled", "true");
+          saveMetaBtn.setAttribute("disabled", "true");
+          if (deleteBoardBtn) {
+            deleteBoardBtn.setAttribute("disabled", "true");
+            deleteBoardBtn.style.opacity = "0.6";
+            deleteBoardBtn.style.cursor = "not-allowed";
+          }
+        }
+
+        settingsBtn?.addEventListener("click", openSettings);
+        settingsClose?.addEventListener("click", closeSettings);
+        settingsModal?.addEventListener("click", (e) => {
+          if (e.target === settingsModal) closeSettings();
+        });
+
+        saveMetaBtn?.addEventListener("click", async () => {
+          try {
+            const payload = {
+              visibility: visibilitySelect.value,
+              status: statusSelect.value,
+              title: titleInput.value,
+            };
+            const resp = await fetch(
+              `/api/board/${encodeURIComponent(window.__globals.boardId)}/meta`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }
+            );
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data?.error || "Update failed");
+            // Reflect immediately in UI and local state
+            const newTitle = data.title || titleInput.value;
+            document.getElementById("boardName").textContent = newTitle;
+            if (typeof board === "object") board.title = newTitle;
+            window.__globals.boardTitle = newTitle;
+            if (data.visibility) window.__globals.boardVisibility = data.visibility;
+            if (data.status) window.__globals.boardStatus = data.status;
+            // Keep settings button visible for owners regardless of visibility
+            closeSettings();
+            showStatus("Settings updated", { ttl: 1500 });
+          } catch (e) {
+            showStatus(e.message || "Update failed", { sticky: true });
+          }
+        });
+
+        deleteBoardBtn?.addEventListener("click", async () => {
+          if (!isOwner) {
+            showStatus("Only the owner can delete this board.", { sticky: true });
+            return;
+          }
+          const confirmId = (confirmIdInput?.value || "").trim();
+          if (confirmId !== window.__globals.boardId) {
+            alert("Type the exact board id to confirm deletion.");
+            return;
+          }
+          if (!confirm("This will permanently delete the board and its data. Continue?")) return;
+          try {
+            const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ confirm: true, confirmId }),
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data?.error || "Delete failed");
+            window.location.href = "/";
+          } catch (e) {
+            showStatus(e.message || "Delete failed", { sticky: true });
+          }
+        });
+      }
       /** end of Info Button */
 
       function toggleConnectMode() {
@@ -2982,7 +3180,7 @@
       // Load existing board
       async function loadBoard() {
         try {
-          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`);
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`);
           const data = await resp.json();
           board = data;
           render();
@@ -3002,10 +3200,12 @@
       }
 
       async function saveBoard() {
+        if (!saveBtn) return;
+
         saveBtn.disabled = true;
         setStatus("Saving…");
         try {
-          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`, {
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.boardId)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(board),
@@ -3055,7 +3255,7 @@
           const fd = new FormData();
           fd.append("image", file);
           const res = await fetch(
-            `/api/board/${encodeURIComponent(window.__globals.board.id)}/upload-image`,
+            `/api/board/${encodeURIComponent(window.__globals.boardId)}/upload-image`,
             {
               method: "POST",
               body: fd,
