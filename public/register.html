@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -24,15 +24,18 @@
       }
       body.page {
         margin: 0;
-        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Helvetica, Arial;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial;
         color: var(--color-ink);
         background: var(--color-bg);
         /* same background grid style as board.html */
-        background-image: radial-gradient(
-          var(--color-muted) 1px,
-          transparent 1px
-        );
+        background-image: radial-gradient(var(--color-muted) 1px, transparent 1px);
         background-size: 16px 16px;
         background-position: -1px -1px;
         -webkit-font-smoothing: antialiased;
@@ -72,7 +75,9 @@
         align-items: center;
         gap: 10px;
         box-shadow: var(--shadow);
-        transition: transform 0.02s ease, filter 0.15s ease;
+        transition:
+          transform 0.02s ease,
+          filter 0.15s ease;
         text-decoration: none;
       }
       .button--primary {
@@ -168,7 +173,7 @@
         <h2 class="auth__title">Create account</h2>
         <div class="auth__card">
           {{#if error}}
-            <div class="alert alert--error">{{error}}</div>
+          <div class="alert alert--error">{{error}}</div>
           {{/if}}
           <form class="form" method="post" action="/auth/register">
             <div class="field">
@@ -219,9 +224,7 @@
             </div>
             <div class="actions">
               <a class="link" href="/login">Already have an account?</a>
-              <button class="button button--primary" type="submit">
-                Register
-              </button>
+              <button class="button button--primary" type="submit">Register</button>
             </div>
           </form>
         </div>

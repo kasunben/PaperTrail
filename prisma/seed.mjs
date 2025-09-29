@@ -88,8 +88,7 @@ const demoBoard = {
       data: {
         title: "Colombo: Central Precinct (illustrative)",
         descHtml: "Illustrative image placeholder for central Colombo area.",
-        imageUrl:
-          "https://upload.wikimedia.org/wikipedia/commons/f/f0/Colombo_-_Galle_Face.jpg",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Colombo_-_Galle_Face.jpg",
         tags: ["illustration", "location", "ts:2022-07-09t16:00"],
       },
     },
@@ -101,8 +100,7 @@ const demoBoard = {
       w: 380,
       data: {
         title: "Social Media Compilation (example)",
-        descHtml:
-          "Example compilation placeholder for public footage from July events.",
+        descHtml: "Example compilation placeholder for public footage from July events.",
         linkUrl: "https://www.youtube.com/",
         tags: ["media", "source", "ts:2022-07-10t09:00"],
       },
@@ -167,8 +165,7 @@ const demoBoard = {
       w: 360,
       data: {
         title: "Galle Face (illustrative)",
-        descHtml:
-          "Illustrative image placeholder for Galle Face area / camp vibe.",
+        descHtml: "Illustrative image placeholder for Galle Face area / camp vibe.",
         imageUrl:
           "https://thumbs.dreamstime.com/b/sri-lanka-mass-protest-movement-colombo-th-july-thousands-people-unite-near-beira-lake-estuary-presidential-secretary-hq-253149364.jpg",
         tags: ["camp", "illustration", "ts:2022-04-20t10:00"],
@@ -340,8 +337,7 @@ const demoBoard = {
       w: 420,
       data: {
         title: "The Wire: The Timeline of the Sri Lankan Protests",
-        descHtml:
-          "Secondary timeline reference. (If blocked, use cached versions).",
+        descHtml: "Secondary timeline reference. (If blocked, use cached versions).",
         linkUrl: "https://thewire.in/south-asia/sri-lanka-protests-timeline",
         tags: ["source", "timeline"],
       },
@@ -367,8 +363,7 @@ const demoBoard = {
       y: 1229,
       w: 420,
       data: {
-        title:
-          "Guardian: President to resign after residence stormed (Jul 9, 2022)",
+        title: "Guardian: President to resign after residence stormed (Jul 9, 2022)",
         descHtml: "Reporting on July 9 events and resignation pledge.",
         linkUrl:
           "https://www.theguardian.com/world/2022/jul/09/sri-lanka-protests-thousands-storm-presidents-residence-colombo",
@@ -398,8 +393,7 @@ const demoBoard = {
       data: {
         title: "TIME: Ranil Wickremesinghe elected President",
         descHtml: "Context on the July 20 vote and aftermath.",
-        linkUrl:
-          "https://time.com/6198951/sri-lanka-ranil-wickeremesinghe-president-protests/",
+        linkUrl: "https://time.com/6198951/sri-lanka-ranil-wickeremesinghe-president-protests/",
         tags: ["leadership", "source"],
       },
     },
@@ -497,9 +491,7 @@ async function seedDemoBoard() {
     where: { id: demoBoard.id },
   });
   if (existing) {
-    console.log(
-      `Demo board '${demoBoard.id}' already exists. Skipping (no destructive changes).`
-    );
+    console.log(`Demo board '${demoBoard.id}' already exists. Skipping (no destructive changes).`);
     return;
   }
 

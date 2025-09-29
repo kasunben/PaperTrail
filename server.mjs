@@ -23,9 +23,7 @@ const pkg = require("./package.json");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const __templatedir = path.join(__dirname, "public");
-const __datadir = path.resolve(
-  process.env.__datadir || path.join(process.cwd(), "data")
-);
+const __datadir = path.resolve(process.env.__datadir || path.join(process.cwd(), "data"));
 
 // Fetch appVersion  and schemaVersion (from package.json)
 const appVersion = pkg.version;
@@ -37,8 +35,7 @@ await fs.mkdir(path.join(__datadir, "uploads"), { recursive: true });
 
 // Guest login feature flags
 const GUEST_LOGIN_ENABLED = process.env.GUEST_LOGIN_ENABLED === "true";
-const GUEST_LOGIN_ENABLED_BYPASS_LOGIN =
-  process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
+const GUEST_LOGIN_ENABLED_BYPASS_LOGIN = process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
 
 /** $DB.Prisma (SQLite/PostgreSQL) */
 const prisma = new PrismaClient();
@@ -87,9 +84,7 @@ async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
     } catch (err) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(
-          `Failed to connect to the database after ${maxRetries} attempts. Exiting.`
-        );
+        console.error(`Failed to connect to the database after ${maxRetries} attempts. Exiting.`);
         process.exit(1);
       }
       console.warn(
@@ -179,8 +174,7 @@ async function disallowIfAuthed(req, res, next) {
   const token = req.cookies?.[SESSION_COOKIE];
   const session = await getSessionWithUser(token);
   if (session) {
-    const rt =
-      typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const rt = typeof req.query.return_to === "string" ? req.query.return_to : "";
     const dest = rt && rt.startsWith("/") ? rt : "/";
     return res.redirect(302, dest);
   }
@@ -250,9 +244,7 @@ const miscHandler = {
         });
       }
 
-      const contentType = (
-        resp.headers.get("content-type") || ""
-      ).toLowerCase();
+      const contentType = (resp.headers.get("content-type") || "").toLowerCase();
       if (!contentType.includes("text/html")) {
         return res.json(minimal());
       }
@@ -281,37 +273,23 @@ const miscHandler = {
 
       // Title
       const ogTitle =
-        pick(
-          /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i
-        );
-      const title =
-        ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
+        pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:title["'][^>]*>/i);
+      const title = ogTitle || pick(/<title[^>]*>([^<]*)<\/title>/i) || parsed.hostname;
 
       // Description
       const ogDesc =
-        pick(
-          /<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) ||
-        pick(
-          /<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i
-        );
+        pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        pick(/<meta[^>]+content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i);
 
       // Site name
       const siteName =
-        pick(
-          /<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i
-        ) || parsed.hostname;
+        pick(/<meta[^>]+property=["']og:site_name["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+        parsed.hostname;
 
       // Image
-      const ogImg = pick(
-        /<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i
-      );
+      const ogImg = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
 
       // Icon
       const iconHref =
@@ -353,13 +331,10 @@ const boardHandler = {
   exportBoard: async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!isValidBoardId(id))
-        return res.status(400).json({ error: "Invalid board id" });
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
       const b = await readBoardFromDb(id);
       if (!b) return res.status(404).json({ error: "Board not found" });
-      const base = (b.title || b.id || "board")
-        .toString()
-        .replace(/[^a-z0-9-_]+/gi, "_");
+      const base = (b.title || b.id || "board").toString().replace(/[^a-z0-9-_]+/gi, "_");
       const name = `${base}-${b.id || "board"}.zip`;
 
       res.setHeader("Content-Type", "application/zip");
@@ -391,15 +366,11 @@ const boardHandler = {
   importBoard: async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!isValidBoardId(id))
-        return res.status(400).json({ error: "Invalid board id" });
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
       if (!req.file) return res.status(400).json({ error: "No file" });
 
       // Create a temp workspace
-      const tmpDir = path.join(
-        __datadir,
-        ".import-" + crypto.randomBytes(4).toString("hex")
-      );
+      const tmpDir = path.join(__datadir, ".import-" + crypto.randomBytes(4).toString("hex"));
       await fs.mkdir(tmpDir, { recursive: true });
       const tmpZip = path.join(tmpDir, "bundle.zip");
       await fs.writeFile(tmpZip, req.file.buffer);
@@ -410,17 +381,14 @@ const boardHandler = {
           const s = unzipper.Extract({ path: tmpDir });
           s.on("close", resolve);
           s.on("error", reject);
-          import("node:fs").then(({ createReadStream }) =>
-            createReadStream(tmpZip).pipe(s)
-          );
+          import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
         });
 
         // Locate board.json (root or single inner folder)
         async function findBoardJson(root) {
           const entries = await fs.readdir(root, { withFileTypes: true });
           for (const e of entries) {
-            if (e.isFile() && e.name === "board.json")
-              return path.join(root, e.name);
+            if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
           }
           const dirs = entries.filter((e) => e.isDirectory());
           if (dirs.length === 1) {
@@ -445,11 +413,7 @@ const boardHandler = {
         } catch {
           parsed = null;
         }
-        if (
-          !parsed ||
-          !Array.isArray(parsed.nodes) ||
-          !Array.isArray(parsed.edges)
-        ) {
+        if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
           return res.status(400).json({ error: "Invalid board.json" });
         }
 
@@ -459,9 +423,7 @@ const boardHandler = {
           const token = req.cookies?.[SESSION_COOKIE];
           const session = await getSessionWithUser(token);
           if (!session)
-            return res
-              .status(401)
-              .json({ error: "Login required for importing private boards" });
+            return res.status(401).json({ error: "Login required for importing private boards" });
           req.user = { id: session.userId, email: session.user.email };
         }
         const targetId = id;
@@ -510,14 +472,10 @@ const boardHandler = {
   validateBoardBeforeImport: async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!isValidBoardId(id))
-        return res.status(400).json({ error: "Invalid board id" });
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
       if (!req.file) return res.status(400).json({ error: "No file" });
 
-      const tmpDir = path.join(
-        __datadir,
-        ".probe-" + crypto.randomBytes(4).toString("hex")
-      );
+      const tmpDir = path.join(__datadir, ".probe-" + crypto.randomBytes(4).toString("hex"));
       await fs.mkdir(tmpDir, { recursive: true });
       const tmpZip = path.join(tmpDir, "bundle.zip");
       await fs.writeFile(tmpZip, req.file.buffer);
@@ -528,17 +486,14 @@ const boardHandler = {
           const s = unzipper.Extract({ path: tmpDir });
           s.on("close", resolve);
           s.on("error", reject);
-          import("node:fs").then(({ createReadStream }) =>
-            createReadStream(tmpZip).pipe(s)
-          );
+          import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
         });
 
         // Locate board.json (root or single inner folder)
         async function findBoardJson(root) {
           const entries = await fs.readdir(root, { withFileTypes: true });
           for (const e of entries) {
-            if (e.isFile() && e.name === "board.json")
-              return path.join(root, e.name);
+            if (e.isFile() && e.name === "board.json") return path.join(root, e.name);
           }
           const dirs = entries.filter((e) => e.isDirectory());
           if (dirs.length === 1) {
@@ -600,33 +555,24 @@ const boardHandler = {
   uploadImage: async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!isValidBoardId(id))
-        return res.status(400).json({ error: "Invalid board id" });
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
       const vis = await getBoardVisibility(id);
       if (vis === "private") {
         const token = req.cookies?.[SESSION_COOKIE];
         const session = await getSessionWithUser(token);
         if (!session)
-          return res
-            .status(401)
-            .json({ error: "Login required for uploads to private boards" });
+          return res.status(401).json({ error: "Login required for uploads to private boards" });
         req.user = { id: session.userId, email: session.user.email };
       }
 
       if (!req.file) return res.status(400).json({ error: "No file uploaded" });
       if (!/^image\//i.test(req.file.mimetype || "")) {
-        return res
-          .status(400)
-          .json({ error: "Only image uploads are allowed" });
+        return res.status(400).json({ error: "Only image uploads are allowed" });
       }
 
       const buf = req.file.buffer;
       // Generate a stable name based on content hash + short stamp
-      const hash = crypto
-        .createHash("sha1")
-        .update(buf)
-        .digest("hex")
-        .slice(0, 12);
+      const hash = crypto.createHash("sha1").update(buf).digest("hex").slice(0, 12);
       const stamp = Date.now().toString(36).slice(-6);
       const safeBase =
         (req.file.originalname || "upload")
@@ -671,22 +617,15 @@ const boardHandler = {
   createBoard: async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
-      if (!isValidBoardId(id))
-        return res.status(400).json({ error: "Invalid board id" });
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
       if (!req.body || typeof req.body !== "object") {
         return res.status(400).json({ error: "Invalid board payload" });
       }
       // If incoming board is private, enforce auth (public boards can be saved without auth)
-      if (
-        String(req.body?.visibility || "").toLowerCase() === "private" &&
-        !req.user
-      ) {
+      if (String(req.body?.visibility || "").toLowerCase() === "private" && !req.user) {
         const token = req.cookies?.[SESSION_COOKIE];
         const session = await getSessionWithUser(token);
-        if (!session)
-          return res
-            .status(401)
-            .json({ error: "Login required for private boards" });
+        if (!session) return res.status(401).json({ error: "Login required for private boards" });
         req.user = { id: session.userId, email: session.user.email };
       }
       const clean = sanitizeBoard(req.body, id);
@@ -702,15 +641,13 @@ const boardHandler = {
   },
   getBoardById: async (req, res) => {
     const id = String(req.params.id || "").trim();
-    if (!isValidBoardId(id))
-      return res.status(400).json({ error: "Invalid board id" });
+    if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
 
     try {
       if (!req.user) {
         const token = req.cookies?.[SESSION_COOKIE];
         const session = await getSessionWithUser(token);
-        if (session)
-          req.user = { id: session.userId, email: session.user.email };
+        if (session) req.user = { id: session.userId, email: session.user.email };
       }
     } catch {}
 
@@ -720,11 +657,7 @@ const boardHandler = {
     });
     if (!meta) return res.status(404).json({ error: "Board not found" });
 
-    if (
-      meta.visibility === "private" &&
-      meta.userId &&
-      meta.userId !== req.user?.id
-    ) {
+    if (meta.visibility === "private" && meta.userId && meta.userId !== req.user?.id) {
       return res.status(404).json({ error: "Board not found" });
     }
 
@@ -809,9 +742,7 @@ const uiHandler = {
           if (u) handler = u.handler;
         } catch {}
       }
-      const showUserMenu = !(
-        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
-      );
+      const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
       return res.render("index", {
         boards,
         handler,
@@ -832,8 +763,7 @@ const uiHandler = {
     }
     const justRegistered = String(req.query.registered || "") === "1";
     const justReset = String(req.query.reset || "") === "1";
-    const returnTo =
-      typeof req.query.return_to === "string" ? req.query.return_to : "";
+    const returnTo = typeof req.query.return_to === "string" ? req.query.return_to : "";
     const forgotMode = String(req.query.forgot || "") === "1";
     const token = typeof req.query.token === "string" ? req.query.token : "";
     const resetMode = !!token;
@@ -841,8 +771,8 @@ const uiHandler = {
       success: justRegistered
         ? "Account created. Please sign in."
         : justReset
-        ? "Password updated. Please sign in."
-        : null,
+          ? "Password updated. Please sign in."
+          : null,
       return_to: returnTo,
       forgot_mode: forgotMode && !resetMode,
       reset_mode: resetMode,
@@ -861,8 +791,7 @@ const uiHandler = {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
-          description:
-            "The board you’re looking for doesn’t exist or may have been moved.",
+          description: "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
 
@@ -874,28 +803,20 @@ const uiHandler = {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
-          description:
-            "The board you’re looking for doesn’t exist or may have been moved.",
+          description: "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
 
       // Private boards: only owner may view
-      if (
-        meta.visibility === "private" &&
-        meta.userId &&
-        meta.userId !== req.user?.id
-      ) {
+      if (meta.visibility === "private" && meta.userId && meta.userId !== req.user?.id) {
         return res.status(404).render("error", {
           code: 404,
           message: "Board not found",
-          description:
-            "The board you’re looking for doesn’t exist or may have been moved.",
+          description: "The board you’re looking for doesn’t exist or may have been moved.",
         });
       }
 
-      const showUserMenu = !(
-        GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN
-      );
+      const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
       return res.render("board", {
         appVersion,
         schemaVersion,
@@ -939,8 +860,7 @@ const authHandler = {
     try {
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       const { token, password, confirm_password } = req.body || {};
       const tkn = typeof token === "string" ? token : "";
       const pwd = typeof password === "string" ? password : "";
@@ -958,19 +878,14 @@ const authHandler = {
       if (pwd.length < 6 || !/[A-Za-z]/.test(pwd) || !/\d/.test(pwd)) {
         if (isFormContent) {
           return res.status(400).render("login", {
-            error:
-              "Password must be at least 6 characters and include a letter and a number.",
+            error: "Password must be at least 6 characters and include a letter and a number.",
             reset_mode: true,
             token: tkn,
           });
         }
         return res.status(400).json({ error: "Weak password" });
       }
-      if (
-        isFormContent &&
-        typeof confirm_password === "string" &&
-        pwd !== confirm_password
-      ) {
+      if (isFormContent && typeof confirm_password === "string" && pwd !== confirm_password) {
         return res.status(400).render("login", {
           error: "Passwords do not match.",
           reset_mode: true,
@@ -1007,8 +922,7 @@ const authHandler = {
       console.error("/auth/password/reset error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("login", {
           error: "Failed to reset password. Please try again.",
@@ -1023,11 +937,9 @@ const authHandler = {
     try {
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       const { email } = req.body || {};
-      const emailNorm =
-        typeof email === "string" ? email.trim().toLowerCase() : "";
+      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
 
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)) {
         if (isFormContent) {
@@ -1075,8 +987,7 @@ const authHandler = {
       console.error("/auth/password/forgot error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("login", {
           error: "Failed to process request.",
@@ -1129,20 +1040,14 @@ const authHandler = {
     try {
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
 
       const { email, password, return_to } = req.body || {};
-      const emailNorm =
-        typeof email === "string" ? email.trim().toLowerCase() : "";
+      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
       const pwd = typeof password === "string" ? password : "";
 
       // Basic validations
-      if (
-        typeof emailNorm !== "string" ||
-        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm) ||
-        !pwd
-      ) {
+      if (typeof emailNorm !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm) || !pwd) {
         if (isFormContent) {
           return res.status(400).render("login", {
             error: "Please enter a valid email and password.",
@@ -1182,10 +1087,7 @@ const authHandler = {
       await createSession(res, user, req);
 
       if (isFormContent) {
-        const dest =
-          typeof return_to === "string" && return_to.startsWith("/")
-            ? return_to
-            : "/";
+        const dest = typeof return_to === "string" && return_to.startsWith("/") ? return_to : "/";
         return res.redirect(302, dest);
       }
       return res.json({ ok: true });
@@ -1193,8 +1095,7 @@ const authHandler = {
       console.error("/auth/login error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("login", {
           error: "Login failed. Please try again.",
@@ -1210,21 +1111,18 @@ const authHandler = {
       // Decide response mode: HTML form vs JSON API
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
 
       // Pull fields (form may pass additional fields like confirm_password)
       const { handler, email, password, confirm_password } = req.body || {};
 
       // Normalize inputs
       const h = typeof handler === "string" ? handler.trim() : "";
-      const emailNorm =
-        typeof email === "string" ? email.trim().toLowerCase() : "";
+      const emailNorm = typeof email === "string" ? email.trim().toLowerCase() : "";
 
       // Validate handler/username (required)
       // Rules: 3–24 chars, starts with a letter, then letters/numbers/._-
-      const handlerOk =
-        typeof h === "string" && /^[A-Za-z][A-Za-z0-9._-]{2,23}$/.test(h || "");
+      const handlerOk = typeof h === "string" && /^[A-Za-z][A-Za-z0-9._-]{2,23}$/.test(h || "");
       if (!handlerOk) {
         if (isFormContent) {
           return res.status(400).render("register", {
@@ -1233,16 +1131,11 @@ const authHandler = {
             values: { handler: h, email: emailNorm },
           });
         }
-        return res
-          .status(400)
-          .json({ error: "Invalid username", code: "BAD_HANDLER" });
+        return res.status(400).json({ error: "Invalid username", code: "BAD_HANDLER" });
       }
 
       // Validate email
-      if (
-        typeof emailNorm !== "string" ||
-        !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)
-      ) {
+      if (typeof emailNorm !== "string" || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)) {
         if (isFormContent) {
           return res.status(400).render("register", {
             error: "Please enter a valid email address.",
@@ -1254,15 +1147,10 @@ const authHandler = {
 
       // Validate password: length ≥ 6 AND contains at least one letter and one number
       const passStr = typeof password === "string" ? password : "";
-      if (
-        passStr.length < 6 ||
-        !/[A-Za-z]/.test(passStr) ||
-        !/\d/.test(passStr)
-      ) {
+      if (passStr.length < 6 || !/[A-Za-z]/.test(passStr) || !/\d/.test(passStr)) {
         if (isFormContent) {
           return res.status(400).render("register", {
-            error:
-              "Password must be at least 6 characters and include a letter and a number.",
+            error: "Password must be at least 6 characters and include a letter and a number.",
             values: { handler: h, email: emailNorm },
           });
         }
@@ -1270,11 +1158,7 @@ const authHandler = {
       }
 
       // Confirm password (only checked for form flow; API clients can omit)
-      if (
-        isFormContent &&
-        typeof confirm_password === "string" &&
-        passStr !== confirm_password
-      ) {
+      if (isFormContent && typeof confirm_password === "string" && passStr !== confirm_password) {
         return res.status(400).render("register", {
           error: "Passwords do not match.",
           values: { handler: h, email: emailNorm },
@@ -1283,9 +1167,7 @@ const authHandler = {
 
       // Uniqueness checks
       const [existingEmail, existingHandler] = await Promise.all([
-        prisma.user
-          .findUnique({ where: { email: emailNorm } })
-          .catch(() => null),
+        prisma.user.findUnique({ where: { email: emailNorm } }).catch(() => null),
         prisma.user.findFirst({ where: { handler: h } }).catch(() => null),
       ]);
       if (existingHandler) {
@@ -1334,8 +1216,7 @@ const authHandler = {
       console.error("/auth/register error", e);
       const accept = String(req.headers["accept"] || "");
       const isFormContent =
-        req.is("application/x-www-form-urlencoded") ||
-        accept.includes("text/html");
+        req.is("application/x-www-form-urlencoded") || accept.includes("text/html");
       if (isFormContent) {
         return res.status(500).render("register", {
           error: "Registration failed. Please try again.",
@@ -1369,13 +1250,9 @@ const authHandler = {
 function sanitizeBoard(incoming, fallbackId) {
   const out = {
     id: ensureBoardId(incoming.id, fallbackId),
-    title:
-      typeof incoming.title === "string"
-        ? incoming.title.slice(0, 256)
-        : "Untitled",
+    title: typeof incoming.title === "string" ? incoming.title.slice(0, 256) : "Untitled",
     visibility:
-      typeof incoming.visibility === "string" &&
-      incoming.visibility.toLowerCase() === "private"
+      typeof incoming.visibility === "string" && incoming.visibility.toLowerCase() === "private"
         ? "private"
         : "public",
     createdAt: incoming.createdAt || new Date().toISOString(),
@@ -1383,13 +1260,9 @@ function sanitizeBoard(incoming, fallbackId) {
     nodes: [],
     edges: [],
   };
-  const nodes = Array.isArray(incoming.nodes)
-    ? incoming.nodes.slice(0, 5000)
-    : [];
+  const nodes = Array.isArray(incoming.nodes) ? incoming.nodes.slice(0, 5000) : [];
   out.nodes = nodes.map(sanitizeNode);
-  const edges = Array.isArray(incoming.edges)
-    ? incoming.edges.slice(0, 20000)
-    : [];
+  const edges = Array.isArray(incoming.edges) ? incoming.edges.slice(0, 20000) : [];
   for (let i = 0; i < edges.length; i++) {
     const e = sanitizeEdge(edges[i], i);
     if (!e) continue;
@@ -1421,9 +1294,7 @@ function sanitizeEdge(edge, i = 0) {
 function sanitizeNode(node, i = 0) {
   const n = {
     id: typeof node.id === "string" ? node.id : `n-${i}`,
-    type: ["text", "image", "link", "imageText"].includes(node.type)
-      ? node.type
-      : "text",
+    type: ["text", "image", "link", "imageText"].includes(node.type) ? node.type : "text",
     x: Number.isFinite(node.x) ? node.x : 100 + i * 20,
     y: Number.isFinite(node.y) ? node.y : 100 + i * 20,
     w: Number.isFinite(node.w) ? node.w : undefined,
@@ -1519,9 +1390,7 @@ function uuid(prefix = "", salt = "") {
 
   // Build core and ensure only allowed characters, then clamp to budget
   const maxCore = Math.max(3, maxTotal - String(prefix).length);
-  const core = `${ts}${rand}${extra}`
-    .replace(/[^A-Za-z0-9_-]/g, "")
-    .slice(0, maxCore);
+  const core = `${ts}${rand}${extra}`.replace(/[^A-Za-z0-9_-]/g, "").slice(0, maxCore);
 
   return `${prefix}${core}`.trim();
 }
@@ -1565,14 +1434,8 @@ async function readBoardFromDb(boardId) {
     id: b.id,
     visibility: (b.visibility || "public").toString().toLowerCase(),
     title: b.title,
-    createdAt: (b.createdAt instanceof Date
-      ? b.createdAt
-      : new Date(b.createdAt)
-    ).toISOString(),
-    updatedAt: (b.updatedAt instanceof Date
-      ? b.updatedAt
-      : new Date(b.updatedAt)
-    ).toISOString(),
+    createdAt: (b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)).toISOString(),
+    updatedAt: (b.updatedAt instanceof Date ? b.updatedAt : new Date(b.updatedAt)).toISOString(),
     nodes: b.nodes.map((n) => ({
       id: n.id,
       type: n.type,
@@ -1678,8 +1541,7 @@ async function writeBoardToDb(cleanBoard, ownerUserId = null) {
 
 // $Utils.Auth
 const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME || "pt_session";
-const sessionTtlMs =
-  1000 * 60 * 60 * Number(process.env.SESSION_TTL_HOURS ?? 720); // 30 days default
+const sessionTtlMs = 1000 * 60 * 60 * Number(process.env.SESSION_TTL_HOURS ?? 720); // 30 days default
 const cookieOpts = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production", // HTTPS in prod
@@ -1787,8 +1649,7 @@ app.use((req, res, next) => {
     return res.status(404).render("error", {
       code: 404,
       message: "Page not found",
-      description:
-        "The page you’re looking for doesn’t exist or may have been moved.",
+      description: "The page you’re looking for doesn’t exist or may have been moved.",
     });
   }
   next();
@@ -1824,11 +1685,7 @@ const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
-app.post(
-  "/api/board/:id/upload-image",
-  uploadImage.single("image"),
-  boardHandler.uploadImage
-);
+app.post("/api/board/:id/upload-image", uploadImage.single("image"), boardHandler.uploadImage);
 
 // Shared Multer config for board bundle uploads (probe & import)
 const bundleUpload = multer({
@@ -1840,11 +1697,7 @@ app.post(
   bundleUpload.single("bundle"),
   boardHandler.validateBoardBeforeImport
 );
-app.post(
-  "/api/board/:id/import",
-  bundleUpload.single("bundle"),
-  boardHandler.importBoard
-);
+app.post("/api/board/:id/import", bundleUpload.single("bundle"), boardHandler.importBoard);
 
 app.get("/api/board/:id/export", boardHandler.exportBoard);
 
@@ -1856,8 +1709,7 @@ app.use((_, res) => {
   return res.status(404).render("error", {
     code: 404,
     message: "Page not found",
-    description:
-      "The page you’re looking for doesn’t exist or may have been moved.",
+    description: "The page you’re looking for doesn’t exist or may have been moved.",
   });
 });
 
