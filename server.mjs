@@ -186,13 +186,24 @@ async function htmlRequireAuth(req, res, next) {
       req.user = { id: guest.id, email: guest.email };
       return next();
     }
+    // Still continue to show the board if it is public
+    const id = String(req.params.id || "").trim();
+    const meta = await prisma.board.findUnique({
+      where: { id },
+      select: { visibility: true },
+    });
+    if (meta?.visibility === "public") {
+      return next();
+    }
+    // Redirect to login
     res.clearCookie(SESSION_COOKIE, cookieOpts);
     const returnTo = encodeURIComponent(req.originalUrl || "/");
     return res.redirect(302, `/login?return_to=${returnTo}`);
+  } else {
+    req.user = { id: session.userId, email: session.user.email };
+    req.sessionToken = token;
+    next();
   }
-  req.user = { id: session.userId, email: session.user.email };
-  req.sessionToken = token;
-  next();
 }
 
 // HTML-only: block login/register for already authed users
@@ -956,6 +967,21 @@ const uiHandler = {
         });
       }
 
+      // Public boards: anyone may view
+      if (!req.user && meta.visibility === "public") {
+        return res.render("board", {
+          app_version: appVersion,
+          schema_version: schemaVersion,
+          board_id: id,
+          board_title: meta.title,
+          board_visibility: meta.visibility,
+          board_status: meta.status,
+          is_owner: false,
+          show_user_menu: false,
+          show_settings: false,
+        });
+      }
+
       // Private boards: only owner may view
       if (meta.visibility === "private" && meta.userId && meta.userId !== req.user?.id) {
         return res.status(404).render("error", {
@@ -965,7 +991,6 @@ const uiHandler = {
         });
       }
 
-      const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
       const isOwner = !!meta.userId && meta.userId === req.user?.id;
       return res.render("board", {
         app_version: appVersion,
@@ -975,7 +1000,8 @@ const uiHandler = {
         board_visibility: meta.visibility,
         board_status: meta.status,
         is_owner: isOwner,
-        show_user_menu: showUserMenu,
+        show_user_menu: !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN),
+        show_settings: isOwner, // only owner may change settings
         // default status; fetch actual via DB to avoid extra call if needed
         // but we only selected visibility above, so select status too
       });
