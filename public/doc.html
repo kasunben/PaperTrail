@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PaperTrail — map your evidence, follow the story.</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+
+    <!-- Primary SEO -->
+    <meta name="application-name" content="PaperTrail" />
+    <meta
+      name="description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta
+      name="keywords"
+      content="evidence board, investigation, graph, nodes, links, mind map, research, PaperTrail"
+    />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="/" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:site_name" content="PaperTrail" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="PaperTrail — map your evidence, follow the story."
+    />
+    <meta
+      property="og:description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/assets/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="PaperTrail — map your evidence, follow the story."
+    />
+    <meta
+      name="twitter:description"
+      content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
+    />
+    <meta name="twitter:image" content="/assets/og-image.png" />
+
+    <style>
+      :root {
+        --color-bg: #ffffff;
+        --color-muted: #9ca3af;
+        --color-ink: #e5e7eb;
+        --color-accent: #60a5fa;
+        --color-border-card: #e2e8f0;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--color-bg);
+        color: #111;
+        font: 14px/1.4 ui-sans-serif, system-ui;
+      }
+      .toolbar__title {
+        display: flex;
+        flex-direction: column;
+        margin-right: 1rem;
+      }
+      .toolbar__brand {
+        font-weight: 700;
+        font-size: 16px;
+        color: #111827;
+        text-decoration: none;
+      }
+      .toolbar__tagline {
+        font-size: 11px;
+        color: #6b7280;
+      }
+      .toolbar__board-name {
+        font-size: 12px;
+        color: #374151;
+        margin-top: 2px;
+        font-style: italic;
+      }
+      .toolbar__board-name[contenteditable="true"] {
+        cursor: text;
+        border-bottom: 1px dashed #e5e7eb;
+        padding-bottom: 1px;
+        line-height: 1.2;
+        max-width: 280px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .toolbar__board-name[contenteditable="true"]:focus {
+        outline: none;
+        border-bottom: 1px dashed #60a5fa;
+      }
+      .toolbar__board-name[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .toolbar {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: #f9fafb;
+        color: #111;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        align-items: flex-end;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .toolbar input,
+      .toolbar button,
+      .toolbar select {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #111;
+        padding: 0.45rem 0.8rem;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-weight: 500;
+        box-shadow: var(--shadow);
+        transition: background 0.2s, box-shadow 0.2s;
+        outline: none;
+      }
+      .toolbar__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.45rem;
+      }
+      .toolbar__btn--icon svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+      }
+      .toolbar__btn--icon svg.filled {
+        fill: currentColor;
+        stroke: none;
+      }
+      .toolbar button:hover,
+      .toolbar select:hover {
+        background: #f3f4f6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .toolbar button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .toolbar__spacer {
+        flex: 1;
+      }
+      /* Avatar dropdown (context menu) */
+      .toolbar__menu {
+        position: relative;
+      }
+      .toolbar__menu summary {
+        list-style: none;
+        outline: none;
+        cursor: pointer;
+      }
+      .toolbar__menu summary::-webkit-details-marker {
+        display: none;
+      }
+      .toolbar__menu[open] .toolbar__avatar {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+          0 0 0 1px var(--color-border-card) inset;
+      }
+      .toolbar__menu-panel {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--color-border-card);
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+        min-width: 160px;
+        padding: 6px;
+        z-index: 20;
+      }
+      .toolbar__avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #e5e7eb;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--color-border-card);
+        box-shadow: var(--shadow);
+      }
+      .toolbar__avatar > img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .menu__item {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #0f172a;
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .menu__item:hover {
+        background: #f1f5f9;
+      }
+
+      /* About modal */
+      .modal__backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .modal__backdrop.show {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        width: min(560px, 90vw);
+        max-height: 80vh;
+        overflow: auto;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      }
+      .modal__header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .modal__title {
+        margin: 0;
+        font-size: 16px;
+      }
+      .modal__close {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6b7280;
+      }
+      .modal__close:hover {
+        color: #111827;
+      }
+      .modal__body {
+        padding: 0 25px 25px;
+        font-size: smaller;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .kv div {
+        padding: 2px 0;
+      }
+
+      /* Removed board, node, edge, context menu, rich text, tags, and statusbar styles */
+
+      /* Document editor (Google Docs–like) */
+      .doc {
+        background: #f3f4f6;
+        min-height: calc(100vh - 56px);
+      }
+      .editorbar {
+        position: sticky;
+        top: 50px; /* sits under the main toolbar */
+        z-index: 9;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: var(--shadow);
+      }
+      .editorbar .btn-group {
+        display: inline-flex;
+        gap: 6px;
+      }
+      .editorbar button,
+      .editorbar select {
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        color: #111;
+        padding: 6px 8px;
+        border-radius: 0.4rem;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        box-shadow: var(--shadow);
+      }
+      .editorbar button:hover,
+      .editorbar select:hover {
+        background: #f3f4f6;
+      }
+      .editorbar button.active {
+        background: #e5e7eb;
+      }
+
+      .page {
+        width: 816px; /* ~8.5in @ 96dpi */
+        margin: 18px auto 48px;
+        background: #fff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+      }
+      .page__content {
+        padding: 96px; /* ~1in margins */
+      }
+
+      .editor {
+        min-height: 900px;
+        outline: none;
+        font-family: Arial, ui-sans-serif, system-ui;
+        font-size: 11pt;
+        line-height: 1.15;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .editor[contenteditable="true"]:empty:before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+      }
+      .editor p {
+        margin: 0 0 12pt;
+      }
+      .editor h1 {
+        font-size: 24pt;
+        margin: 0 0 10pt;
+        font-weight: 700;
+      }
+      .editor h2 {
+        font-size: 20pt;
+        margin: 0 0 10pt;
+        font-weight: 700;
+      }
+      .editor h3 {
+        font-size: 16pt;
+        margin: 0 0 8pt;
+        font-weight: 700;
+      }
+      .editor ul,
+      .editor ol {
+        margin: 0 0 12pt 2em;
+      }
+      .editor blockquote {
+        margin: 0 0 12pt;
+        padding-left: 1em;
+        border-left: 3px solid #e5e7eb;
+        color: #374151;
+      }
+      .editor a {
+        color: #2563eb;
+        text-decoration: underline;
+      }
+      .editor img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      @media print {
+        .toolbar,
+        .editorbar,
+        .toolbar__menu-panel,
+        #aboutModal {
+          display: none !important;
+        }
+        .doc {
+          background: #fff;
+        }
+        .page {
+          width: auto;
+          border: 0;
+          box-shadow: none;
+          margin: 0;
+        }
+        .page__content {
+          padding: 96px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="toolbar">
+      <div class="toolbar__title">
+        <a class="toolbar__brand" href="/">PaperTrail</a>
+        <div class="toolbar__tagline">map your evidence, follow the story.</div>
+        <div
+          class="toolbar__board-name"
+          id="boardName"
+          contenteditable="true"
+          data-placeholder="Untitled Board"
+        ></div>
+      </div>
+      <div class="toolbar__spacer"></div>
+      <button
+        id="infoBtn"
+        class="toolbar__btn toolbar__btn--icon"
+        title="About / Info"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="8" r="1.4" />
+          <path d="M12 11v5" stroke-linecap="round" />
+        </svg>
+      </button>
+      <details id="userBtn" class="toolbar__menu">
+        <summary class="toolbar__avatar" title="{{handler}}">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="8" r="4" fill="#111" />
+            <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
+          </svg>
+        </summary>
+        {{#if show_user_menu}}
+        <div class="toolbar__menu-panel" role="menu" aria-label="User menu">
+          <a class="menu__item" href="/logout" role="menuitem">Logout</a>
+        </div>
+        {{/if}}
+      </details>
+    </div>
+
+    <div id="document" class="doc">
+      <div class="editorbar" role="toolbar" aria-label="Editor toolbar">
+        <select id="blockFmt" aria-label="Paragraph style" title="Paragraph style">
+          <option value="p">Normal text</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+        </select>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="bold" title="Bold (⌘B)">B</button>
+          <button type="button" data-cmd="italic" title="Italic (⌘I)"><em>I</em></button>
+          <button type="button" data-cmd="underline" title="Underline (⌘U)"><u>U</u></button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="insertUnorderedList" title="Bulleted list">• List</button>
+          <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" data-cmd="justifyLeft" title="Align left">⟸</button>
+          <button type="button" data-cmd="justifyCenter" title="Align center">⇔</button>
+          <button type="button" data-cmd="justifyRight" title="Align right">⟹</button>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" id="linkBtn" title="Insert link">Link</button>
+          <button type="button" id="imageBtn" title="Insert image">Image</button>
+          <button type="button" id="clearBtn" title="Clear formatting">Clear</button>
+          <button type="button" id="undoBtn" title="Undo (⌘Z)">Undo</button>
+          <button type="button" id="redoBtn" title="Redo (⇧⌘Z)">Redo</button>
+        </div>
+      </div>
+
+      <div class="page" role="region" aria-label="Document page">
+        <div class="page__content">
+          <div
+            id="editor"
+            class="editor"
+            contenteditable="true"
+            role="textbox"
+            aria-multiline="true"
+            spellcheck="true"
+            data-placeholder="Start typing..."
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="aboutModal"
+      class="modal__backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="aboutTitle"
+    >
+      <div class="modal">
+        <header class="modal__header">
+          <h3 id="aboutTitle" class="modal__title">
+            PaperTrail — map your evidence, follow the story
+          </h3>
+          <button
+            type="button"
+            id="aboutClose"
+            class="modal__close"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </header>
+        <div class="modal__body">
+          <p>
+            <em>PaperTrail</em> is a lightweight visual evidence board for
+            organizing ideas, documents, images, and links. It lets you pin down
+            pieces of information, connect them freely, and uncover patterns.
+          </p>
+          <div class="kv">
+            <div>App version</div>
+            <div id="aboutAppVersion">—</div>
+            <div>Schema version</div>
+            <div id="aboutSchemaVersion">—</div>
+            <div>Current board</div>
+            <div id="aboutBoardName">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Binding for dynamic values from server
+      window.__globals = {
+        appVersion: "{{appVersion}}",
+        schemaVersion: "{{schemaVersion}}",
+        board: { id: "{{boardId}}" },
+      };
+
+      // Minimal JS: About modal only
+      const infoBtn = document.getElementById("infoBtn");
+      const aboutModal = document.getElementById("aboutModal");
+      const aboutClose = document.getElementById("aboutClose");
+      const boardNameEl = document.getElementById("boardName");
+
+      function openAbout() {
+        document.getElementById("aboutAppVersion").textContent =
+          window.__globals.appVersion || "—";
+        document.getElementById("aboutSchemaVersion").textContent =
+          String(window.__globals.schemaVersion || "—");
+        document.getElementById("aboutBoardName").textContent =
+          (boardNameEl.textContent || "").trim() || "Untitled Board";
+        aboutModal.classList.add("show");
+      }
+      function closeAbout() {
+        aboutModal.classList.remove("show");
+      }
+
+      infoBtn.addEventListener("click", openAbout);
+      aboutClose.addEventListener("click", closeAbout);
+      aboutModal.addEventListener("click", (e) => {
+        if (e.target === aboutModal) closeAbout();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && aboutModal.classList.contains("show"))
+          closeAbout();
+      });
+
+      // Rich text editor wiring
+      const editor = document.getElementById("editor");
+      const STORAGE_KEY = `papertrail.doc.${window.__globals.board?.id || "default"}`;
+
+      function loadDoc() {
+        const html = localStorage.getItem(STORAGE_KEY);
+        if (html) {
+          editor.innerHTML = html;
+        } else {
+          editor.innerHTML = "<p></p>";
+        }
+      }
+      function saveDoc() {
+        localStorage.setItem(STORAGE_KEY, editor.innerHTML);
+      }
+      function exec(cmd, val = null) {
+        document.execCommand(cmd, false, val);
+        editor.focus();
+        saveDoc();
+        refreshToolbar();
+      }
+      // Toolbar handlers
+      document.querySelectorAll(".editorbar [data-cmd]").forEach((btn) => {
+        btn.addEventListener("click", () => exec(btn.dataset.cmd));
+      });
+      document.getElementById("blockFmt").addEventListener("change", (e) => {
+        exec("formatBlock", e.target.value);
+      });
+      document.getElementById("linkBtn").addEventListener("click", () => {
+        let url = prompt("Link URL");
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+        exec("createLink", url);
+      });
+      document.getElementById("imageBtn").addEventListener("click", () => {
+        const url = prompt("Image URL");
+        if (!url) return;
+        exec("insertImage", url);
+      });
+      document.getElementById("clearBtn").addEventListener("click", () => exec("removeFormat"));
+      document.getElementById("undoBtn").addEventListener("click", () => exec("undo"));
+      document.getElementById("redoBtn").addEventListener("click", () => exec("redo"));
+
+      // Keep toolbar state in sync
+      function refreshToolbar() {
+        document
+          .querySelectorAll('.editorbar [data-cmd="bold"], .editorbar [data-cmd="italic"], .editorbar [data-cmd="underline"]')
+          .forEach((btn) => {
+            const active = document.queryCommandState(btn.dataset.cmd);
+            btn.classList.toggle("active", !!active);
+          });
+        const block = (document.queryCommandValue("formatBlock") || "p").toLowerCase();
+        const blockFmt = document.getElementById("blockFmt");
+        const normalized = block.replace(/[<>]/g, "");
+        if (["p", "h1", "h2", "h3"].includes(normalized)) blockFmt.value = normalized;
+      }
+
+      // Basic paste sanitization (plain text)
+      editor.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      });
+
+      // Save on input, and Tab to indent lists
+      editor.addEventListener("input", saveDoc);
+      editor.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          exec(e.shiftKey ? "outdent" : "indent");
+        }
+      });
+      document.addEventListener("selectionchange", () => {
+        // Only refresh when selection is within the editor
+        const sel = document.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        const within = editor.contains(range.commonAncestorContainer);
+        if (within) refreshToolbar();
+      });
+
+      // Init
+      loadDoc();
+      refreshToolbar();
+      window.addEventListener("beforeunload", saveDoc);
+    </script>
+  </body>
+</html>
