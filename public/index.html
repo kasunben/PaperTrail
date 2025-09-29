@@ -110,7 +110,7 @@
       .boards__row {
         display: flex;
         gap: 10px;
-        align-items: center;
+        align-items: flex-start; /* was: center — keep visibility chip aligned to the top */
         justify-content: space-between;
       }
       .boards__meta {
@@ -120,6 +120,11 @@
         gap: 10px;
         align-items: center;
         flex-wrap: wrap;
+      }
+      /* Make status chip a bit smaller (only inside meta row) */
+      .boards__meta .boards__badge {
+        font-size: 11px;
+        padding: 2px 8px;
       }
       .boards__badge {
         font-size: 12px;
@@ -139,6 +144,7 @@
         font-weight: 600;
         align-self: flex-start;
         display: inline-block;
+        margin-top: auto; /* pin "Open" button to bottom of the card */
       }
       .boards__card--new {
         border: 2px dashed var(--color-border-card);
