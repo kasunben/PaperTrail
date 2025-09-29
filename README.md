@@ -96,7 +96,8 @@ We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/)
 - `feat/` → short-lived branches for new features or fixes.
 - `release/` → optional branches to prepare a release.
 - `hotfix/` → urgent fixes branched from main.
-- `fix/` → bug fixes
+- `fix/` → bug fixes branched from develop.
+- `chore/` → maintenance tasks (docs, tooling, dependencies, CI), no product changes.
 
 ##### Workflow
 

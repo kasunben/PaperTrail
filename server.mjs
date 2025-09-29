@@ -76,7 +76,11 @@ function sleep(ms) {
 }
 
 function isIgnorableFsError(error) {
-  return Boolean(error) && typeof error === "object" && (error.code === "ENOENT" || error.code === "ENOTDIR");
+  return (
+    Boolean(error) &&
+    typeof error === "object" &&
+    (error.code === "ENOENT" || error.code === "ENOTDIR")
+  );
 }
 
 function logFsWarning(context, error) {

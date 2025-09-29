@@ -1,6 +1,6 @@
 {
   "name": "papertrail",
-  "description": "PaperTrail \u2014 map your evidence, follow the story.",
+  "description": "PaperTrail — map your evidence, follow the story.",
   "version": "1.0.0-beta.1",
   "main": "server.mjs",
   "schemaVersion": 1,
@@ -12,8 +12,8 @@
     "prisma:reset": "prisma/reset.sh",
     "start": "node server.mjs",
     "dev": "nodemon",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
