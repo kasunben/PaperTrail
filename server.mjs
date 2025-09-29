@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { engine as hbsEngine } from "express-handlebars";
+import { rateLimit } from "express-rate-limit";
 import multer from "multer";
 import fetch from "node-fetch";
 import sharp from "sharp";
@@ -37,6 +38,13 @@ await fs.mkdir(path.join(__datadir, "uploads"), { recursive: true });
 // Guest login feature flags
 const GUEST_LOGIN_ENABLED = process.env.GUEST_LOGIN_ENABLED === "true";
 const GUEST_LOGIN_ENABLED_BYPASS_LOGIN = process.env.GUEST_LOGIN_ENABLED_BYPASS_LOGIN === "true";
+
+// Rate limiting configuration
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000; // 1 minute
+const RATE_LIMIT_UNAUTHENTICATED = Number(process.env.RATE_LIMIT_UNAUTHENTICATED) || 10; // 10 requests per minute
+const RATE_LIMIT_AUTHENTICATED = Number(process.env.RATE_LIMIT_AUTHENTICATED) || 100; // 100 requests per minute  
+const RATE_LIMIT_AUTH_ENDPOINTS = Number(process.env.RATE_LIMIT_AUTH_ENDPOINTS) || 5; // 5 requests per minute for auth endpoints
+const RATE_LIMIT_UPLOAD_ENDPOINTS = Number(process.env.RATE_LIMIT_UPLOAD_ENDPOINTS) || 5; // 5 requests per minute for uploads
 
 /** $DB.Prisma (SQLite/PostgreSQL) */
 const prisma = new PrismaClient();
@@ -315,6 +323,88 @@ async function disallowIfAuthed(req, res, next) {
   next();
 }
 /** -- eof::$Route.Middlewares -- */
+
+/** $Rate Limiting Middlewares */
+// Custom key generator that uses user ID for authenticated requests, IP for unauthenticated
+const rateLimitKeyGenerator = (req) => {
+  // For authenticated users, use their user ID
+  if (req.user?.id) {
+    return `user:${req.user.id}`;
+  }
+  // For unauthenticated users, use IP address
+  return `ip:${req.ip}`;
+};
+
+// Rate limiter for general API endpoints - differentiated by auth status
+const createApiRateLimit = () => rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: (req) => {
+    // Different limits for authenticated vs unauthenticated users
+    return req.user?.id ? RATE_LIMIT_AUTHENTICATED : RATE_LIMIT_UNAUTHENTICATED;
+  },
+  keyGenerator: rateLimitKeyGenerator,
+  message: {
+    error: "Too many requests",
+    message: "Rate limit exceeded. Please try again later.",
+    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for static assets
+    return req.path.startsWith('/assets/') || req.path.startsWith('/uploads/');
+  }
+});
+
+// Stricter rate limiter for authentication endpoints
+const authRateLimit = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: RATE_LIMIT_AUTH_ENDPOINTS,
+  keyGenerator: (req) => `auth:${req.ip}`, // Always use IP for auth endpoints
+  message: {
+    error: "Too many authentication attempts",
+    message: "Too many authentication attempts. Please try again later.",
+    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limiter for upload endpoints
+const uploadRateLimit = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: RATE_LIMIT_UPLOAD_ENDPOINTS,
+  keyGenerator: rateLimitKeyGenerator,
+  message: {
+    error: "Too many upload requests",
+    message: "Upload rate limit exceeded. Please try again later.", 
+    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Middleware to check authentication status before applying API rate limits
+const apiRateLimitWithAuth = async (req, res, next) => {
+  // Check if user is authenticated (similar to requireAuth but non-blocking)
+  const token = req.cookies?.[SESSION_COOKIE];
+  if (token) {
+    try {
+      const session = await getSessionWithUser(token);
+      if (session) {
+        req.user = { id: session.userId, email: session.user.email };
+      }
+    } catch {
+      // Continue without setting req.user if there's an error
+    }
+  }
+  
+  // Apply the rate limit
+  const rateLimiter = createApiRateLimit();
+  rateLimiter(req, res, next);
+};
+
+/** -- eof::$Rate Limiting Middlewares -- */
 
 /** $Route.Handlers */
 const miscHandler = {
@@ -1957,18 +2047,18 @@ app.get("/b/create-new", htmlRequireAuth, uiHandler.createNewBoard);
 app.get("/b/:id", htmlRequireAuth, uiHandler.viewBoard);
 
 // $Routes.Auth
-app.post("/auth/register", authHandler.register);
-app.post("/auth/login", authHandler.login);
-app.get("/auth/guest", authHandler.guestLogin);
+app.post("/auth/register", authRateLimit, authHandler.register);
+app.post("/auth/login", authRateLimit, authHandler.login);
+app.get("/auth/guest", authRateLimit, authHandler.guestLogin);
 app.post("/auth/logout", authHandler.logout);
 app.get("/auth/me", requireAuth, authHandler.getCurrentUser);
-app.get("/auth/verify", authHandler.verifyToken); // Request /?token=...
-app.post("/auth/password/forgot", authHandler.forgotPassword); // Request Body { email }
-app.post("/auth/password/reset", authHandler.resetPassword); // Request Body { token, password }
+app.get("/auth/verify", authRateLimit, authHandler.verifyToken); // Request /?token=...
+app.post("/auth/password/forgot", authRateLimit, authHandler.forgotPassword); // Request Body { email }
+app.post("/auth/password/reset", authRateLimit, authHandler.resetPassword); // Request Body { token, password }
 
 // $Routes.Board (API)
-app.get("/api/board/:id", boardHandler.getBoardById);
-app.post("/api/board/:id", boardHandler.createBoard);
+app.get("/api/board/:id", apiRateLimitWithAuth, boardHandler.getBoardById);
+app.post("/api/board/:id", apiRateLimitWithAuth, boardHandler.createBoard);
 app.patch("/api/board/:id/meta", requireAuth, boardHandler.updateMeta);
 app.delete("/api/board/:id", requireAuth, boardHandler.deleteBoard);
 
@@ -1976,7 +2066,7 @@ const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
-app.post("/api/board/:id/upload-image", uploadImage.single("image"), boardHandler.uploadImage);
+app.post("/api/board/:id/upload-image", uploadRateLimit, uploadImage.single("image"), boardHandler.uploadImage);
 
 // Shared Multer config for board bundle uploads (probe & import)
 const bundleUpload = multer({
@@ -1985,15 +2075,16 @@ const bundleUpload = multer({
 });
 app.post(
   "/api/board/:id/validate-import",
+  uploadRateLimit,
   bundleUpload.single("bundle"),
   boardHandler.validateBoardBeforeImport
 );
-app.post("/api/board/:id/import", bundleUpload.single("bundle"), boardHandler.importBoard);
+app.post("/api/board/:id/import", uploadRateLimit, bundleUpload.single("bundle"), boardHandler.importBoard);
 
-app.get("/api/board/:id/export", boardHandler.exportBoard);
+app.get("/api/board/:id/export", apiRateLimitWithAuth, boardHandler.exportBoard);
 
 // $Routes.Misc (API)
-app.post("/api/link-preview", miscHandler.fetchLinkPreview);
+app.post("/api/link-preview", apiRateLimitWithAuth, miscHandler.fetchLinkPreview);
 
 // 404 handler for unknown routes
 app.use((_, res) => {
