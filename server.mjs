@@ -42,7 +42,7 @@ const GUEST_LOGIN_ENABLED_BYPASS_LOGIN = process.env.GUEST_LOGIN_ENABLED_BYPASS_
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000; // 1 minute
 const RATE_LIMIT_UNAUTHENTICATED = Number(process.env.RATE_LIMIT_UNAUTHENTICATED) || 10; // 10 requests per minute
-const RATE_LIMIT_AUTHENTICATED = Number(process.env.RATE_LIMIT_AUTHENTICATED) || 100; // 100 requests per minute  
+const RATE_LIMIT_AUTHENTICATED = Number(process.env.RATE_LIMIT_AUTHENTICATED) || 100; // 100 requests per minute
 const RATE_LIMIT_AUTH_ENDPOINTS = Number(process.env.RATE_LIMIT_AUTH_ENDPOINTS) || 5; // 5 requests per minute for auth endpoints
 const RATE_LIMIT_UPLOAD_ENDPOINTS = Number(process.env.RATE_LIMIT_UPLOAD_ENDPOINTS) || 5; // 5 requests per minute for uploads
 
@@ -336,25 +336,26 @@ const rateLimitKeyGenerator = (req) => {
 };
 
 // Rate limiter for general API endpoints - differentiated by auth status
-const createApiRateLimit = () => rateLimit({
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  limit: (req) => {
-    // Different limits for authenticated vs unauthenticated users
-    return req.user?.id ? RATE_LIMIT_AUTHENTICATED : RATE_LIMIT_UNAUTHENTICATED;
-  },
-  keyGenerator: rateLimitKeyGenerator,
-  message: {
-    error: "Too many requests",
-    message: "Rate limit exceeded. Please try again later.",
-    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Skip rate limiting for static assets
-    return req.path.startsWith('/assets/') || req.path.startsWith('/uploads/');
-  }
-});
+const createApiRateLimit = () =>
+  rateLimit({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    limit: (req) => {
+      // Different limits for authenticated vs unauthenticated users
+      return req.user?.id ? RATE_LIMIT_AUTHENTICATED : RATE_LIMIT_UNAUTHENTICATED;
+    },
+    keyGenerator: rateLimitKeyGenerator,
+    message: {
+      error: "Too many requests",
+      message: "Rate limit exceeded. Please try again later.",
+      retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for static assets
+      return req.path.startsWith("/assets/") || req.path.startsWith("/uploads/");
+    },
+  });
 
 // Stricter rate limiter for authentication endpoints
 const authRateLimit = rateLimit({
@@ -364,10 +365,10 @@ const authRateLimit = rateLimit({
   message: {
     error: "Too many authentication attempts",
     message: "Too many authentication attempts. Please try again later.",
-    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Rate limiter for upload endpoints
@@ -377,11 +378,11 @@ const uploadRateLimit = rateLimit({
   keyGenerator: rateLimitKeyGenerator,
   message: {
     error: "Too many upload requests",
-    message: "Upload rate limit exceeded. Please try again later.", 
-    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)
+    message: "Upload rate limit exceeded. Please try again later.",
+    retryAfter: Math.ceil(RATE_LIMIT_WINDOW_MS / 1000),
   },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 });
 
 // Middleware to check authentication status before applying API rate limits
@@ -398,7 +399,7 @@ const apiRateLimitWithAuth = async (req, res, next) => {
       // Continue without setting req.user if there's an error
     }
   }
-  
+
   // Apply the rate limit
   const rateLimiter = createApiRateLimit();
   rateLimiter(req, res, next);
@@ -2066,7 +2067,12 @@ const uploadImage = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
-app.post("/api/board/:id/upload-image", uploadRateLimit, uploadImage.single("image"), boardHandler.uploadImage);
+app.post(
+  "/api/board/:id/upload-image",
+  uploadRateLimit,
+  uploadImage.single("image"),
+  boardHandler.uploadImage
+);
 
 // Shared Multer config for board bundle uploads (probe & import)
 const bundleUpload = multer({
@@ -2079,7 +2085,12 @@ app.post(
   bundleUpload.single("bundle"),
   boardHandler.validateBoardBeforeImport
 );
-app.post("/api/board/:id/import", uploadRateLimit, bundleUpload.single("bundle"), boardHandler.importBoard);
+app.post(
+  "/api/board/:id/import",
+  uploadRateLimit,
+  bundleUpload.single("bundle"),
+  boardHandler.importBoard
+);
 
 app.get("/api/board/:id/export", apiRateLimitWithAuth, boardHandler.exportBoard);
 
