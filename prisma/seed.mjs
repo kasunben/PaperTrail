@@ -566,11 +566,11 @@ async function main() {
   await seedDemoBoard();
 }
 
-main()
-  .catch((err) => {
-    console.error("Seed failed:", err);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+try {
+  await main();
+} catch (err) {
+  console.error("Seed failed:", err);
+  process.exit(1);
+} finally {
+  await prisma.$disconnect();
+}

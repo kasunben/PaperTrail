@@ -1,18 +1,19 @@
-import express from "express";
+import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
-import crypto from "crypto";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
+
+import archiver from "archiver";
+import argon2 from "argon2";
+import cookieParser from "cookie-parser";
+import express from "express";
+import { PrismaClient } from "@prisma/client";
+import { engine as hbsEngine } from "express-handlebars";
 import multer from "multer";
 import fetch from "node-fetch";
 import sharp from "sharp";
-import archiver from "archiver";
 import unzipper from "unzipper";
-import { PrismaClient } from "@prisma/client";
-import cookieParser from "cookie-parser";
-import argon2 from "argon2";
-import { engine as hbsEngine } from "express-handlebars";
-import { createRequire } from "module";
 
 import "dotenv/config";
 
@@ -74,6 +75,26 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isIgnorableFsError(error) {
+  return Boolean(error) && typeof error === "object" && (error.code === "ENOENT" || error.code === "ENOTDIR");
+}
+
+function logFsWarning(context, error) {
+  if (isIgnorableFsError(error)) return;
+  console.warn(context, error);
+}
+
+async function extractZipToDir(zipPath, destDir) {
+  const { createReadStream } = await import("node:fs");
+
+  await new Promise((resolve, reject) => {
+    const stream = unzipper.Extract({ path: destDir });
+    stream.on("close", resolve);
+    stream.on("error", reject);
+    createReadStream(zipPath).on("error", reject).pipe(stream);
+  });
+}
+
 // Retry logic for connecting to Prisma
 async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
   let attempt = 0;
@@ -88,7 +109,8 @@ async function connectPrismaWithRetry(maxRetries = 5, delayMs = 2000) {
         process.exit(1);
       }
       console.warn(
-        `Database connection failed (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`
+        `Database connection failed (attempt ${attempt}/${maxRetries}). Retrying in ${delayMs}ms...`,
+        err
       );
       await sleep(delayMs);
     }
@@ -353,8 +375,8 @@ const boardHandler = {
       try {
         await fs.access(boardUploadsDir(__datadir, b.id));
         archive.directory(boardUploadsDir(__datadir, b.id), "uploads");
-      } catch {
-        /* no uploads yet */
+      } catch (error) {
+        logFsWarning("No uploads found for export", error);
       }
 
       await archive.finalize();
@@ -377,12 +399,7 @@ const boardHandler = {
 
       try {
         // Extract (unzipper enforces extraction under tmpDir)
-        await new Promise((resolve, reject) => {
-          const s = unzipper.Extract({ path: tmpDir });
-          s.on("close", resolve);
-          s.on("error", reject);
-          import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
-        });
+        await extractZipToDir(tmpZip, tmpDir);
 
         // Locate board.json (root or single inner folder)
         async function findBoardJson(root) {
@@ -396,7 +413,9 @@ const boardHandler = {
             try {
               await fs.access(path.join(inner, "board.json"));
               return path.join(inner, "board.json");
-            } catch {}
+            } catch (error) {
+              logFsWarning("Nested board.json access check failed", error);
+            }
           }
           return null;
         }
@@ -436,7 +455,8 @@ const boardHandler = {
           const up = path.join(fromDir, "uploads");
           try {
             await fs.access(up);
-          } catch {
+          } catch (error) {
+            logFsWarning("Uploads directory access failed", error);
             return;
           }
           const dest = boardUploadsDir(__datadir, targetId);
@@ -447,7 +467,9 @@ const boardHandler = {
             const dst = path.join(dest, f);
             try {
               await fs.copyFile(src, dst);
-            } catch {}
+            } catch (error) {
+              logFsWarning(`Failed to copy upload from ${src} to ${dst}`, error);
+            }
           }
         }
         await copyUploads(path.dirname(bj));
@@ -459,10 +481,14 @@ const boardHandler = {
         // Always clean temp zip and directory
         try {
           await fs.unlink(tmpZip);
-        } catch {}
+        } catch (error) {
+          logFsWarning("Failed to remove temporary zip", error);
+        }
         try {
           await fs.rm(tmpDir, { recursive: true, force: true });
-        } catch {}
+        } catch (error) {
+          logFsWarning("Failed to remove temporary directory", error);
+        }
       }
     } catch (e) {
       console.error("importZip error", e);
@@ -482,12 +508,7 @@ const boardHandler = {
 
       try {
         // Extract into tmpDir
-        await new Promise((resolve, reject) => {
-          const s = unzipper.Extract({ path: tmpDir });
-          s.on("close", resolve);
-          s.on("error", reject);
-          import("node:fs").then(({ createReadStream }) => createReadStream(tmpZip).pipe(s));
-        });
+        await extractZipToDir(tmpZip, tmpDir);
 
         // Locate board.json (root or single inner folder)
         async function findBoardJson(root) {
@@ -501,7 +522,9 @@ const boardHandler = {
             try {
               await fs.access(path.join(inner, "board.json"));
               return path.join(inner, "board.json");
-            } catch {}
+            } catch (error) {
+              logFsWarning("Nested board.json access check failed", error);
+            }
           }
           return null;
         }
@@ -528,7 +551,9 @@ const boardHandler = {
           await fs.access(up);
           const list = await fs.readdir(up);
           hasUploads = list.length > 0;
-        } catch {}
+        } catch (error) {
+          logFsWarning("Uploads directory probe failed", error);
+        }
 
         return res.json({
           boardId:
@@ -542,10 +567,14 @@ const boardHandler = {
         // Always clean temp zip and directory
         try {
           await fs.unlink(tmpZip);
-        } catch {}
+        } catch (error) {
+          logFsWarning("Failed to remove temporary zip", error);
+        }
         try {
           await fs.rm(tmpDir, { recursive: true, force: true });
-        } catch {}
+        } catch (error) {
+          logFsWarning("Failed to remove temporary directory", error);
+        }
       }
     } catch (e) {
       console.error("probeZip error", e);
@@ -577,7 +606,7 @@ const boardHandler = {
       const safeBase =
         (req.file.originalname || "upload")
           .replace(/\.[^.]+$/, "")
-          .replace(/[^a-zA-Z0-9-_\.]/g, "_")
+          .replace(/[^0-9A-Za-z_.-]/g, "_")
           .slice(0, 40) || "img";
 
       const UP_DIR = boardUploadsDir(__datadir, id);
@@ -649,7 +678,9 @@ const boardHandler = {
         const session = await getSessionWithUser(token);
         if (session) req.user = { id: session.userId, email: session.user.email };
       }
-    } catch {}
+    } catch (error) {
+      console.warn("Failed to hydrate session before board fetch", error);
+    }
 
     const meta = await prisma.board.findUnique({
       where: { id },
@@ -686,7 +717,8 @@ const fileHandler = {
       filePath = path.join(uploadsRoot, rel);
 
       return res.sendFile(filePath);
-    } catch (e) {
+    } catch (error) {
+      console.warn("Failed to serve upload", error);
       return res.status(404).end();
     }
   },
@@ -740,7 +772,9 @@ const uiHandler = {
             select: { handler: true },
           });
           if (u) handler = u.handler;
-        } catch {}
+        } catch (error) {
+          console.warn("Failed to load user handler", error);
+        }
       }
       const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
       return res.render("index", {
@@ -1030,10 +1064,14 @@ const authHandler = {
       if (token) {
         try {
           await prisma.session.delete({ where: { token } });
-        } catch {}
+        } catch (error) {
+          console.warn("Failed to delete session during logout", error);
+        }
         res.clearCookie(SESSION_COOKIE, cookieOpts);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Logout handler failed", error);
+    }
     return res.redirect(302, "/login");
   },
   login: async (req, res) => {
@@ -1323,7 +1361,7 @@ function stripDangerousHtml(html) {
     .replace(/<(script|style|iframe|object|embed|link|meta)[^>]*>/gi, "");
   // remove event handlers + inline styles
   out = out
-    .replace(/\son[a-z]+\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/(href|src)\s*=\s*(['"])([^'"]*)\2/gi, (m, a, q, v) => {
       const safe = sanitizeUrl(v);
       return safe ? `${a}=${q}${safe}${q}` : "";
@@ -1594,7 +1632,9 @@ async function getSessionWithUser(token) {
     if (s) {
       try {
         await prisma.session.delete({ where: { token } });
-      } catch {}
+      } catch (error) {
+        console.warn("Failed to delete expired session", error);
+      }
     }
     return null;
   }
