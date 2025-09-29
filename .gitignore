@@ -11,3 +11,7 @@ node_modules
 
 /data/uploads/*
 !/data/uploads/.gitkeep
+
+# Test files
+test-guest-cleanup.mjs
+TESTING_GUIDE.md
