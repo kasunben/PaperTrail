@@ -10,7 +10,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { engine as hbsEngine } from "express-handlebars";
-import { rateLimit } from "express-rate-limit";
+import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 import multer from "multer";
 import fetch from "node-fetch";
 import sharp from "sharp";
@@ -327,12 +327,9 @@ async function disallowIfAuthed(req, res, next) {
 /** $Rate Limiting Middlewares */
 // Custom key generator that uses user ID for authenticated requests, IP for unauthenticated
 const rateLimitKeyGenerator = (req) => {
-  // For authenticated users, use their user ID
-  if (req.user?.id) {
-    return `user:${req.user.id}`;
-  }
-  // For unauthenticated users, use IP address
-  return `ip:${req.ip}`;
+  if (req.user?.id) return `user:${req.user.id}`;
+  // Use helper to normalize IPv4/IPv6 and avoid bypass
+  return `ip:${ipKeyGenerator(req)}`;
 };
 
 // Rate limiter for general API endpoints - differentiated by auth status
@@ -361,7 +358,7 @@ const createApiRateLimit = () =>
 const authRateLimit = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
   limit: RATE_LIMIT_AUTH_ENDPOINTS,
-  keyGenerator: (req) => `auth:${req.ip}`, // Always use IP for auth endpoints
+  keyGenerator: (req) => `auth:${ipKeyGenerator(req)}`, // normalize IPv4/IPv6
   message: {
     error: "Too many authentication attempts",
     message: "Too many authentication attempts. Please try again later.",
