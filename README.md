@@ -135,7 +135,7 @@ git push --force-with-lease
 git checkout main
 git merge --ff-only develop
 git push
-``` 
+```
 
 - Tag the release:
 
@@ -149,6 +149,7 @@ git push origin v1.2.0
 - Branch from `main`, fix, then merge back into both `main` and `develop`.
 
 > **Notes:**
+>
 > - Do not rebase shared branches (`main`, `develop`).
 > - Rebase your local feature branches before opening a PR to keep history linear.
 > - Squash merges ensure each feature is a single, clean commit in history.

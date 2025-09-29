@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -23,10 +23,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:site_name" content="PaperTrail" />
     <meta property="og:type" content="website" />
-    <meta
-      property="og:title"
-      content="PaperTrail — map your evidence, follow the story."
-    />
+    <meta property="og:title" content="PaperTrail — map your evidence, follow the story." />
     <meta
       property="og:description"
       content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
@@ -39,10 +36,7 @@
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta
-      name="twitter:title"
-      content="PaperTrail — map your evidence, follow the story."
-    />
+    <meta name="twitter:title" content="PaperTrail — map your evidence, follow the story." />
     <meta
       name="twitter:description"
       content="PaperTrail is a lightweight evidence-mapping app. Create text, image, and link nodes, connect them, auto-layout, and import/export boards."
@@ -63,7 +57,9 @@
         height: 100%;
         background: var(--color-bg);
         color: var(--color-ink);
-        font: 14px/1.4 ui-sans-serif, system-ui;
+        font:
+          14px/1.4 ui-sans-serif,
+          system-ui;
       }
       .toolbar__title {
         display: flex;
@@ -126,7 +122,9 @@
         cursor: pointer;
         font-weight: 500;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        transition: background 0.2s, box-shadow 0.2s;
+        transition:
+          background 0.2s,
+          box-shadow 0.2s;
         outline: none;
       }
       .toolbar__btn {
@@ -188,7 +186,8 @@
         display: none;
       }
       .toolbar__menu[open] .toolbar__avatar {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+        box-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.15),
           0 0 0 1px var(--color-border-card) inset;
       }
       .toolbar__menu-panel {
@@ -311,10 +310,7 @@
         height: calc(100% - 24px);
         /* refined by JS to subtract toolbar height */
         overflow: auto;
-        background-image: radial-gradient(
-          var(--color-muted) 1px,
-          transparent 1px
-        );
+        background-image: radial-gradient(var(--color-muted) 1px, transparent 1px);
         background-size: 16px 16px;
         background-position: -1px -1px;
       }
@@ -393,7 +389,9 @@
         height: 8px;
         border-radius: 50%;
         background: #94a3b8;
-        transition: background 0.2s, border-color 0.2s;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
         flex-shrink: 0;
       }
       .node__title {
@@ -604,7 +602,9 @@
         background: #ffffff;
         border: 1px dashed #d1d5db;
         border-radius: 6px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
       }
       .node:hover .rich[contenteditable="true"] {
         border-color: #cbd5e1;
@@ -845,11 +845,7 @@
           data-placeholder="Untitled Board"
         ></div>
       </div>
-      <button
-        id="addText"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Add text"
-      >
+      <button id="addText" class="toolbar__btn toolbar__btn--icon" title="Add text">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="3" width="16" height="18" rx="2" ry="2" />
           <line x1="8" y1="9" x2="16" y2="9" />
@@ -857,50 +853,29 @@
           <line x1="8" y1="17" x2="14" y2="17" />
         </svg>
       </button>
-      <button
-        id="addImage"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Add image (URL)"
-      >
+      <button id="addImage" class="toolbar__btn toolbar__btn--icon" title="Add image (URL)">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="3" y="5" width="18" height="14" rx="2" />
           <path d="M7 15l3-3 3 3 4-4 3 3" />
           <circle cx="9" cy="9" r="1.5" />
         </svg>
       </button>
-      <button
-        id="uploadImage"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Upload image"
-      >
+      <button id="uploadImage" class="toolbar__btn toolbar__btn--icon" title="Upload image">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 15V5" />
           <path d="M8 9l4-4 4 4" />
           <path d="M4 19h16" />
         </svg>
       </button>
-      <input
-        id="fileInput"
-        type="file"
-        accept="image/*"
-        style="display: none"
-      />
-      <button
-        id="addLink"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Add link"
-      >
+      <input id="fileInput" type="file" accept="image/*" style="display: none" />
+      <button id="addLink" class="toolbar__btn toolbar__btn--icon" title="Add link">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M10 14l-2 2a4 4 0 0 1-6-6l2-2" />
           <path d="M14 10l2-2a4 4 0 0 1 6 6l-2 2" />
           <path d="M8 12l8-8" opacity="0.0" />
         </svg>
       </button>
-      <button
-        id="connect"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Connect nodes (C)"
-      >
+      <button id="connect" class="toolbar__btn toolbar__btn--icon" title="Connect nodes (C)">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="6" cy="12" r="2" />
           <circle cx="18" cy="6" r="2" />
@@ -911,20 +886,11 @@
         </svg>
       </button>
       <div class="toolbar__search-wrap">
-        <input
-          id="search"
-          class="toolbar__search"
-          type="search"
-          placeholder="Search… (use #tag)"
-        />
+        <input id="search" class="toolbar__search" type="search" placeholder="Search… (use #tag)" />
         <button id="clearSearch" title="Clear search">✕</button>
       </div>
       <div class="toolbar__spacer"></div>
-      <button
-        id="autoLayout"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Auto layout"
-      >
+      <button id="autoLayout" class="toolbar__btn toolbar__btn--icon" title="Auto layout">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="4" width="6" height="6" />
           <rect x="14" y="4" width="6" height="6" />
@@ -932,22 +898,14 @@
           <rect x="14" y="14" width="6" height="6" />
         </svg>
       </button>
-      <button
-        id="export"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Export board"
-      >
+      <button id="export" class="toolbar__btn toolbar__btn--icon" title="Export board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 5v10" />
           <path d="M8 9l4-4 4 4" />
           <path d="M4 19h16" />
         </svg>
       </button>
-      <button
-        id="importBtn"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Import board"
-      >
+      <button id="importBtn" class="toolbar__btn toolbar__btn--icon" title="Import board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M12 19V9" />
           <path d="M8 15l4 4 4-4" />
@@ -960,33 +918,20 @@
         accept="application/zip,application/x-zip-compressed,.zip,application/json"
         style="display: none"
       />
-      <button
-        id="save"
-        class="toolbar__btn toolbar__btn--icon"
-        disabled
-        title="Save"
-      >
+      <button id="save" class="toolbar__btn toolbar__btn--icon" disabled title="Save">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <rect x="4" y="4" width="16" height="16" rx="2" />
           <rect x="8" y="4" width="8" height="6" />
           <rect x="9" y="14" width="6" height="6" />
         </svg>
       </button>
-      <button
-        id="reset"
-        class="toolbar__btn toolbar__btn--icon"
-        title="Reset board"
-      >
+      <button id="reset" class="toolbar__btn toolbar__btn--icon" title="Reset board">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 12a9 9 0 1 0 3-6" />
           <path d="M3 4v6h6" />
         </svg>
       </button>
-      <button
-        id="infoBtn"
-        class="toolbar__btn toolbar__btn--icon"
-        title="About / Info"
-      >
+      <button id="infoBtn" class="toolbar__btn toolbar__btn--icon" title="About / Info">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <circle cx="12" cy="8" r="1.4" />
@@ -996,13 +941,7 @@
       <details id="userBtn" class="toolbar__menu">
         <summary class="toolbar__avatar" title="{{handler}}">
           <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="12" cy="8" r="4" fill="#111" />
             <path d="M4 20c0-4 4-6 8-6s8 2 8 6" fill="#111" />
           </svg>
@@ -1037,48 +976,37 @@
           <h3 id="aboutTitle" class="modal__title">
             PaperTrail — map your evidence, follow the story
           </h3>
-          <button
-            type="button"
-            id="aboutClose"
-            class="modal__close"
-            aria-label="Close"
-          >
-            ✕
-          </button>
+          <button type="button" id="aboutClose" class="modal__close" aria-label="Close">✕</button>
         </header>
         <div class="modal__body">
           <p>
-            <em>PaperTrail</em> is a lightweight visual evidence board for
-            organizing ideas, documents, images, and links. It lets you pin down
-            pieces of information, connect them freely, and uncover patterns.
-            Whether you’re researching, investigating, or just making sense of
-            complex projects, PaperTrail helps you create a clear trail of
-            evidence you can return to and share.
+            <em>PaperTrail</em> is a lightweight visual evidence board for organizing ideas,
+            documents, images, and links. It lets you pin down pieces of information, connect them
+            freely, and uncover patterns. Whether you’re researching, investigating, or just making
+            sense of complex projects, PaperTrail helps you create a clear trail of evidence you can
+            return to and share.
           </p>
           <p>
-            At this stage, PaperTrail is designed as a single-user,
-            single-workspace app. That means there is only one active board
-            available at a time. Features such as real-time collaboration,
-            multi-user access, or simultaneous editing are not yet supported.
+            At this stage, PaperTrail is designed as a single-user, single-workspace app. That means
+            there is only one active board available at a time. Features such as real-time
+            collaboration, multi-user access, or simultaneous editing are not yet supported.
           </p>
           <p>
-            If you want to manage multiple boards or workspaces, you can still
-            do so manually using the Import/Export features:
+            If you want to manage multiple boards or workspaces, you can still do so manually using
+            the Import/Export features:
           </p>
           <ul>
             <li>Export your current board as a .zip file to save it.</li>
+            <li>Import a previously exported board to continue working on it.</li>
             <li>
-              Import a previously exported board to continue working on it.
-            </li>
-            <li>
-              You are responsible for organizing these exported files if you
-              wish to maintain multiple workspaces.
+              You are responsible for organizing these exported files if you wish to maintain
+              multiple workspaces.
             </li>
           </ul>
           <p>
-            This setup is lightweight and simple, making it ideal for solo use,
-            prototyping, or testing out ideas. Future versions of PaperTrail may
-            add multi-board support and collaboration features.
+            This setup is lightweight and simple, making it ideal for solo use, prototyping, or
+            testing out ideas. Future versions of PaperTrail may add multi-board support and
+            collaboration features.
           </p>
           <div class="kv">
             <div>App version</div>
@@ -1153,8 +1081,7 @@
               }
             );
             const data = await resp.json().catch(() => ({}));
-            if (!resp.ok)
-              throw new Error(data && data.error ? data.error : "Save failed");
+            if (!resp.ok) throw new Error(data && data.error ? data.error : "Save failed");
             // Update local model with canonical server state
             board = data;
             lastSavedJSON = computeSnapshot();
@@ -1177,10 +1104,7 @@
 
       function ensureGhostPath() {
         if (!ghostPath) {
-          ghostPath = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path"
-          );
+          ghostPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
           ghostPath.setAttribute("class", "edge edge--ghost");
           edgesSvg.appendChild(ghostPath);
         } else if (!edgesSvg.contains(ghostPath)) {
@@ -1582,9 +1506,7 @@
 
       (async function loadInitialBoard() {
         try {
-          const resp = await fetch(
-            `/api/board/${encodeURIComponent(window.__globals.board.id)}`
-          );
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`);
           if (!resp.ok) throw new Error("not found");
           const board = await resp.json();
           boardNameEl.textContent = board.title;
@@ -1603,8 +1525,7 @@
       let connectMode = false;
       let connectFromId = null;
 
-      const genId = (p = "id") =>
-        p + "-" + Math.random().toString(36).slice(2, 8);
+      const genId = (p = "id") => p + "-" + Math.random().toString(36).slice(2, 8);
 
       function addNode(type, at = { x: 100, y: 100 }, payload = {}) {
         const id = genId("n");
@@ -1654,9 +1575,7 @@
 
       function addEdge(sourceId, targetId) {
         if (!sourceId || !targetId || sourceId === targetId) return;
-        const already = board.edges.find(
-          (e) => e.sourceId === sourceId && e.targetId === targetId
-        );
+        const already = board.edges.find((e) => e.sourceId === sourceId && e.targetId === targetId);
         if (already) return;
         board.edges.push({ id: genId("e"), sourceId, targetId });
         markDirty();
@@ -1666,8 +1585,7 @@
       function removeSelection() {
         if (selectedNodeId) {
           board.edges = board.edges.filter(
-            (e) =>
-              e.sourceId !== selectedNodeId && e.targetId !== selectedNodeId
+            (e) => e.sourceId !== selectedNodeId && e.targetId !== selectedNodeId
           );
           board.nodes = board.nodes.filter((n) => n.id !== selectedNodeId);
           setStatus("Node deleted.");
@@ -1685,10 +1603,8 @@
         const el = document.getElementById(n.id);
         if (el) {
           // Use live DOM position to prevent model/view drift after save
-          const left =
-            Number.parseFloat(el.style.left) || el.offsetLeft || n.x || 0;
-          const top =
-            Number.parseFloat(el.style.top) || el.offsetTop || n.y || 0;
+          const left = Number.parseFloat(el.style.left) || el.offsetLeft || n.x || 0;
+          const top = Number.parseFloat(el.style.top) || el.offsetTop || n.y || 0;
           const w = n.w || el.offsetWidth || 200;
           const h = n.h || el.offsetHeight || 80;
           return { x: left, y: top, w, h };
@@ -1750,10 +1666,7 @@
               baseMinH = 80;
 
             // Desired width from drag, clamped to base min/max
-            let nextW = Math.max(
-              baseMinW,
-              Math.min(maxW, Math.round(startW + dx))
-            );
+            let nextW = Math.max(baseMinW, Math.min(maxW, Math.round(startW + dx)));
             // Apply width first to let text wrap and images scale, then measure content height
             el.style.width = nextW + "px";
             el.style.height = "auto";
@@ -1762,10 +1675,7 @@
             const contentMinH = Math.ceil(el.scrollHeight);
 
             // Desired height from drag, but never below content-required height
-            let nextH = Math.max(
-              baseMinH,
-              Math.min(maxH, Math.round(startH + dy))
-            );
+            let nextH = Math.max(baseMinH, Math.min(maxH, Math.round(startH + dy)));
             nextH = Math.max(nextH, contentMinH);
 
             // Commit
@@ -1810,10 +1720,7 @@
           el.addEventListener("contextmenu", (ev) => {
             // If right-click occurs inside an editable rich text area, allow native menu for copy/paste
             const richTarget = ev.target && ev.target.closest(".rich");
-            if (
-              richTarget &&
-              richTarget.getAttribute("contenteditable") === "true"
-            ) {
+            if (richTarget && richTarget.getAttribute("contenteditable") === "true") {
               return; // let the browser show its native menu
             }
             ev.preventDefault();
@@ -1935,10 +1842,7 @@
         el.classList.toggle("selected", selectedNodeId === n.id);
         // Ensure node type modifier class follows BEM: node--{type}
         el.classList.forEach((c) => {
-          if (
-            (c.startsWith("node-") || c.startsWith("node--")) &&
-            c !== "node"
-          ) {
+          if ((c.startsWith("node-") || c.startsWith("node--")) && c !== "node") {
             el.classList.remove(c);
           }
         });
@@ -1947,26 +1851,21 @@
         const titleEl = el.querySelector(".node__title");
         titleEl.setAttribute(
           "data-placeholder",
-          n.type === "text"
-            ? "Text title"
-            : n.type === "image"
-            ? "Image title"
-            : "Link title"
+          n.type === "text" ? "Text title" : n.type === "image" ? "Image title" : "Link title"
         );
         // Preserve existing title; allow empty to show placeholder
         titleEl.textContent =
           typeof n.data.title === "string"
             ? n.data.title
             : n.type === "text"
-            ? "Text"
-            : n.type === "image"
-            ? "Image"
-            : "Link";
+              ? "Text"
+              : n.type === "image"
+                ? "Image"
+                : "Link";
 
         const contentEl = el.querySelector(".node__content");
         if (n.type === "text") {
-          const html =
-            n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
+          const html = n.data.html ?? (n.data.text ? escapeHtml(n.data.text) : "");
           contentEl.innerHTML = `
             <div class="rtb" role="toolbar" aria-label="Text formatting">
               <button data-cmd="bold" title="Bold">B</button>
@@ -2000,8 +1899,8 @@
                     <button data-action="clear" title="Clear formatting">⨯</button>
                   </div>
                   <div class="rich" contenteditable="false" data-field="descHtml" data-placeholder="Add a description…" ${wrapDisplay}>${
-                  n.data.descHtml ?? ""
-                }</div>
+                    n.data.descHtml ?? ""
+                  }</div>
                 `;
               })()
             : `<em>No image</em>`;
@@ -2059,9 +1958,7 @@
               ? ""
               : `<button class="add-desc" type="button">+ Add description</button>`;
             contentEl.innerHTML =
-              `<a href="${escapeAttr(
-                u
-              )}" target="_blank" rel="noopener">${escapeHtml(u)}</a>` +
+              `<a href="${escapeAttr(u)}" target="_blank" rel="noopener">${escapeHtml(u)}</a>` +
               `<div style="margin-top:6px;color:#9ca3af;font-size:12px;">Loading preview…</div>` +
               `${addBtn}
                <div class="rtb" role="toolbar" aria-label="Text formatting" ${wrapDisplay}>
@@ -2272,9 +2169,7 @@
         const resizerEl = el.querySelector(".node__resizer");
         if (resizerEl) {
           resizerEl.style.display =
-            n.type === "text" || n.type === "image" || n.type === "link"
-              ? ""
-              : "none";
+            n.type === "text" || n.type === "image" || n.type === "link" ? "" : "none";
         }
       }
 
@@ -2429,10 +2324,7 @@
           g.setAttribute("data-id", e.id);
 
           // Path
-          const path = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path"
-          );
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
           path.setAttribute("d", smoothCubic(a1, a2));
           let cls = "edge" + (selectedEdgeId === e.id ? " edge--selected" : "");
           if (e.dashed) cls += " edge--dashed";
@@ -2449,10 +2341,7 @@
           if (e.label) {
             const tx = (a1.x + a2.x) / 2;
             const ty = (a1.y + a2.y) / 2 - 2; // closer to the curve
-            const text = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "text"
-            );
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
             text.setAttribute("x", tx);
             text.setAttribute("y", ty);
             text.setAttribute("class", "edge__label");
@@ -2502,19 +2391,13 @@
           g.appendChild(path);
 
           // Add endpoint circles
-          const startCircle = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "circle"
-          );
+          const startCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
           startCircle.setAttribute("cx", a1.x);
           startCircle.setAttribute("cy", a1.y);
           startCircle.setAttribute("r", "4");
           startCircle.setAttribute("class", "edge__endpoint");
 
-          const endCircle = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "circle"
-          );
+          const endCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
           endCircle.setAttribute("cx", a2.x);
           endCircle.setAttribute("cy", a2.y);
           endCircle.setAttribute("r", "4");
@@ -2561,7 +2444,7 @@
               ">": "&gt;",
               '"': "&quot;",
               "'": "&#39;",
-            }[c])
+            })[c]
         );
       }
       function escapeAttr(s) {
@@ -2655,15 +2538,12 @@
         // Let the server stream a ZIP (includes board.json and uploads/)
         showStatus("Export in progress…", { sticky: true });
         // Trigger the download
-        window.location.href = `/api/board/${encodeURIComponent(
-          window.__globals.board.id
-        )}/export`;
+        window.location.href = `/api/board/${encodeURIComponent(window.__globals.board.id)}/export`;
         // After a short delay, update the message to guide user
         setTimeout(() => {
-          showStatus(
-            "Export initiated. Please check your downloads folder once it completes.",
-            { sticky: true }
-          );
+          showStatus("Export initiated. Please check your downloads folder once it completes.", {
+            sticky: true,
+          });
         }, 500);
       }
 
@@ -2684,9 +2564,7 @@
       function renderLinkCard(preview, href) {
         const title = escapeHtml(preview?.title || href || "Link");
         const desc = escapeHtml(preview?.description || "");
-        const site = escapeHtml(
-          preview?.siteName || (href ? new URL(href).hostname : "")
-        );
+        const site = escapeHtml(preview?.siteName || (href ? new URL(href).hostname : ""));
         const icon = preview?.icon
           ? `<img class="icon" src="${escapeAttr(preview.icon)}" alt="">`
           : "";
@@ -2707,8 +2585,7 @@
       }
 
       function validateImported(json) {
-        if (!json || typeof json !== "object")
-          throw new Error("File is not a JSON object");
+        if (!json || typeof json !== "object") throw new Error("File is not a JSON object");
         if (!Array.isArray(json.nodes) || !Array.isArray(json.edges))
           throw new Error("Missing nodes/edges arrays");
         // Minimal normalization: ensure required fields exist
@@ -2761,8 +2638,7 @@
         const { nodes, adj, indeg } = buildGraph();
         const q = [];
         const indegCopy = new Map(indeg);
-        for (const n of nodes)
-          if ((indegCopy.get(n.id) || 0) === 0) q.push(n.id);
+        for (const n of nodes) if ((indegCopy.get(n.id) || 0) === 0) q.push(n.id);
         const layers = [];
         const placed = new Set();
         // Kahn-like layering: nodes with indegree==0 form layer 0, then peel
@@ -2787,8 +2663,7 @@
           const rest = nodes.map((n) => n.id).filter((id) => !placed.has(id));
           // group into chunks of up to 5 per layer to avoid stacking all in one
           const chunk = 5;
-          for (let i = 0; i < rest.length; i += chunk)
-            layers.push(rest.slice(i, i + chunk));
+          for (let i = 0; i < rest.length; i += chunk) layers.push(rest.slice(i, i + chunk));
         }
         return layers;
       }
@@ -2860,13 +2735,11 @@
       adjustBoardHeight();
 
       function openAbout() {
-        document.getElementById("aboutAppVersion").textContent =
-          window.__globals.appVersion;
+        document.getElementById("aboutAppVersion").textContent = window.__globals.appVersion;
         document.getElementById("aboutSchemaVersion").textContent = String(
           board.schemaVersion || 1
         );
-        document.getElementById("aboutBoardName").textContent =
-          board.title || "Untitled Board";
+        document.getElementById("aboutBoardName").textContent = board.title || "Untitled Board";
         aboutModal.classList.add("show");
       }
       function closeAbout() {
@@ -2874,8 +2747,7 @@
       }
 
       // Toolbar wiring
-      $("#addText").onclick = () =>
-        addNode("text", viewCenter(), { text: "New note..." });
+      $("#addText").onclick = () => addNode("text", viewCenter(), { text: "New note..." });
       $("#addImage").onclick = () => addNode("image", viewCenter());
       $("#addLink").onclick = () => addNode("link", viewCenter());
       $("#connect").onclick = toggleConnectMode;
@@ -2916,23 +2788,18 @@
             const probeFd = new FormData();
             probeFd.append("bundle", file);
             const probeResp = await fetch(
-              `/api/board/${encodeURIComponent(
-                window.__globals.board.id
-              )}/validate-import`,
+              `/api/board/${encodeURIComponent(window.__globals.board.id)}/validate-import`,
               {
                 method: "POST",
                 body: probeFd,
               }
             );
-            if (!probeResp.ok)
-              throw new Error(`Probe failed (${probeResp.status})`);
+            if (!probeResp.ok) throw new Error(`Probe failed (${probeResp.status})`);
             const meta = await probeResp.json();
 
             if (meta.boardId === board.id) {
               const ok = confirm(
-                `You're importing the SAME board (ID: ${
-                  meta.boardId
-                }).\nTitle: ${
+                `You're importing the SAME board (ID: ${meta.boardId}).\nTitle: ${
                   meta.title || "(untitled)"
                 }\nReplace the current board with the imported one?`
               );
@@ -2947,9 +2814,7 @@
             const fd = new FormData();
             fd.append("bundle", file);
             const resp = await fetch(
-              `/api/board/${encodeURIComponent(
-                window.__globals.board.id
-              )}/import`,
+              `/api/board/${encodeURIComponent(window.__globals.board.id)}/import`,
               {
                 method: "POST",
                 body: fd,
@@ -3035,13 +2900,11 @@
 
       /** Info Button */
       function openAbout() {
-        document.getElementById("aboutAppVersion").textContent =
-          window.__globals.appVersion;
+        document.getElementById("aboutAppVersion").textContent = window.__globals.appVersion;
         document.getElementById("aboutSchemaVersion").textContent = String(
           board.schemaVersion || 1
         );
-        document.getElementById("aboutBoardName").textContent =
-          board.title || "Untitled Board";
+        document.getElementById("aboutBoardName").textContent = board.title || "Untitled Board";
         aboutModal.classList.add("show");
       }
 
@@ -3057,8 +2920,7 @@
       });
       // Close on Esc
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && aboutModal.classList.contains("show"))
-          closeAbout();
+        if (e.key === "Escape" && aboutModal.classList.contains("show")) closeAbout();
       });
       /** end of Info Button */
 
@@ -3121,9 +2983,7 @@
       // Load existing board
       async function loadBoard() {
         try {
-          const resp = await fetch(
-            `/api/board/${encodeURIComponent(window.__globals.board.id)}`
-          );
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`);
           const data = await resp.json();
           board = data;
           render();
@@ -3146,22 +3006,17 @@
         saveBtn.disabled = true;
         setStatus("Saving…");
         try {
-          const resp = await fetch(
-            `/api/board/${encodeURIComponent(window.__globals.board.id)}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(board),
-            }
-          );
+          const resp = await fetch(`/api/board/${encodeURIComponent(window.__globals.board.id)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(board),
+          });
           const data = await resp.json();
           board = data;
           boardNameEl.textContent = board.title || "";
           lastSavedJSON = computeSnapshot();
           updateSaveButton();
-          setStatus(
-            "Saved at " + new Date(board.updatedAt).toLocaleTimeString()
-          );
+          setStatus("Saved at " + new Date(board.updatedAt).toLocaleTimeString());
         } catch (e) {
           saveBtn.disabled = false;
           setStatus("Save failed.");
@@ -3170,10 +3025,7 @@
       }
 
       function resetBoard() {
-        if (
-          !confirm("Clear all nodes/edges? This will NOT save automatically.")
-        )
-          return;
+        if (!confirm("Clear all nodes/edges? This will NOT save automatically.")) return;
         const now = new Date().toISOString();
         board = {
           id: board.id || "board-1",
@@ -3204,9 +3056,7 @@
           const fd = new FormData();
           fd.append("image", file);
           const res = await fetch(
-            `/api/board/${encodeURIComponent(
-              window.__globals.board.id
-            )}/upload-image`,
+            `/api/board/${encodeURIComponent(window.__globals.board.id)}/upload-image`,
             {
               method: "POST",
               body: fd,
