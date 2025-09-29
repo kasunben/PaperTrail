@@ -700,6 +700,114 @@ const boardHandler = {
     if (!board) return res.status(404).json({ error: "Board not found" });
     return res.json(board);
   },
+  updateMeta: async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
+
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session) req.user = { id: session.userId, email: session.user.email };
+      }
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
+      const meta = await prisma.board.findUnique({
+        where: { id },
+        select: { id: true, userId: true, visibility: true, status: true, title: true },
+      });
+      if (!meta) return res.status(404).json({ error: "Board not found" });
+      if (!meta.userId || meta.userId !== req.user.id)
+        return res.status(403).json({ error: "Forbidden" });
+
+      const { visibility, status, title } = req.body || {};
+      let nextVisibility;
+      if (typeof visibility === "string") {
+        const v = visibility.toLowerCase();
+        if (v !== "public" && v !== "private")
+          return res.status(400).json({ error: "Bad visibility" });
+        nextVisibility = v;
+      }
+      let nextStatus;
+      if (typeof status === "string") {
+        const s = status.toLowerCase();
+        if (s !== "draft" && s !== "published")
+          return res.status(400).json({ error: "Bad status" });
+        nextStatus = s;
+      }
+      let nextTitle;
+      if (typeof title === "string") nextTitle = title.trim().slice(0, 256);
+
+      const data = {};
+      if (nextVisibility) data.visibility = nextVisibility;
+      if (nextStatus) data.status = nextStatus;
+      if (typeof nextTitle === "string") data.title = nextTitle || "Untitled Board";
+      if (nextVisibility) data.userId = nextVisibility === "private" ? req.user.id : null;
+
+      if (Object.keys(data).length === 0)
+        return res.json({
+          ok: true,
+          id,
+          visibility: meta.visibility,
+          status: meta.status,
+          title: meta.title,
+        });
+
+      const updated = await prisma.board.update({ where: { id }, data });
+      return res.json({
+        ok: true,
+        id,
+        visibility: updated.visibility,
+        status: updated.status,
+        title: updated.title,
+      });
+    } catch (e) {
+      console.error("updateMeta error", e);
+      return res.status(500).json({ error: "Update failed" });
+    }
+  },
+  deleteBoard: async (req, res) => {
+    try {
+      const id = String(req.params.id || "").trim();
+      if (!isValidBoardId(id)) return res.status(400).json({ error: "Invalid board id" });
+
+      if (!req.user) {
+        const token = req.cookies?.[SESSION_COOKIE];
+        const session = await getSessionWithUser(token);
+        if (session) req.user = { id: session.userId, email: session.user.email };
+      }
+      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+
+      const meta = await prisma.board.findUnique({
+        where: { id },
+        select: { id: true, userId: true },
+      });
+      if (!meta) return res.status(404).json({ error: "Board not found" });
+      if (!meta.userId || meta.userId !== req.user.id)
+        return res.status(403).json({ error: "Forbidden" });
+
+      const { confirm, confirmId } = req.body || {};
+      if (!(confirm === true || confirm === "true" || confirmId === id)) {
+        return res.status(400).json({ error: "Confirmation required" });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        await tx.board.delete({ where: { id } });
+      });
+
+      try {
+        const dir = boardUploadsDir(__datadir, id);
+        await fs.rm(dir, { recursive: true, force: true });
+      } catch (err) {
+        logFsWarning("Failed to remove uploads dir", err);
+      }
+
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error("deleteBoard error", e);
+      return res.status(500).json({ error: "Delete failed" });
+    }
+  },
 };
 
 const fileHandler = {
@@ -835,7 +943,7 @@ const uiHandler = {
 
       const meta = await prisma.board.findUnique({
         where: { id },
-        select: { id: true, userId: true, visibility: true },
+        select: { id: true, userId: true, visibility: true, status: true, title: true },
       });
       if (!meta) {
         return res.status(404).render("error", {
@@ -855,11 +963,18 @@ const uiHandler = {
       }
 
       const showUserMenu = !(GUEST_LOGIN_ENABLED && GUEST_LOGIN_ENABLED_BYPASS_LOGIN);
+      const isOwner = !!meta.userId && meta.userId === req.user?.id;
       return res.render("board", {
         appVersion,
         schemaVersion,
         boardId: id,
         show_user_menu: showUserMenu,
+        is_owner: isOwner,
+        initial_visibility: meta.visibility,
+        initial_status: meta.status,
+        initial_title: meta.title,
+        // default status; fetch actual via DB to avoid extra call if needed
+        // but we only selected visibility above, so select status too
       });
     } catch (err) {
       console.error("route /b/:id error", err);
@@ -1724,6 +1839,8 @@ app.post("/auth/password/reset", authHandler.resetPassword); // Request Body { t
 // $Routes.Board (API)
 app.get("/api/board/:id", boardHandler.getBoardById);
 app.post("/api/board/:id", boardHandler.createBoard);
+app.patch("/api/board/:id/meta", requireAuth, boardHandler.updateMeta);
+app.delete("/api/board/:id", requireAuth, boardHandler.deleteBoard);
 
 const uploadImage = multer({
   storage: multer.memoryStorage(),

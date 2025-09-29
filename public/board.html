@@ -937,6 +937,16 @@
           <path d="M12 11v5" stroke-linecap="round" />
         </svg>
       </button>
+      {{#if is_owner}}
+      <button id="settingsBtn" class="toolbar__btn toolbar__btn--icon" title="Board settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .66.26 1.3.73 1.77.47.47 1.11.73 1.77.73H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+          />
+        </svg>
+      </button>
+      {{/if}}
       <details id="userBtn" class="toolbar__menu">
         <summary class="toolbar__avatar" title="{{handler}}">
           <!-- If you have a real avatar URL, replace the SVG with <img src="{{avatarUrl}}" alt="{{handler}}'s avatar"> -->
@@ -1018,6 +1028,75 @@
         </div>
       </div>
     </div>
+    {{#if is_owner}}
+    <div
+      id="settingsModal"
+      class="modal__backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settingsTitle"
+    >
+      <div class="modal">
+        <header class="modal__header">
+          <h3 id="settingsTitle" class="modal__title">Board settings</h3>
+          <button type="button" id="settingsClose" class="modal__close" aria-label="Close">
+            ✕
+          </button>
+        </header>
+        <div class="modal__body">
+          <div
+            style="display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center"
+          >
+            <label for="titleInput">Title</label>
+            <input id="titleInput" type="text" />
+
+            <label for="visibilitySelect">Visibility</label>
+            <select id="visibilitySelect">
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+
+            <label for="statusSelect">Status</label>
+            <select id="statusSelect">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px">
+            <button id="saveMetaBtn">Save changes</button>
+          </div>
+
+          <hr style="margin: 18px 0" />
+          <details>
+            <summary><strong>Danger zone</strong></summary>
+            <p style="color: #b91c1c">
+              Deleting this board is permanent. This removes nodes, edges, and uploads.
+            </p>
+            <div style="display: flex; gap: 10px; align-items: center">
+              <input
+                id="confirmIdInput"
+                type="text"
+                placeholder="Type board id to confirm: {{boardId}}"
+              />
+              <button
+                id="deleteBoardBtn"
+                style="
+                  background: #ef4444;
+                  color: #fff;
+                  border: 0;
+                  padding: 8px 12px;
+                  border-radius: 8px;
+                "
+              >
+                Delete board
+              </button>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+    {{/if}}
     <script>
       // Binding for dynamic values from server
       // (injected by server-side templating)
@@ -1025,6 +1104,10 @@
         appVersion: "{{appVersion}}",
         schemaVersion: "{{schemaVersion}}",
         board: { id: "{{boardId}}" },
+        isOwner: "{{is_owner}}",
+        initialVisibility: "{{initial_visibility}}",
+        initialStatus: "{{initial_status}}",
+        initialTitle: "{{initial_title}}",
       };
 
       // --- App State ---
@@ -1041,6 +1124,7 @@
       const infoBtn = document.getElementById("infoBtn");
       const aboutModal = document.getElementById("aboutModal");
       const aboutClose = document.getElementById("aboutClose");
+      const isOwner = String(window.__globals.isOwner) === "true";
       let lastSavedJSON = null;
 
       // --- Ensure DOM positions/sizes are synced to the model prior to save
@@ -2921,6 +3005,98 @@
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && aboutModal.classList.contains("show")) closeAbout();
       });
+
+      // Settings modal wiring
+      if (isOwner) {
+        const settingsBtn = document.getElementById("settingsBtn");
+        const settingsModal = document.getElementById("settingsModal");
+        const settingsClose = document.getElementById("settingsClose");
+        const visibilitySelect = document.getElementById("visibilitySelect");
+        const statusSelect = document.getElementById("statusSelect");
+        const titleInput = document.getElementById("titleInput");
+        const saveMetaBtn = document.getElementById("saveMetaBtn");
+        const deleteBoardBtn = document.getElementById("deleteBoardBtn");
+        const confirmIdInput = document.getElementById("confirmIdInput");
+
+        function openSettings() {
+          // initialize values from server-globals and from current UI
+          titleInput.value =
+            window.__globals.initialTitle || document.getElementById("boardName").textContent || "";
+          visibilitySelect.value = (window.__globals.initialVisibility || "public").toLowerCase();
+          statusSelect.value = (window.__globals.initialStatus || "draft").toLowerCase();
+          settingsModal.classList.add("show");
+        }
+        function closeSettings() {
+          settingsModal.classList.remove("show");
+        }
+        settingsBtn?.addEventListener("click", openSettings);
+        settingsClose?.addEventListener("click", closeSettings);
+        settingsModal?.addEventListener("click", (e) => {
+          if (e.target === settingsModal) closeSettings();
+        });
+
+        saveMetaBtn?.addEventListener("click", async () => {
+          try {
+            const payload = {
+              visibility: visibilitySelect.value,
+              status: statusSelect.value,
+              title: titleInput.value,
+            };
+            const resp = await fetch(
+              `/api/board/${encodeURIComponent(window.__globals.board.id)}/meta`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              }
+            );
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data?.error || "Update failed");
+            // Reflect immediately in UI and local state
+            const newTitle = data.title || titleInput.value;
+            document.getElementById("boardName").textContent = newTitle;
+            if (typeof board === "object") board.title = newTitle;
+            window.__globals.initialTitle = newTitle;
+            if (data.visibility) window.__globals.initialVisibility = data.visibility;
+            if (data.status) window.__globals.initialStatus = data.status;
+            // If visibility became public, we may lose ownership; hide settings
+            if (String(data.visibility).toLowerCase() === "public") {
+              const btn = document.getElementById("settingsBtn");
+              btn?.parentNode?.removeChild(btn);
+              closeSettings();
+            } else {
+              closeSettings();
+            }
+            showStatus("Settings updated", { ttl: 1500 });
+          } catch (e) {
+            showStatus(e.message || "Update failed", { sticky: true });
+          }
+        });
+
+        deleteBoardBtn?.addEventListener("click", async () => {
+          const confirmId = (confirmIdInput?.value || "").trim();
+          if (confirmId !== window.__globals.board.id) {
+            alert("Type the exact board id to confirm deletion.");
+            return;
+          }
+          if (!confirm("This will permanently delete the board and its data. Continue?")) return;
+          try {
+            const resp = await fetch(
+              `/api/board/${encodeURIComponent(window.__globals.board.id)}`,
+              {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ confirm: true, confirmId }),
+              }
+            );
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok) throw new Error(data?.error || "Delete failed");
+            window.location.href = "/";
+          } catch (e) {
+            showStatus(e.message || "Delete failed", { sticky: true });
+          }
+        });
+      }
       /** end of Info Button */
 
       function toggleConnectMode() {
