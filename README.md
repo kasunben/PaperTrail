@@ -1,4 +1,4 @@
-⚠️ This repository has moved to [CommonsEngine/Sovereign](https://github.com/CommonsEngine/PaperTrail)
+⚠️ This repository has moved to [CommonsEngine/PaperTrail](https://github.com/CommonsEngine/PaperTrail)
 
 # PaperTrail — map your evidence, follow the story.
 
