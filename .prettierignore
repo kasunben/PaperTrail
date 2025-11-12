@@ -1,7 +1,0 @@
-# Generated data directories
-/data/
-/prisma/migrations/
-
-# Build and dependency artifacts
-/node_modules/
-/dist/

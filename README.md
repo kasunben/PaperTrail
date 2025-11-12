@@ -1,160 +1,16 @@
-# PaperTrail — map your evidence, follow the story.
+# React + Vite
 
-PaperTrail is a lightweight visual evidence board for organizing ideas, documents, images, and links. It lets you pin down pieces of information, connect them freely, and uncover patterns. Whether you’re researching, investigating, or just making sense of complex projects, PaperTrail helps you create a clear trail of evidence you can return to and share.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Getting Started
+Currently, two official plugins are available:
 
-We use Node.js/Express with the Handlebars template engine as the core stack for this application. SQLite serves as the primary database, with straightforward extensibility to PostgreSQL (or any other SQL database) through Prisma.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-All uploaded assets are stored under `/data/uploads/*`, organized by board IDs.
+## React Compiler
 
-Portability is currently managed via the **Import/Export** functionality.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-### Guest Login (Optional Feature)
+## Expanding the ESLint configuration
 
-You can allow frictionless exploration via a guest account.
-
-Use following environment variables as feature toggles (set in `.env`):
-
-```
-GUEST_LOGIN_ENABLED=true|false
-GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true|false
-```
-
-Behavior:
-
-- `GUEST_LOGIN_ENABLED=false` → Normal auth only (default).
-- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=false` → Login page shows a “Continue as guest” link. Each click creates a fresh random guest (handler like `guest_ab12cd34`).
-- `GUEST_LOGIN_ENABLED=true` and `GUEST_LOGIN_ENABLED_BYPASS_LOGIN=true` → No login screen. First visitor creates (or reuses) a singleton guest (handler `guest`); all users share that session pattern (until cookie expires).
-
-Notes:
-
-- Guest boards you create are still tied to the guest user id.
-- Disable in production if multi‑user accountability is required.
-
-### Seeding (Demo Board)
-
-A public demo board (“Sri Lanka Protests — 2022”) is embedded in `prisma/seed.mjs`.  
-It is inserted only if it does not already exist (non‑destructive).
-
-Run the seed after pushing the schema:
-
-```bash
-npx prisma db push
-node prisma/seed.mjs
-# or if configured:
-npx prisma db seed // or npm run prisma:seed
-```
-
-Force re-seed (optional):
-
-```bash
-sqlite3 data/papertrail.db "DELETE FROM boards WHERE id='board-sri-lanka-protests-2022';"
-node prisma/seed.mjs
-```
-
-If you later bump the board JSON format, also update:
-
-- `schemaVersion` in `seed.mjs`
-- `schemaVersion` constant in `package.json`
-
-### Development
-
-```bash
-git clone git@github.com:kasunben/PaperTrail.git
-cd PaperTrail
-cp .env.example .env
-npm i
-```
-
-**Sync Databse with Prisma schema.**
-
-```bash
-npx prisma db push
-```
-
-Use `npm run dev` to launch the development server with automatic file watching. For the production build, use `npm start`.
-
-#### Prisma
-
-We use [Prisma](https://www.prisma.io/) as intermediate abstraction layer between the app code and the database.
-
-##### Updating the schema
-
-- Update `prisma/schema.prisma` first
-- Run `npx prisma format` to ensure the validity and format the schema changes
-- Run the migration command to log the change with `npx prisma migrate dev --name <migration-name-in-snake-case>`
-
-#### Git Workflow
-
-We follow a [Git Flow](https://nvie.com/posts/a-successful-git-branching-model/) inspired branching strategy to keep development organized and production stable.
-
-**Branches**
-
-- `main` → production branch (always deployable).
-- `develop` → integration branch (latest development work).
-- `feat/` → short-lived branches for new features or fixes.
-- `release/` → optional branches to prepare a release.
-- `hotfix/` → urgent fixes branched from main.
-- `fix/` → bug fixes branched from develop.
-- `chore/` → maintenance tasks (docs, tooling, dependencies, CI), no product changes.
-
-##### Workflow
-
-###### Start a feature
-
-```bash
-git switch -c feat/my-feature develop
-```
-
-Work, commit, and rebase with develop to stay updated.
-
-###### Open a PR → merge into develop
-
-- Use **Squash & Merge** to keep history clean.
-
-###### Release to production
-
-- When develop is stable:
-
-```bash
-git checkout main
-git merge --ff-only develop
-git push origin main
-```
-
-Alternatively:
-
-```bash
-git fetch origin
-git checkout develop
-git pull               # update local develop
-git rebase origin/main # replay develop on top of main
-# resolve any conflicts, then:
-git push --force-with-lease
-
-git checkout main
-git merge --ff-only develop
-git push
-```
-
-- Tag the release:
-
-```bash
-git tag -a v1.2.0 -m "Release v1.2.0"
-git push origin v1.2.0
-```
-
-###### Hotfixes
-
-- Branch from `main`, fix, then merge back into both `main` and `develop`.
-
-> **Notes:**
->
-> - Do not rebase shared branches (`main`, `develop`).
-> - Rebase your local feature branches before opening a PR to keep history linear.
-> - Squash merges ensure each feature is a single, clean commit in history.
-
-## License
-
-The community version licensed under MIT.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

@@ -1,57 +1,29 @@
 {
-  "name": "papertrail",
-  "description": "PaperTrail — map your evidence, follow the story.",
-  "version": "1.0.0-beta.2",
-  "main": "server.mjs",
-  "schemaVersion": 1,
+  "name": "@kasunben/papertrail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "prestart": "npx prisma db push && npm run prisma:reset && npm run prisma:seed",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "node prisma/seed.mjs",
-    "prisma:reset": "prisma/reset.sh",
-    "start": "node server.mjs",
-    "dev": "nodemon",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "dev": "vite",
+    "build": "vite build",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "preview": "vite preview"
   },
-  "nodemonConfig": {
-    "watch": [
-      "server.mjs",
-      "public",
-      "data"
-    ],
-    "ext": "mjs,js,json,html,css",
-    "signal": "SIGTERM"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^6.16.2",
-    "archiver": "^7.0.1",
-    "argon2": "^0.44.0",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "express-handlebars": "^8.0.2",
-    "multer": "^2.0.2",
-    "node-fetch": "^3.3.2",
-    "sharp": "^0.34.3",
-    "unzipper": "^0.12.3"
+    "@xyflow/react": "^12.9.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
     "eslint": "^9.36.0",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-n": "^17.23.1",
-    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
-    "nodemon": "^3.1.10",
-    "prettier": "^3.3.3",
-    "prisma": "^6.16.2"
+    "vite": "^7.1.7"
   }
 }
