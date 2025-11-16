@@ -1,0 +1,43 @@
+model PapertrailBoard {
+  id        String            @id @default(uuid()) @map("id")
+  projectId String            @unique @map("project_id")
+  title     String?           @map("title")
+  version   Int               @default(0) @map("version")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  nodes PapertrailNode[]
+  edges PapertrailEdge[]
+
+  @@map("papertrail_boards")
+}
+
+model PapertrailNode {
+  id        String          @id @default(uuid()) @map("id")
+  boardId   String          @map("board_id")
+  type      String          @map("type")
+  data      Json            @map("data")
+  position  Json            @map("position")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  board PapertrailBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@map("papertrail_nodes")
+}
+
+model PapertrailEdge {
+  id        String          @id @default(uuid()) @map("id")
+  boardId   String          @map("board_id")
+  source    String          @map("source")
+  target    String          @map("target")
+  data      Json?           @map("data") // labels, styles, edge type, etc.
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  board PapertrailBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+  @@map("papertrail_edges")
+}

@@ -14,6 +14,7 @@ import {
 
 // NOTE: Ensure XYFlow base styles are present during dev/HMR; host resets (sv_base.css) can clamp SVGs, so we inject styles on every module eval.
 import { ensureXYFlowStyles } from './xyflowStyles.js';
+import { loadCache, createBoard, fetchBoard, saveCache, createSaver, onOnline } from './sync.js';
 ensureXYFlowStyles();
 
 // Small side handles (restore drag-to-connect like the original)
@@ -401,34 +402,8 @@ const nodeDefaults = {
   targetPosition: Position.Left,
 };
 
-const initialNodes = [
-  {
-    id: '1',
-    type: 'text',
-    position: { x: 0, y: 150 },
-    data: { title: '', text: '' },
-    ...nodeDefaults,
-  },
-  {
-    id: '2',
-    type: 'image',
-    position: { x: 300, y: 0 },
-    data: { src: 'https://picsum.photos/260/140', title: 'Image', description: 'default style 2 — Image node', tags: ['sample'] },
-    ...nodeDefaults,
-  },
-  {
-    id: '3',
-    type: 'link',
-    position: { x: 300, y: 200 },
-    data: { url: 'https://example.com', title: 'Example.com', description: 'default style 3 — Link node' },
-    ...nodeDefaults,
-  },
-];
-
-const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', animated: true },
-  { id: 'e1-3', source: '1', target: '3' },
-];
+const initialNodes = [];
+const initialEdges = [];
 
 const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, connectFrom, setConnectFrom, contextMenusEnabled, setContextMenusEnabled }) => {
   const jsonRef = useRef(null);
@@ -802,14 +777,24 @@ const DropReceiver = ({ setNodes }) => {
 };
 
 const Flow = () => {
+  const projectId = React.useMemo(() => {
+    const m = window.location.pathname.match(/\/papertrail\/([^/]+)/);
+    if (m && m[1]) return decodeURIComponent(m[1]);
+    const params = new URLSearchParams(window.location.search);
+    return params.get('projectId') || 'papertrail-default';
+  }, []);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [loading, setLoading] = React.useState(true);
+  const saverRef = React.useRef(null);
 
   const [mode, setMode] = React.useState('select');
   const [connectFrom, setConnectFrom] = React.useState(null);
   const [menu, setMenu] = React.useState(null); // { left, top, type: 'node'|'edge', id, source?, target? }
   const [edgeEditor, setEdgeEditor] = React.useState(null); // { id, left, top, label, color, width, type, animated, dashed }
   const [contextMenusEnabled, setContextMenusEnabled] = React.useState(true);
+  const [conflictNotice, setConflictNotice] = React.useState(null);
 
   const defaultEdgeOptions = React.useMemo(() => ({
     labelStyle: { fontSize: 11, fill: '#334155' },
@@ -827,6 +812,82 @@ const Flow = () => {
       return !(e.source === source && e.target === target);
     }));
   }, [setEdges]);
+
+  // Offline-first hydrate + sync
+  React.useEffect(() => {
+    let cancelled = false;
+    const saver = createSaver({
+      projectId,
+      onConflict: async (err) => {
+        try {
+          const remote = await fetchBoard(projectId);
+          if (cancelled) return;
+          setNodes(remote.nodes || []);
+          setEdges(remote.edges || []);
+          saver.setVersion(remote.version);
+          await saveCache(projectId, { ...remote, cachedAt: new Date().toISOString() });
+          setConflictNotice('Remote changes detected; reloaded server version.');
+        } catch {
+          setConflictNotice('Version conflict; failed to fetch latest.');
+        }
+      },
+    });
+    saverRef.current = saver;
+
+    const hydrate = async () => {
+      const cached = await loadCache(projectId);
+      if (cached && !cancelled) {
+        setNodes(cached.nodes || []);
+        setEdges(cached.edges || []);
+        saver.setVersion(cached.version);
+      }
+      try {
+        const remote = await fetchBoard(projectId);
+        if (cancelled) return;
+        setNodes(remote.nodes || []);
+        setEdges(remote.edges || []);
+        saver.setVersion(remote.version);
+        await saveCache(projectId, { ...remote, cachedAt: new Date().toISOString() });
+      } catch (err) {
+        if (err?.status === 404) {
+          try {
+            const created = await createBoard(projectId, { nodes: initialNodes, edges: initialEdges });
+            if (cancelled) return;
+            setNodes(created.nodes || []);
+            setEdges(created.edges || []);
+            saver.setVersion(created.version);
+            await saveCache(projectId, { ...created, cachedAt: new Date().toISOString() });
+          } catch {
+            /* ignore */
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    hydrate();
+
+    const offOnline = onOnline(() => {
+      saver.forceFlush();
+    });
+    return () => {
+      cancelled = true;
+      offOnline();
+    };
+  }, [projectId, setNodes, setEdges]);
+
+  // Schedule save on state changes (debounced)
+  React.useEffect(() => {
+    if (loading) return;
+    const snapshot = {
+      board: { id: projectId },
+      nodes,
+      edges,
+    };
+    saveCache(projectId, { ...snapshot, version: null, cachedAt: new Date().toISOString() });
+    saverRef.current?.schedule(snapshot);
+  }, [projectId, nodes, edges, loading]);
 
   React.useEffect(() => {
     const onKey = (e) => {
@@ -863,6 +924,12 @@ const Flow = () => {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {conflictNotice && (
+        <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 50, background: '#fef9c3', border: '1px solid #facc15', color: '#854d0e', padding: '6px 10px', borderRadius: 6 }}>
+          {conflictNotice}
+          <button onClick={() => setConflictNotice(null)} style={{ marginLeft: 10, border: 'none', background: 'transparent', cursor: 'pointer', color: '#854d0e' }}>×</button>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
