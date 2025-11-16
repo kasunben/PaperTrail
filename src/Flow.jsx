@@ -12,7 +12,9 @@ import {
   Handle,
 } from '@xyflow/react';
 
-import '@xyflow/react/dist/style.css';
+// NOTE: Ensure XYFlow base styles are present during dev/HMR; host resets (sv_base.css) can clamp SVGs, so we inject styles on every module eval.
+import { ensureXYFlowStyles } from './xyflowStyles.js';
+ensureXYFlowStyles();
 
 // Small side handles (restore drag-to-connect like the original)
 const handleStyle = { width: 8, height: 8, borderRadius: '50%', background: '#64748b', border: '2px solid #fff' };
