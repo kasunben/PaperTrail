@@ -433,6 +433,116 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
   const imageRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
 
+  // --- Icons (inline SVG) & button style ---
+  const ico = {
+    export: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M12 16V4"/>
+        <path d="M8 8l4-4 4 4"/>
+        <rect x="3" y="16" width="18" height="4" rx="1"/>
+      </svg>
+    ),
+    import: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M12 8v12"/>
+        <path d="M8 12l4 4 4-4"/>
+        <rect x="3" y="4" width="18" height="4" rx="1"/>
+      </svg>
+    ),
+    cursor: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M3 3l7 18 2-7 7-2L3 3z"/>
+      </svg>
+    ),
+    link: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1"/>
+        <path d="M14 11a5 5 0 0 1 0 7l-1 1a5 5 0 0 1-7-7l1-1"/>
+      </svg>
+    ),
+    menu: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...p}>
+        <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+      </svg>
+    ),
+    trash: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M3 6h18"/>
+        <path d="M8 6V4h8v2"/>
+        <rect x="6" y="6" width="12" height="14" rx="1"/>
+      </svg>
+    ),
+    grid: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+      </svg>
+    ),
+    flow: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M4 8c4 0 4 8 8 8h4"/>
+        <path d="M16 12l4 4-4 4"/>
+      </svg>
+    ),
+    text: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M6 6h12"/>
+        <path d="M12 6v12"/>
+      </svg>
+    ),
+    image: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <circle cx="8" cy="10" r="2"/>
+        <path d="M21 17l-5-5-4 4-2-2-5 5"/>
+      </svg>
+    ),
+    linkPlus: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M10 13a5 5 0 0 1 0-7l1-1a5 5 0 0 1 7 7l-1 1"/>
+        <path d="M19 7h4"/>
+        <path d="M21 5v4"/>
+      </svg>
+    ),
+    connect: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <circle cx="6" cy="12" r="2"/>
+        <circle cx="18" cy="12" r="2"/>
+        <path d="M8 12h8"/>
+      </svg>
+    ),
+    context: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <rect x="3" y="4" width="14" height="12" rx="2"/>
+        <path d="M6 8h8"/>
+        <path d="M6 12h8"/>
+        <path d="M6 16h6"/>
+      </svg>
+    ),
+    linkAdd: (p) => (
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757"/>
+        <path d="M19.297 8.066l1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"/>
+      </svg>
+    )
+  };
+
+  const btnStyle = (active = false, disabled = false) => ({
+    width: 32,
+    height: 32,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #e5e7eb',
+    borderRadius: 6,
+    background: active ? '#eef2ff' : '#fff',
+    opacity: disabled ? 0.5 : 1,
+    padding: 0,
+    cursor: disabled ? 'default' : 'pointer'
+  });
+
   const doExport = () => {
     const payload = { version: 1, exportedAt: new Date().toISOString(), nodes, edges };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -467,7 +577,7 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
     reader.readAsText(file);
   };
 
-  const btn = (active) => ({ fontSize: 12, padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: 4, background: active ? '#eef2ff' : '#fff' });
+  // (replaced by btnStyle)
 
   const centerPos = () => {
     const el = document.querySelector('.react-flow');
@@ -583,27 +693,27 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
 
   return (
     <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
-      <button onClick={doExport} style={{ fontSize: 12, padding: '6px 10px' }}>Export</button>
-      <button onClick={() => jsonRef.current && jsonRef.current.click()} style={{ fontSize: 12, padding: '6px 10px' }}>Import</button>
+      <button onClick={doExport} style={btnStyle()} title="Export" aria-label="Export">{ico.export()}</button>
+      <button onClick={() => jsonRef.current && jsonRef.current.click()} style={btnStyle()} title="Import" aria-label="Import">{ico.import()}</button>
       <input ref={jsonRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={onImport} />
       <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
-      <button aria-pressed={mode === 'select'} onClick={() => { setConnectFrom(null); setMode('select'); setNodes((ns)=>ns.map(n=> ({...n, data:{...n.data, _isConnectSource:false}}))); }} style={btn(mode === 'select')}>Select</button>
-      <button aria-pressed={mode === 'connect'} onClick={() => setMode('connect')} style={btn(mode === 'connect')}>Connect</button>
+      <button aria-pressed={mode === 'select'} onClick={() => { setConnectFrom(null); setMode('select'); setNodes((ns)=>ns.map(n=> ({...n, data:{...n.data, _isConnectSource:false}}))); }} style={btnStyle(mode === 'select')} title="Select mode" aria-label="Select mode">{ico.cursor()}</button>
+      <button aria-pressed={mode === 'connect'} onClick={() => setMode('connect')} style={btnStyle(mode === 'connect')} title="Connect mode" aria-label="Connect mode">{ico.connect()}</button>
       {mode === 'connect' && (
         <span style={{ fontSize: 12, color: '#374151' }}>{connectFrom ? `from: ${connectFrom}` : 'pick a source node'}</span>
       )}
       <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
-      <button aria-pressed={contextMenusEnabled} onClick={() => setContextMenusEnabled((v) => !v)} title="Toggle right-click context menus" style={btn(contextMenusEnabled)}>Ctx Menu: {contextMenusEnabled ? 'On' : 'Off'}</button>
+      <button aria-pressed={contextMenusEnabled} onClick={() => setContextMenusEnabled((v) => !v)} title="Toggle right-click context menus" aria-label="Toggle context menus" style={btnStyle(contextMenusEnabled)}>{ico.context()}</button>
       <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
-      <button onClick={doDelete} disabled={!hasSelection} title="Delete selected (Del/Backspace)" style={{ fontSize: 12, padding: '6px 10px', opacity: hasSelection ? 1 : 0.5 }}>Delete</button>
+      <button onClick={doDelete} disabled={!hasSelection} title="Delete selected (Del/Backspace)" aria-label="Delete selected" style={btnStyle(false, !hasSelection)}>{ico.trash()}</button>
       <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
-      <button onClick={autoGrid} title="Auto layout: Grid" style={{ fontSize: 12, padding: '6px 10px' }}>Auto Grid</button>
-      <button onClick={autoFlowLR} title="Auto layout: Left→Right" style={{ fontSize: 12, padding: '6px 10px' }}>Auto Flow</button>
+      <button onClick={autoGrid} title="Auto layout: Grid" aria-label="Auto Grid" style={btnStyle()}>{ico.grid()}</button>
+      <button onClick={autoFlowLR} title="Auto layout: Left→Right" aria-label="Auto Flow" style={btnStyle()}>{ico.flow()}</button>
       <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
-      <button onClick={addText} style={{ fontSize: 12, padding: '6px 10px' }}>+ Text</button>
-      <button onClick={triggerImageUpload} style={{ fontSize: 12, padding: '6px 10px' }}>Upload Image</button>
+      <button onClick={addText} style={btnStyle()} title="Add text node" aria-label="Add text node">{ico.text()}</button>
+      <button onClick={triggerImageUpload} style={btnStyle()} title="Upload image node" aria-label="Upload image node">{ico.image()}</button>
       <input ref={imageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onImageChosen} />
-      <button onClick={addLink} style={{ fontSize: 12, padding: '6px 10px' }}>+ Link</button>
+      <button onClick={addLink} style={btnStyle()} title="Add link node" aria-label="Add link node">{ico.linkAdd()}</button>
     </div>
   );
 };
