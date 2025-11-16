@@ -172,5 +172,69 @@ export default (ctx) => {
     }, logger)
   );
 
+  // Link preview (basic HTML meta scrape). Guarded by protocol + simple private-hostname checks.
+  router.get(
+    "/preview",
+    asyncHandler(async (req, res) => {
+      const raw = String(req.query.url || "").trim();
+      let target;
+      try {
+        target = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+      } catch {
+        return res.status(400).json({ error: "invalid_url" });
+      }
+      if (!/^https?:$/i.test(target.protocol)) {
+        return res.status(400).json({ error: "invalid_protocol" });
+      }
+      const host = target.hostname.toLowerCase();
+      const blocked = ["localhost", "127.0.0.1", "0.0.0.0"];
+      if (blocked.some((b) => host === b || host.endsWith(`.${b}`))) {
+        return res.status(400).json({ error: "blocked_host" });
+      }
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      try {
+        const resp = await fetch(target.toString(), { signal: controller.signal, redirect: "follow" });
+        const reader = resp.body?.getReader();
+        let html = "";
+        const limit = 200_000; // 200kb max read
+        if (reader) {
+          let received = 0;
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            received += value.length;
+            html += new TextDecoder().decode(value);
+            if (received > limit) break;
+          }
+        } else {
+          html = await resp.text();
+        }
+        const pick = (regex) => {
+          const m = html.match(regex);
+          return m && m[1] ? m[1].trim() : undefined;
+        };
+        const ogTitle = pick(/<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']+)/i) || pick(/<title[^>]*>([^<]+)/i);
+        const ogDesc = pick(/<meta[^>]+property=["']og:description["'][^>]*content=["']([^"']+)/i) || pick(/<meta[^>]+name=["']description["'][^>]*content=["']([^"']+)/i);
+        const ogImage = pick(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i);
+
+        res.json({
+          url: target.toString(),
+          title: ogTitle,
+          description: ogDesc,
+          image: ogImage,
+        });
+      } catch (err) {
+        if (err.name === "AbortError") {
+          return res.status(408).json({ error: "timeout" });
+        }
+        return res.status(400).json({ error: "fetch_failed", message: err?.message });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }, logger)
+  );
+
   return router;
 };

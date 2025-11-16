@@ -17,6 +17,26 @@ import { ensureXYFlowStyles } from './xyflowStyles.js';
 import { loadCache, createBoard, fetchBoard, saveCache, createSaver, onOnline } from './sync.js';
 ensureXYFlowStyles();
 
+const normalizeUrl = (raw) => {
+  if (!raw) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  try {
+    const withProto = trimmed.match(/^https?:\/\//i) ? trimmed : `https://${trimmed}`;
+    const u = new URL(withProto);
+    if (!/^https?:$/i.test(u.protocol)) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+};
+
+const fetchLinkPreview = async (url) => {
+  const res = await fetch(`/api/plugins/papertrail/preview?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error(`preview failed ${res.status}`);
+  return res.json();
+};
+
 // Small side handles (restore drag-to-connect like the original)
 const handleStyle = { width: 8, height: 8, borderRadius: '50%', background: '#64748b', border: '2px solid #fff' };
 
@@ -149,9 +169,9 @@ const TextNode = ({ id, data }) => {
           <div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
               {draft.tags.map((t) => (
-                <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#eef2ff', border: '1px solid #e0e7ff', borderRadius: 9999 }}>
+                <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e0e7ff', borderRadius: 9999 }}>
                   {t}
-                  <button title="Remove" onClick={() => removeTag(t)} style={{ marginLeft: 6, border: 'none', background: 'transparent', cursor: 'pointer' }}>×</button>
+                  <button title="Remove" onClick={() => removeTag(t)} style={{ marginLeft: 6, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, boxShadow: 'none' }}>×</button>
                 </span>
               ))}
             </div>
@@ -295,9 +315,9 @@ const ImageNode = ({ id, data }) => {
           <div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
               {draft.tags.map((t) => (
-                <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#eef2ff', border: '1px solid #e0e7ff', borderRadius: 9999 }}>
+                <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e0e7ff', borderRadius: 9999 }}>
                   {t}
-                  <button title="Remove" onClick={() => removeTag(t)} style={{ marginLeft: 6, border: 'none', background: 'transparent', cursor: 'pointer' }}>×</button>
+                  <button title="Remove" onClick={() => removeTag(t)} style={{ marginLeft: 6, border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, boxShadow: 'none' }}>×</button>
                 </span>
               ))}
             </div>
@@ -327,7 +347,17 @@ const ImageNode = ({ id, data }) => {
 const LinkNode = ({ id, data }) => {
   const { setNodes } = useReactFlow();
   const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState({ url: data.url || '', title: data.title || '', description: data.description || '' });
+  const [draft, setDraft] = React.useState({
+    url: data.url || '',
+    title: data.title || '',
+    description: data.description || '',
+    image: data.image || '',
+    tags: Array.isArray(data.tags) ? data.tags : [],
+  });
+  const [tagInput, setTagInput] = React.useState('');
+  const [previewLoading, setPreviewLoading] = React.useState(false);
+  const [previewError, setPreviewError] = React.useState(null);
+  const fetchController = React.useRef(null);
 
   const commit = React.useCallback(() => {
     setEditing(false);
@@ -336,8 +366,62 @@ const LinkNode = ({ id, data }) => {
 
   const cancel = React.useCallback(() => {
     setEditing(false);
-    setDraft({ url: data.url || '', title: data.title || '', description: data.description || '' });
-  }, [data.url, data.title, data.description]);
+    setDraft({
+      url: data.url || '',
+      title: data.title || '',
+      description: data.description || '',
+      image: data.image || '',
+      tags: Array.isArray(data.tags) ? data.tags : [],
+    });
+    setTagInput('');
+  }, [data.url, data.title, data.description, data.image, data.tags]);
+
+  const addTag = React.useCallback(() => {
+    const t = tagInput.trim();
+    if (!t) return;
+    if (draft.tags.includes(t)) return;
+    setDraft((d) => ({ ...d, tags: [...d.tags, t] }));
+    setTagInput('');
+  }, [tagInput, draft.tags]);
+
+  const removeTag = (t) => setDraft((d) => ({ ...d, tags: d.tags.filter((x) => x !== t) }));
+
+  // Auto preview when URL changes (debounced)
+  React.useEffect(() => {
+    if (!editing) return;
+    const url = normalizeUrl(draft.url);
+    if (!url) {
+      setPreviewError('Invalid URL');
+      return;
+    }
+    setPreviewError(null);
+    setPreviewLoading(true);
+    if (fetchController.current) fetchController.current.abort();
+    const controller = new AbortController();
+    fetchController.current = controller;
+    const t = setTimeout(async () => {
+      try {
+        const preview = await fetchLinkPreview(url);
+        setDraft((d) => ({
+          ...d,
+          url,
+          title: preview.title || d.title || url,
+          description: preview.description || d.description || '',
+          image: preview.image || d.image || '',
+          tags: d.tags || [],
+        }));
+        setPreviewLoading(false);
+        setPreviewError(null);
+      } catch (err) {
+        setPreviewLoading(false);
+        setPreviewError('Preview unavailable');
+      }
+    }, 400);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
+  }, [draft.url, editing]);
 
   return (
     <div
@@ -352,8 +436,20 @@ const LinkNode = ({ id, data }) => {
           {data.title ?? data.url ?? 'Link'}
         </a>
       </div>
-      {data.description && (
+      {data.image && !editing && (
+        <div style={{ marginBottom: 6 }}>
+          <img src={data.image} alt={data.title || data.url} style={{ width: '100%', borderRadius: 6, maxHeight: 160, objectFit: 'cover' }} />
+        </div>
+      )}
+      {data.description && !editing && (
         <div className="pt-desc" style={{ fontSize: 11, color: '#4b5563' }}>{data.description}</div>
+      )}
+      {Array.isArray(data.tags) && data.tags.length > 0 && !editing && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+          {data.tags.map((t) => (
+            <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 9999 }}>{t}</span>
+          ))}
+        </div>
       )}
 
       {editing && (
@@ -368,19 +464,37 @@ const LinkNode = ({ id, data }) => {
             onChange={(e) => setDraft((d) => ({ ...d, url: e.target.value }))}
             style={{ fontSize: 11, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 4 }}
           />
-          <input
-            placeholder="Title"
-            value={draft.title}
-            onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-            style={{ fontSize: 11, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 4 }}
-          />
-          <textarea
-            placeholder="Description"
-            value={draft.description}
-            onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-            rows={3}
-            style={{ fontSize: 11, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 4 }}
-          />
+          <div style={{ fontSize: 11, color: '#4b5563' }}>
+            {previewLoading && <span>Loading preview…</span>}
+            {previewError && <span style={{ color: '#b91c1c' }}>{previewError}</span>}
+            {!previewLoading && !previewError && (draft.title || draft.description) && (
+              <div style={{ display: 'grid', gap: 4, marginTop: 4 }}>
+                {draft.image && <img src={draft.image} alt={draft.title || draft.url} style={{ width: '100%', borderRadius: 4, maxHeight: 160, objectFit: 'cover' }} />}
+                {draft.title && <div style={{ fontWeight: 600 }}>{draft.title}</div>}
+                {draft.description && <div style={{ fontSize: 11 }}>{draft.description}</div>}
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+              {draft.tags.map((t) => (
+                <span key={t} style={{ fontSize: 10, padding: '2px 6px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 9999, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span>{t}</span>
+                  <button title="Remove" onClick={() => removeTag(t)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0, boxShadow: 'none' }}>×</button>
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input
+                placeholder="Add tag and press Enter"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+                style={{ fontSize: 11, padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 4, flex: 1 }}
+              />
+              <button onClick={addTag} style={{ fontSize: 12, padding: '6px 10px' }}>Add</button>
+            </div>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={commit} style={{ fontSize: 12, padding: '6px 10px' }}>Save</button>
             <button onClick={cancel} style={{ fontSize: 12, padding: '6px 10px' }}>Cancel</button>
@@ -574,10 +688,16 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
   const addText = () => addNode('text', { title: '', text: '', tags: [] });
 
   const addLink = () => {
-    const url = window.prompt('Link URL');
-    if (!url) return;
-    const title = window.prompt('Title (optional)') || url;
-    addNode('link', { url, title, description: '' });
+    const raw = window.prompt('Link URL');
+    const url = normalizeUrl(raw);
+    if (!url) { window.alert('Invalid URL'); return; }
+    const id = String(Date.now());
+    const pos = centerPos();
+    const base = { id, type: 'link', position: pos, data: { url, title: url, description: '', image: '', tags: [] }, sourcePosition: Position.Right, targetPosition: Position.Left };
+    setNodes((ns) => ns.concat(base));
+    fetchLinkPreview(url).then((preview) => {
+      setNodes((ns) => ns.map((n) => n.id === id ? { ...n, data: { ...n.data, title: preview.title || url, description: preview.description || '', image: preview.image || '' } } : n));
+    }).catch(() => {});
   };
 
   const triggerImageUpload = () => imageRef.current && imageRef.current.click();
