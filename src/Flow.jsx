@@ -730,9 +730,9 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
 
   // --- Auto layout helpers ---
   const autoGrid = React.useCallback(() => {
-    const pad = 40;
-    const gapX = 260;
-    const gapY = 160;
+    const pad = 80;
+    const gapX = 520; // accommodate wider/preview-heavy nodes
+    const gapY = 420; // larger vertical spacing to reduce overlap
     const count = nodes.length;
     if (!count) return;
     const cols = Math.ceil(Math.sqrt(count));
@@ -744,9 +744,9 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
   }, [nodes, setNodes]);
 
   const autoFlowLR = React.useCallback(() => {
-    const pad = 40;
-    const gapX = 280;
-    const gapY = 160;
+    const pad = 80;
+    const gapX = 520; // wider spacing for preview-heavy nodes
+    const gapY = 400;
     const ids = nodes.map((n) => n.id);
     const idSet = new Set(ids);
     const inDeg = {};
