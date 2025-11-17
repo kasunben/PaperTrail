@@ -519,7 +519,7 @@ const nodeDefaults = {
 const initialNodes = [];
 const initialEdges = [];
 
-const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, connectFrom, setConnectFrom, contextMenusEnabled, setContextMenusEnabled }) => {
+const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, connectFrom, setConnectFrom, contextMenusEnabled, setContextMenusEnabled, offsetLeft = 10, shareAvailable = false }) => {
   const jsonRef = useRef(null);
   const imageRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -610,6 +610,16 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
         <path d="M6 8h8"/>
         <path d="M6 12h8"/>
         <path d="M6 16h6"/>
+      </svg>
+    ),
+    share: (p) => (
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186" />
+        <path d="M7.217 10.907c.18.324.283.696.283 1.093s-.103.77-.283 1.093" />
+        <path d="M7.217 10.907 16.783 5.593" />
+        <path d="M7.217 13.093l9.566 5.314" />
+        <path d="M16.783 18.407a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Z" />
+        <path d="M16.783 5.593a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
       </svg>
     ),
     linkAdd: (p) => (
@@ -789,7 +799,7 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
   }, [nodes, edges, setNodes]);
 
   return (
-    <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div style={{ position: 'absolute', top: 10, left: offsetLeft ?? 10, zIndex: 20, display: 'flex', gap: 8, alignItems: 'center' }}>
       <button onClick={doExport} style={btnStyle()} title="Export" aria-label="Export">{ico.export()}</button>
       <button onClick={() => jsonRef.current && jsonRef.current.click()} style={btnStyle()} title="Import" aria-label="Import">{ico.import()}</button>
       <input ref={jsonRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={onImport} />
@@ -811,6 +821,21 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
       <button onClick={triggerImageUpload} style={btnStyle()} title="Upload image node" aria-label="Upload image node">{ico.image()}</button>
       <input ref={imageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onImageChosen} />
       <button onClick={addLink} style={btnStyle()} title="Add link node" aria-label="Add link node">{ico.linkAdd()}</button>
+      {shareAvailable && (
+        <>
+          <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 6px' }} />
+          <button
+            type="button"
+            data-modal-open="share-project"
+            data-share-trigger
+            title="Share"
+            aria-label="Share"
+            style={btnStyle()}
+          >
+            {ico.share()}
+          </button>
+        </>
+      )}
     </div>
   );
 };
@@ -902,6 +927,12 @@ const Flow = () => {
     if (m && m[1]) return decodeURIComponent(m[1]);
     const params = new URLSearchParams(window.location.search);
     return params.get('projectId') || 'papertrail-default';
+  }, []);
+  const shareAvailable = React.useMemo(() => {
+    const root = document.getElementById('plugin-root');
+    if (!root) return false;
+    const flag = root.getAttribute('data-share-can-view');
+    return String(flag).toLowerCase() === 'true';
   }, []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -1130,6 +1161,7 @@ const Flow = () => {
           setConnectFrom={setConnectFrom}
           contextMenusEnabled={contextMenusEnabled}
           setContextMenusEnabled={setContextMenusEnabled}
+          shareAvailable={shareAvailable}
         />
         <DropReceiver setNodes={setNodes} />
         {menu && (
