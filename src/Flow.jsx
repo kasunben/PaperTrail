@@ -13,9 +13,9 @@ import {
 } from '@xyflow/react';
 
 // NOTE: Ensure XYFlow base styles are present during dev/HMR; host resets (sv_base.css) can clamp SVGs, so we inject styles on every module eval.
-import { ensureXYFlowStyles } from './xyflowStyles.js';
+// import { ensureXYFlowStyles } from './xyflowStyles.js';
 import { loadCache, createBoard, fetchBoard, saveCache, createSaver, onOnline } from './sync.js';
-ensureXYFlowStyles();
+// ensureXYFlowStyles();
 
 const normalizeUrl = (raw) => {
   if (!raw) return null;
@@ -986,8 +986,10 @@ const Flow = () => {
     saverRef.current = saver;
 
     const hydrate = async () => {
+      let hadCachedSnapshot = false;
       const cached = await loadCache(projectId);
       if (cached && !cancelled) {
+        hadCachedSnapshot = true;
         setNodes(cached.nodes || []);
         setEdges(cached.edges || []);
         saver.setVersion(cached.version);
@@ -1001,15 +1003,19 @@ const Flow = () => {
         await saveCache(projectId, { ...remote, cachedAt: new Date().toISOString() });
       } catch (err) {
         if (err?.status === 404) {
-          try {
-            const created = await createBoard(projectId, { nodes: initialNodes, edges: initialEdges });
-            if (cancelled) return;
-            setNodes(created.nodes || []);
-            setEdges(created.edges || []);
-            saver.setVersion(created.version);
-            await saveCache(projectId, { ...created, cachedAt: new Date().toISOString() });
-          } catch {
-            /* ignore */
+          if (hadCachedSnapshot) {
+            setConflictNotice("Remote board missing; showing cached version.");
+          } else {
+            try {
+              const created = await createBoard(projectId, { nodes: initialNodes, edges: initialEdges });
+              if (cancelled) return;
+              setNodes(created.nodes || []);
+              setEdges(created.edges || []);
+              saver.setVersion(created.version);
+              await saveCache(projectId, { ...created, cachedAt: new Date().toISOString() });
+            } catch (createErr) {
+              console.error("[papertrail] failed to create board:", createErr);
+            }
           }
         }
       } finally {

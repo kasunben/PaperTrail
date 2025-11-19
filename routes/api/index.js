@@ -19,8 +19,57 @@ function asyncHandler(fn, logger) {
   };
 }
 
-// Simple version generator from board.updatedAt/version
+const EDGE_STYLE_KEYS = new Set(["style", "labelStyle"]);
+
 const makeVersion = (board) => `${board.updatedAt?.toISOString?.() || ""}:${board.version ?? 0}`;
+
+const serializeEdgeData = (edge) => {
+  const baseData = edge.data && typeof edge.data === "object" ? { ...edge.data } : {};
+  const meta = {};
+  if (typeof edge.label === "string") {
+    meta.label = edge.label;
+  }
+  if (edge.type && edge.type !== "default") {
+    meta.type = edge.type;
+  }
+  if (edge.animated) {
+    meta.animated = true;
+  }
+  if (edge.style) {
+    baseData.style = edge.style;
+  }
+  if (edge.labelStyle) {
+    baseData.labelStyle = edge.labelStyle;
+  }
+  if (Object.keys(meta).length) {
+    baseData.__edgeMeta = meta;
+  }
+  return Object.keys(baseData).length ? baseData : null;
+};
+
+const formatEdgeForClient = (edge) => {
+  const { data, ...rest } = edge;
+  const style = data?.style;
+  const labelStyle = data?.labelStyle;
+  const meta = data?.__edgeMeta || {};
+  const cleanedData =
+    data && Object.keys(data).length
+      ? Object.entries(data).reduce((acc, [key, value]) => {
+          if (EDGE_STYLE_KEYS.has(key) || key === "__edgeMeta") {
+            return acc;
+          }
+          acc[key] = value;
+          return acc;
+        }, {})
+      : null;
+  return {
+    ...rest,
+    ...meta,
+    data: cleanedData && Object.keys(cleanedData).length ? cleanedData : null,
+    ...(style ? { style } : {}),
+    ...(labelStyle ? { labelStyle } : {}),
+  };
+};
 
 export default (ctx) => {
   const router = express.Router();
@@ -40,6 +89,7 @@ export default (ctx) => {
         },
       });
       if (!board) return res.status(404).json({ error: "Not found" });
+      const formattedEdges = board.edges.map(formatEdgeForClient);
       res.json({
         board: {
           id: board.id,
@@ -49,7 +99,7 @@ export default (ctx) => {
           updatedAt: board.updatedAt,
         },
         nodes: board.nodes,
-        edges: board.edges,
+        edges: formattedEdges,
         version: makeVersion(board),
       });
     }, logger)
@@ -81,12 +131,13 @@ export default (ctx) => {
               id: e.id,
               source: e.source,
               target: e.target,
-              data: e.data ?? null,
+              data: serializeEdgeData(e),
             })),
           },
         },
         include: { nodes: true, edges: true },
       });
+      const formattedEdges = board.edges.map(formatEdgeForClient);
       res.status(201).json({
         board: {
           id: board.id,
@@ -96,7 +147,7 @@ export default (ctx) => {
           updatedAt: board.updatedAt,
         },
         nodes: board.nodes,
-        edges: board.edges,
+        edges: formattedEdges,
         version: makeVersion(board),
       });
     }, logger)
@@ -139,7 +190,7 @@ export default (ctx) => {
             boardId: existing.id,
             source: e.source,
             target: e.target,
-            data: e.data ?? null,
+            data: serializeEdgeData(e),
           })),
         }),
         prisma.papertrailBoard.update({
@@ -157,6 +208,7 @@ export default (ctx) => {
         include: { nodes: true, edges: true },
       });
 
+      const formattedEdges = updated.edges.map(formatEdgeForClient);
       res.json({
         board: {
           id: updated.id,
@@ -166,7 +218,7 @@ export default (ctx) => {
           updatedAt: updated.updatedAt,
         },
         nodes: updated.nodes,
-        edges: updated.edges,
+        edges: formattedEdges,
         version: makeVersion(updated),
       });
     }, logger)
