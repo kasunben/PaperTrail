@@ -84,16 +84,20 @@ export function createSaver({ projectId, endpoint = DEFAULT_ENDPOINT, debounceMs
     busy = true;
     const snapshot = pending;
     pending = null;
+    const payload = {
+      ...snapshot,
+      version: lastVersion || snapshot.version,
+    };
     try {
-      const res = await saveBoard(projectId, snapshot, endpoint);
+      const res = await saveBoard(projectId, payload, endpoint);
       lastVersion = res.version;
       await saveCache(projectId, { ...res, cachedAt: new Date().toISOString() });
     } catch (err) {
       if (err?.status === 409 && typeof onConflict === "function") {
-        onConflict(err, snapshot, { setVersion, saveCache, lastVersion });
+        await onConflict(err, payload, { setVersion, saveCache, lastVersion });
       }
       // Put back to pending and retry when online
-      pending = snapshot;
+      pending = payload;
       if (!retryTimer) {
         retryTimer = setTimeout(() => {
           retryTimer = null;
