@@ -74,6 +74,21 @@ const sanitizeEdgeChange = (change) => {
   return next;
 };
 
+const safeJsonParse = (data) => {
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+};
+
+const makeWsUrl = () => {
+  if (typeof window === "undefined") return null;
+  const loc = window.location;
+  const proto = loc.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${loc.host}/ws`;
+};
+
 const MAX_IMAGE_PREVIEW_DIMENSION = 900;
 const ASSET_UPLOAD_ENDPOINT = "/api/plugins/papertrail/assets";
 
@@ -1131,6 +1146,12 @@ const Flow = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [loading, setLoading] = React.useState(true);
   const saverRef = React.useRef(null);
+  const wsRef = React.useRef(null);
+  const clientIdRef = React.useRef(`${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const boardVersionRef = React.useRef(null);
+  const pendingUpdatesRef = React.useRef([]);
+  const reconnectTimerRef = React.useRef(null);
+  const [wsRetryToken, setWsRetryToken] = React.useState(0);
 
   const nodeSearchMatches = React.useMemo(() => {
     if (!isSearching) return new Set();
@@ -1226,6 +1247,118 @@ const Flow = () => {
     setSearchTerm(value || "");
   }, []);
 
+  const sendRealtimeUpdate = React.useCallback(
+    (snapshot) => {
+      if (!snapshot || !snapshot.version) return;
+      boardVersionRef.current = snapshot.version;
+      const ws = wsRef.current;
+      const payload = {
+        projectId,
+        version: snapshot.version,
+        sourceId: clientIdRef.current,
+        snapshot,
+      };
+      const packet = JSON.stringify({ type: "pt:update", payload });
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(packet);
+        return;
+      }
+      pendingUpdatesRef.current.push(packet);
+    },
+    [projectId]
+  );
+
+  const applyRemoteSnapshot = React.useCallback(
+    async (snapshot) => {
+      if (!snapshot) return;
+      const nextNodes = snapshot.nodes || [];
+      const nextEdges = snapshot.edges || [];
+      if (boardVersionRef.current && snapshot.version <= boardVersionRef.current) return;
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+      saverRef.current?.setVersion(snapshot.version);
+      boardVersionRef.current = snapshot.version;
+      try {
+        await saveCache(projectId, { ...snapshot, cachedAt: new Date().toISOString() });
+      } catch {
+        // ignore cache failures
+      }
+    },
+    [projectId, setNodes, setEdges]
+  );
+
+  const handleWsPacket = React.useCallback(
+    async (event) => {
+    const packet = safeJsonParse(event.data);
+    if (!packet || packet.type !== "pt:update") return;
+    const { projectId: payloadProjectId, version, sourceId, snapshot } = packet.payload || {};
+    if (payloadProjectId !== projectId) return;
+    if (!version) return;
+    if (sourceId === clientIdRef.current) return;
+    if (boardVersionRef.current && boardVersionRef.current === version) return;
+    if (!snapshot) {
+      try {
+        const remote = await fetchBoard(projectId);
+        await applyRemoteSnapshot(remote);
+        setConflictNotice("Remote changes applied.");
+      } catch (err) {
+        console.warn("[papertrail] failed to apply realtime update", err);
+      }
+      return;
+    }
+    await applyRemoteSnapshot(snapshot);
+    setConflictNotice("Remote changes applied.");
+  },
+    [projectId, applyRemoteSnapshot]
+  );
+
+  const scheduleReconnect = React.useCallback(() => {
+    if (reconnectTimerRef.current) return;
+    reconnectTimerRef.current = setTimeout(() => {
+      reconnectTimerRef.current = null;
+      setWsRetryToken((token) => token + 1);
+    }, 3000);
+  }, []);
+
+  React.useEffect(() => {
+    if (!projectId) return undefined;
+    const wsUrl = makeWsUrl();
+    if (!wsUrl) return undefined;
+    const socket = new WebSocket(wsUrl);
+    wsRef.current = socket;
+    const handleOpen = () => {
+      socket.send(
+        JSON.stringify({
+          type: "pt:join",
+          payload: { projectId },
+        })
+      );
+      const pending = pendingUpdatesRef.current;
+      pendingUpdatesRef.current = [];
+      for (const payload of pending) {
+        socket.send(payload);
+      }
+    };
+    const handleClose = () => {
+      wsRef.current = null;
+      scheduleReconnect();
+    };
+    socket.addEventListener("open", handleOpen);
+    socket.addEventListener("message", handleWsPacket);
+    socket.addEventListener("error", (err) => {
+      console.warn("[papertrail] realtime connection error", err);
+    });
+    socket.addEventListener("close", handleClose);
+    return () => {
+      socket.close();
+      wsRef.current = null;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+  }, [projectId, handleWsPacket, wsRetryToken, scheduleReconnect]);
+
   const toggleHideNonMatches = React.useCallback(() => {
     setHideNonMatches((prev) => !prev);
   }, []);
@@ -1315,15 +1448,15 @@ const Flow = () => {
         try {
           const remote = await fetchBoard(projectId);
           if (cancelled) return;
-          setNodes(remote.nodes || []);
-          setEdges(remote.edges || []);
-          saver.setVersion(remote.version);
-          await saveCache(projectId, { ...remote, cachedAt: new Date().toISOString() });
+          await applyRemoteSnapshot(remote);
           setConflictNotice('Remote changes detected; reloaded server version.');
         } catch {
           setConflictNotice('Version conflict; failed to fetch latest.');
         }
       },
+        onSuccess: (res) => {
+          sendRealtimeUpdate(res);
+        },
     });
     saverRef.current = saver;
 
@@ -1335,14 +1468,12 @@ const Flow = () => {
         setNodes(cached.nodes || []);
         setEdges(cached.edges || []);
         saver.setVersion(cached.version);
+        boardVersionRef.current = cached.version;
       }
       try {
         const remote = await fetchBoard(projectId);
         if (cancelled) return;
-        setNodes(remote.nodes || []);
-        setEdges(remote.edges || []);
-        saver.setVersion(remote.version);
-        await saveCache(projectId, { ...remote, cachedAt: new Date().toISOString() });
+        await applyRemoteSnapshot(remote);
       } catch (err) {
         if (err?.status === 404) {
           if (hadCachedSnapshot) {
@@ -1351,10 +1482,7 @@ const Flow = () => {
             try {
               const created = await createBoard(projectId, { nodes: initialNodes, edges: initialEdges });
               if (cancelled) return;
-              setNodes(created.nodes || []);
-              setEdges(created.edges || []);
-              saver.setVersion(created.version);
-              await saveCache(projectId, { ...created, cachedAt: new Date().toISOString() });
+              await applyRemoteSnapshot(created);
             } catch (createErr) {
               console.error("[papertrail] failed to create board:", createErr);
             }
