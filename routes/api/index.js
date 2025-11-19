@@ -1,4 +1,8 @@
 import express from "express";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 
 // Helpers
 function asyncHandler(fn, logger) {
@@ -20,6 +24,29 @@ function asyncHandler(fn, logger) {
 }
 
 const EDGE_STYLE_KEYS = new Set(["style", "labelStyle"]);
+
+const PROJECT_ID_REGEX = /^[A-Za-z0-9_-]+$/;
+const MAX_ASSET_DIMENSION = 1400;
+const THUMB_DIMENSION = 480;
+const ASSET_BODY_PARSER = express.raw({
+  limit: "40mb",
+  type: () => true,
+});
+
+const ensureProjectId = (value) => {
+  const candidate = String(value || "").trim();
+  if (!candidate || !PROJECT_ID_REGEX.test(candidate)) return null;
+  return candidate;
+};
+
+const buildAssetUrl = (projectId, fileName) => {
+  return `/api/plugins/papertrail/assets/${encodeURIComponent(projectId)}/${encodeURIComponent(fileName)}`;
+};
+
+const dataRootForProject = (ctx, projectId) => {
+  const baseDir = ctx?.dataDir || process.env.DATA_DIR || path.resolve(ctx?.rootDir || ".", "data");
+  return path.join(baseDir, projectId, "assets");
+};
 
 const makeVersion = (board) => `${board.updatedAt?.toISOString?.() || ""}:${board.version ?? 0}`;
 
@@ -75,6 +102,72 @@ export default (ctx) => {
   const router = express.Router();
   const prisma = ctx.prisma;
   const logger = ctx.logger || console;
+
+  router.post(
+    "/assets",
+    ASSET_BODY_PARSER,
+    asyncHandler(async (req, res) => {
+      const projectId = ensureProjectId(req.query.projectId);
+      if (!projectId) {
+        return res.status(400).json({ error: "invalid_project_id" });
+      }
+      const payload = req.body;
+      if (!payload || !payload.length) {
+        return res.status(400).json({ error: "missing_image" });
+      }
+      const assetRoot = dataRootForProject(ctx, projectId);
+      await fs.mkdir(assetRoot, { recursive: true });
+      const image = sharp(payload);
+      const metadata = await image.metadata();
+      const extension = metadata.format ? (metadata.format === "jpeg" ? "jpg" : metadata.format) : "jpg";
+      const fileBase = `${Date.now()}-${randomUUID()}`;
+      const fileName = `${fileBase}.${extension}`;
+      const thumbFileName = `${fileBase}.thumb.${extension}`;
+      const { data: buffer, info } = await sharp(payload)
+        .resize({ width: MAX_ASSET_DIMENSION, height: MAX_ASSET_DIMENSION, fit: "inside", withoutEnlargement: true })
+        .toBuffer({ resolveWithObject: true });
+      const targetPath = path.join(assetRoot, fileName);
+      await fs.writeFile(targetPath, buffer);
+      const { data: thumbBuffer, info: thumbInfo } = await sharp(payload)
+        .resize({ width: THUMB_DIMENSION, height: THUMB_DIMENSION, fit: "inside", withoutEnlargement: true })
+        .toBuffer({ resolveWithObject: true });
+      const thumbPath = path.join(assetRoot, thumbFileName);
+      await fs.writeFile(thumbPath, thumbBuffer);
+      res.status(201).json({
+        url: buildAssetUrl(projectId, fileName),
+        width: info.width,
+        height: info.height,
+        thumbnailUrl: buildAssetUrl(projectId, thumbFileName),
+        thumbnailWidth: thumbInfo.width,
+        thumbnailHeight: thumbInfo.height,
+      });
+    }, logger)
+  );
+
+  router.get(
+    "/assets/:projectId/:file",
+    asyncHandler(async (req, res) => {
+      const projectId = ensureProjectId(req.params.projectId);
+      const requestedFile = String(req.params.file || "").trim();
+      if (!projectId || !requestedFile) {
+        return res.status(404).json({ error: "not_found" });
+      }
+      const fileName = path.basename(requestedFile);
+      const assetRoot = dataRootForProject(ctx, projectId);
+      const resolvedRoot = path.resolve(assetRoot);
+      const targetPath = path.resolve(assetRoot, fileName);
+      if (!targetPath.startsWith(resolvedRoot)) {
+        return res.status(404).json({ error: "not_found" });
+      }
+      try {
+        await fs.access(targetPath);
+      } catch {
+        return res.status(404).json({ error: "not_found" });
+      }
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.sendFile(targetPath);
+    }, logger)
+  );
 
   // GET board snapshot by projectId
   router.get(

@@ -37,6 +37,82 @@ const fetchLinkPreview = async (url) => {
   return res.json();
 };
 
+const MAX_IMAGE_PREVIEW_DIMENSION = 900;
+const ASSET_UPLOAD_ENDPOINT = "/api/plugins/papertrail/assets";
+
+const ensureImageCanvas = (width, height) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+};
+
+const drawToCanvas = (canvas, source, width, height) => {
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(source, 0, 0, width, height);
+  }
+};
+
+const scaleDimensions = (width, height) => {
+  const maxDim = Math.max(width, height, 1);
+  const scale = maxDim > MAX_IMAGE_PREVIEW_DIMENSION ? MAX_IMAGE_PREVIEW_DIMENSION / maxDim : 1;
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+};
+
+const loadImageElement = (file) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+
+const createImagePreview = async (file) => {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const { width, height } = scaleDimensions(bitmap.width, bitmap.height);
+    const canvas = ensureImageCanvas(width, height);
+    drawToCanvas(canvas, bitmap, width, height);
+    bitmap.close?.();
+    return canvas.toDataURL("image/jpeg", 0.8);
+  } catch {
+    const img = await loadImageElement(file);
+    const { width, height } = scaleDimensions(img.naturalWidth, img.naturalHeight);
+    const canvas = ensureImageCanvas(width, height);
+    drawToCanvas(canvas, img, width, height);
+    return canvas.toDataURL("image/jpeg", 0.8);
+  }
+};
+
+const uploadImageFile = async (file, projectId) => {
+  const url = `${ASSET_UPLOAD_ENDPOINT}?projectId=${encodeURIComponent(projectId)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    body: file,
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null);
+    throw new Error(payload?.error || `Upload failed (${res.status})`);
+  }
+  return res.json();
+};
+
 // Small side handles (restore drag-to-connect like the original)
 const handleStyle = { width: 8, height: 8, borderRadius: '50%', background: '#64748b', border: '2px solid #fff' };
 
@@ -217,6 +293,7 @@ const ImageNode = ({ id, data }) => {
     description: data.description || '',
     tags: Array.isArray(data.tags) ? data.tags : [],
   });
+  const displaySrc = data.thumbnail || data.src || data.preview || '';
   const [tagInput, setTagInput] = React.useState('');
 
   const commit = React.useCallback(() => {
@@ -261,8 +338,8 @@ const ImageNode = ({ id, data }) => {
       )}
 
       {!editing && (
-        data.src ? (
-          <img src={data.src} alt={altFromData(data)} style={{ display: 'block', maxWidth: 260, borderRadius: 6 }} />
+        displaySrc ? (
+          <img src={displaySrc} alt={altFromData(data)} style={{ display: 'block', maxWidth: 260, borderRadius: 6 }} />
         ) : (
           <div style={{ width: 260, height: 140, borderRadius: 6, background: '#f3f4f6' }} />
         )
@@ -519,7 +596,21 @@ const nodeDefaults = {
 const initialNodes = [];
 const initialEdges = [];
 
-const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, connectFrom, setConnectFrom, contextMenusEnabled, setContextMenusEnabled, offsetLeft = 10, shareAvailable = false }) => {
+const OverlayToolbar = ({
+  nodes,
+  edges,
+  setNodes,
+  setEdges,
+  mode,
+  setMode,
+  connectFrom,
+  setConnectFrom,
+  contextMenusEnabled,
+  setContextMenusEnabled,
+  onImageChosen,
+  offsetLeft = 10,
+  shareAvailable = false,
+}) => {
   const jsonRef = useRef(null);
   const imageRef = useRef(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -712,17 +803,6 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
 
   const triggerImageUpload = () => imageRef.current && imageRef.current.click();
 
-  const onImageChosen = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      addNode('image', { src: reader.result, title: '', description: '', tags: [] });
-      e.target.value = '';
-    };
-    reader.readAsDataURL(file);
-  };
-
   // Selection helpers and deletion
   const selectedNodeIds = nodes.filter((n) => n.selected).map((n) => n.id);
   const selectedEdgeIds = edges.filter((e) => e.selected).map((e) => e.id);
@@ -840,7 +920,7 @@ const OverlayToolbar = ({ nodes, edges, setNodes, setEdges, mode, setMode, conne
   );
 };
 
-const DropReceiver = ({ setNodes }) => {
+const DropReceiver = ({ onImageFile = () => {} }) => {
   const { screenToFlowPosition } = useReactFlow();
 
   const onDragOver = React.useCallback((e) => {
@@ -856,21 +936,8 @@ const DropReceiver = ({ setNodes }) => {
     if (!file) return;
     const { clientX, clientY } = e;
     const pos = screenToFlowPosition({ x: clientX, y: clientY });
-    const reader = new FileReader();
-    reader.onload = () => {
-      const id = String(Date.now());
-      const node = {
-        id,
-        type: 'image',
-        position: pos,
-        data: { src: reader.result, title: '', description: '', tags: [] },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-      };
-      setNodes((ns) => ns.concat(node));
-    };
-    reader.readAsDataURL(file);
-  }, [screenToFlowPosition, setNodes]);
+    onImageFile(file, pos);
+  }, [screenToFlowPosition, onImageFile]);
 
   const onPaste = React.useCallback((e) => {
     const items = e.clipboardData?.items;
@@ -886,21 +953,8 @@ const DropReceiver = ({ setNodes }) => {
     const x = (rect?.left ?? 0) + (rect?.width ?? window.innerWidth) / 2;
     const y = (rect?.top ?? 0) + (rect?.height ?? window.innerHeight) / 2;
     const pos = screenToFlowPosition({ x, y });
-    const reader = new FileReader();
-    reader.onload = () => {
-      const id = String(Date.now());
-      const node = {
-        id,
-        type: 'image',
-        position: pos,
-        data: { src: reader.result, title: '', description: '', tags: [] },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-      };
-      setNodes((ns) => ns.concat(node));
-    };
-    reader.readAsDataURL(file);
-  }, [screenToFlowPosition, setNodes]);
+    onImageFile(file, pos);
+  }, [screenToFlowPosition, onImageFile]);
 
   React.useEffect(() => {
     const pane = document.querySelector('.react-flow__pane');
@@ -939,6 +993,58 @@ const Flow = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [loading, setLoading] = React.useState(true);
   const saverRef = React.useRef(null);
+
+  const handleImageFile = React.useCallback(
+    async (file, position = { x: 0, y: 0 }) => {
+      if (!file) return;
+      let preview = '';
+      try {
+        preview = await createImagePreview(file);
+      } catch (err) {
+        console.warn('[papertrail] failed to create image preview', err);
+      }
+      const id = String(Date.now());
+      const node = {
+        id,
+        type: 'image',
+        position: position || { x: 0, y: 0 },
+        data: { src: preview, preview, title: '', description: '', tags: [] },
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
+      };
+      setNodes((ns) => ns.concat(node));
+      try {
+        const uploaded = await uploadImageFile(file, projectId);
+        if (uploaded?.url) {
+          setNodes((ns) =>
+            ns.map((n) =>
+              n.id === id
+                ? {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      src: uploaded.url,
+                      preview: n.data.preview || preview,
+                      thumbnail: uploaded.thumbnailUrl || n.data.thumbnail,
+                    },
+                  }
+                : n
+            )
+          );
+        }
+      } catch (err) {
+        console.error('[papertrail] image upload failed', err);
+      }
+    },
+    [projectId, setNodes]
+  );
+
+  const onImageChosen = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    handleImageFile(file);
+    e.target.value = '';
+  };
 
   const [mode, setMode] = React.useState('select');
   const [connectFrom, setConnectFrom] = React.useState(null);
@@ -1167,9 +1273,10 @@ const Flow = () => {
           setConnectFrom={setConnectFrom}
           contextMenusEnabled={contextMenusEnabled}
           setContextMenusEnabled={setContextMenusEnabled}
+          onImageChosen={onImageChosen}
           shareAvailable={shareAvailable}
         />
-        <DropReceiver setNodes={setNodes} />
+        <DropReceiver onImageFile={handleImageFile} />
         {menu && (
           <div
             style={{ position: 'absolute', left: menu.left, top: menu.top, zIndex: 40 }}
