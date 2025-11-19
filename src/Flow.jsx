@@ -990,7 +990,7 @@ const OverlayToolbar = ({
           </button>
         </>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px', background: '#fff', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 4px', background: '#fff', borderRadius: 6, border: '1px solid #e5e7eb' }}>
         <input
           id={searchInputId}
           value={searchTerm}
