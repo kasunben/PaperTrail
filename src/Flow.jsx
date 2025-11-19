@@ -37,6 +37,43 @@ const fetchLinkPreview = async (url) => {
   return res.json();
 };
 
+const SEARCH_EDGE_CLASS = "pt-edge-match";
+
+const normalizeSearchValue = (value) => {
+  if (!value) return "";
+  return String(value).toLowerCase();
+};
+
+const matchesSearch = (value, term) => {
+  if (!term) return false;
+  const candidate = normalizeSearchValue(value);
+  return candidate.includes(term);
+};
+
+const sanitizeNodeChange = (change) => {
+  if (!change || !change.data) return change;
+  if (change.data._searchMatch === undefined) return change;
+  const { _searchMatch, ...rest } = change.data;
+  return { ...change, data: rest };
+};
+
+const sanitizeEdgeChange = (change) => {
+  if (!change) return change;
+  let next = change;
+  if (next.data && next.data._searchMatch !== undefined) {
+    const { _searchMatch, ...rest } = next.data;
+    next = { ...next, data: rest };
+  }
+  if (next.className) {
+    const cleaned = next.className
+      .split(/\s+/)
+      .filter((name) => name && name !== SEARCH_EDGE_CLASS)
+      .join(" ");
+    next = { ...next, className: cleaned || undefined };
+  }
+  return next;
+};
+
 const MAX_IMAGE_PREVIEW_DIMENSION = 900;
 const ASSET_UPLOAD_ENDPOINT = "/api/plugins/papertrail/assets";
 
@@ -64,36 +101,29 @@ const scaleDimensions = (width, height) => {
   };
 };
 
-const loadImageElement = (file) =>
+const loadImageElement = (src) =>
   new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror = (err) => {
-      URL.revokeObjectURL(url);
-      reject(err);
-    };
-    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = (err) => reject(err);
+    img.src = src;
+  });
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
   });
 
 const createImagePreview = async (file) => {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const { width, height } = scaleDimensions(bitmap.width, bitmap.height);
-    const canvas = ensureImageCanvas(width, height);
-    drawToCanvas(canvas, bitmap, width, height);
-    bitmap.close?.();
-    return canvas.toDataURL("image/jpeg", 0.8);
-  } catch {
-    const img = await loadImageElement(file);
-    const { width, height } = scaleDimensions(img.naturalWidth, img.naturalHeight);
-    const canvas = ensureImageCanvas(width, height);
-    drawToCanvas(canvas, img, width, height);
-    return canvas.toDataURL("image/jpeg", 0.8);
-  }
+  const dataUrl = await readFileAsDataUrl(file);
+  const img = await loadImageElement(dataUrl);
+  const { width, height } = scaleDimensions(img.naturalWidth, img.naturalHeight);
+  const canvas = ensureImageCanvas(width, height);
+  drawToCanvas(canvas, img, width, height);
+  return canvas.toDataURL("image/jpeg", 0.8);
 };
 
 const uploadImageFile = async (file, projectId) => {
@@ -183,7 +213,17 @@ const TextNode = ({ id, data }) => {
   return (
     <div
       className="pt-node pt-text"
-      style={{ padding: 12, borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', background: '#fff', border: '1px solid #e5e7eb', minWidth: 160, outline: data._isConnectSource ? '2px dashed #ef4444' : undefined, outlineOffset: 2 }}
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        background: '#fff',
+        border: '1px solid',
+        borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
+        minWidth: 160,
+        outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
+        outlineOffset: 2,
+      }}
       onDoubleClick={(e) => {
         if (editing) { e.stopPropagation(); return; }
         setDraft({
@@ -327,7 +367,17 @@ const ImageNode = ({ id, data }) => {
   return (
     <div
       className="pt-node pt-image"
-      style={{ padding: 8, borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', background: '#fff', border: '1px solid #e5e7eb', minWidth: 240, outline: data._isConnectSource ? '2px dashed #ef4444' : undefined, outlineOffset: 2 }}
+      style={{
+        padding: 8,
+        borderRadius: 8,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        background: '#fff',
+        border: '1px solid',
+        borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
+        minWidth: 240,
+        outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
+        outlineOffset: 2,
+      }}
       onDoubleClick={() => setEditing(true)}
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
@@ -503,7 +553,18 @@ const LinkNode = ({ id, data }) => {
   return (
     <div
       className="pt-node pt-link"
-      style={{ padding: 12, borderRadius: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', background: '#fff', border: '1px solid #e5e7eb', minWidth: 180, maxWidth: 260, outline: data._isConnectSource ? '2px dashed #ef4444' : undefined, outlineOffset: 2 }}
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        background: '#fff',
+        border: '1px solid',
+        borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
+        minWidth: 180,
+        maxWidth: 260,
+        outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
+        outlineOffset: 2,
+      }}
       onDoubleClick={() => setEditing(true)}
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
@@ -608,6 +669,12 @@ const OverlayToolbar = ({
   contextMenusEnabled,
   setContextMenusEnabled,
   onImageChosen,
+  searchTerm = "",
+  searchMatchesCount = 0,
+  onSearchChange = () => {},
+  hideNonMatches = false,
+  onToggleHide = () => {},
+  isSearching = false,
   offsetLeft = 10,
   shareAvailable = false,
 }) => {
@@ -720,6 +787,13 @@ const OverlayToolbar = ({
       </svg>
     )
   };
+
+  const searchInputId = "papertrail-search-input";
+  const matchesLabel = searchTerm
+    ? searchMatchesCount > 0
+      ? `${searchMatchesCount} match${searchMatchesCount === 1 ? "" : "es"}`
+      : "No matches"
+    : "";
 
   const btnStyle = (active = false, disabled = false) => ({
     width: 32,
@@ -916,6 +990,59 @@ const OverlayToolbar = ({
           </button>
         </>
       )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 4px', background: '#fff', borderRadius: 6, border: '1px solid #e5e7eb' }}>
+        <input
+          id={searchInputId}
+          value={searchTerm}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search board…"
+          style={{
+            border: 'none',
+            outline: 'none',
+            width: 140,
+            fontSize: 11,
+            background: 'transparent',
+            height: 24,
+          }}
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => onSearchChange("")}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: '#6b7280',
+              padding: '0 4px',
+            }}
+            aria-label="Clear search"
+          >
+            ×
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onToggleHide}
+          aria-pressed={hideNonMatches}
+          disabled={!isSearching}
+          style={{
+            border: '1px solid',
+            borderColor: hideNonMatches ? '#ea580c' : '#cbd5f5',
+            borderRadius: 6,
+            padding: '2px 8px',
+            fontSize: 11,
+            background: hideNonMatches ? '#fef3c7' : '#fff',
+            cursor: isSearching ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {hideNonMatches ? "Show all" : "Matches only"}
+        </button>
+        {matchesLabel && (
+          <span style={{ fontSize: 11, color: '#475569' }}>{matchesLabel}</span>
+        )}
+      </div>
     </div>
   );
 };
@@ -989,10 +1116,119 @@ const Flow = () => {
     return String(flag).toLowerCase() === 'true';
   }, []);
 
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const normalizedSearchTerm = React.useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm]);
+  const isSearching = normalizedSearchTerm.length > 0;
+  const [hideNonMatches, setHideNonMatches] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isSearching && hideNonMatches) {
+      setHideNonMatches(false);
+    }
+  }, [isSearching, hideNonMatches]);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [loading, setLoading] = React.useState(true);
   const saverRef = React.useRef(null);
+
+  const nodeSearchMatches = React.useMemo(() => {
+    if (!isSearching) return new Set();
+    const matches = new Set();
+    nodes.forEach((node) => {
+      const data = node.data || {};
+      const haystack = [
+        data.title,
+        data.text,
+        data.description,
+        data.url,
+        Array.isArray(data.tags) ? data.tags.join(" ") : "",
+      ];
+      if (haystack.some((value) => matchesSearch(value, normalizedSearchTerm))) {
+        matches.add(node.id);
+      }
+    });
+    return matches;
+  }, [nodes, normalizedSearchTerm, isSearching]);
+
+  const edgeSearchMatches = React.useMemo(() => {
+    if (!isSearching) return new Set();
+    const matches = new Set();
+    edges.forEach((edge) => {
+      const haystack = [edge.label, edge.data?.label, edge.data?.description, edge.data?.text];
+      if (haystack.some((value) => matchesSearch(value, normalizedSearchTerm))) {
+        matches.add(edge.id);
+      }
+    });
+    return matches;
+  }, [edges, normalizedSearchTerm, isSearching]);
+
+  const decoratedNodes = React.useMemo(() => {
+    if (!isSearching) return nodes;
+    return nodes.map((node) =>
+      nodeSearchMatches.has(node.id)
+        ? { ...node, data: { ...(node.data || {}), _searchMatch: true } }
+        : node
+    );
+  }, [nodes, isSearching, nodeSearchMatches]);
+
+  const decoratedEdges = React.useMemo(() => {
+    if (!isSearching) return edges;
+    return edges.map((edge) =>
+      edgeSearchMatches.has(edge.id)
+        ? {
+            ...edge,
+            className: edge.className
+              ? `${edge.className} ${SEARCH_EDGE_CLASS}`.trim()
+              : SEARCH_EDGE_CLASS,
+            data: { ...(edge.data || {}), _searchMatch: true },
+          }
+        : edge
+    );
+  }, [edges, isSearching, edgeSearchMatches]);
+
+  const visibleNodes = React.useMemo(() => {
+    if (hideNonMatches && isSearching) {
+      return decoratedNodes.filter((node) => node.data && node.data._searchMatch);
+    }
+    return decoratedNodes;
+  }, [decoratedNodes, hideNonMatches, isSearching]);
+
+  const visibleEdges = React.useMemo(() => {
+    if (hideNonMatches && isSearching) {
+      return decoratedEdges.filter((edge) => edge.data && edge.data._searchMatch);
+    }
+    return decoratedEdges;
+  }, [decoratedEdges, hideNonMatches, isSearching]);
+
+  const totalSearchMatches = React.useMemo(
+    () => nodeSearchMatches.size + edgeSearchMatches.size,
+    [nodeSearchMatches, edgeSearchMatches]
+  );
+
+  const handleNodesChange = React.useCallback(
+    (changes) => {
+      const sanitized = (changes || []).map(sanitizeNodeChange);
+      onNodesChange(sanitized);
+    },
+    [onNodesChange]
+  );
+
+  const handleEdgesChange = React.useCallback(
+    (changes) => {
+      const sanitized = (changes || []).map(sanitizeEdgeChange);
+      onEdgesChange(sanitized);
+    },
+    [onEdgesChange]
+  );
+
+  const handleSearchChange = React.useCallback((value) => {
+    setSearchTerm(value || "");
+  }, []);
+
+  const toggleHideNonMatches = React.useCallback(() => {
+    setHideNonMatches((prev) => !prev);
+  }, []);
 
   const handleImageFile = React.useCallback(
     async (file, position = { x: 0, y: 0 }) => {
@@ -1194,10 +1430,10 @@ const Flow = () => {
         </div>
       )}
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        nodes={visibleNodes}
+        edges={visibleEdges}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onNodeClick={(e, node) => {
           if (mode !== 'connect') return;
@@ -1274,6 +1510,12 @@ const Flow = () => {
           contextMenusEnabled={contextMenusEnabled}
           setContextMenusEnabled={setContextMenusEnabled}
           onImageChosen={onImageChosen}
+          searchTerm={searchTerm}
+          searchMatchesCount={isSearching ? totalSearchMatches : 0}
+          onSearchChange={handleSearchChange}
+          hideNonMatches={hideNonMatches}
+          onToggleHide={toggleHideNonMatches}
+          isSearching={isSearching}
           shareAvailable={shareAvailable}
         />
         <DropReceiver onImageFile={handleImageFile} />
@@ -1327,6 +1569,17 @@ const Flow = () => {
               )}
             </div>
           </div>
+        )}
+        {isSearching && (
+          <style>
+            {`
+              .react-flow__edge.${SEARCH_EDGE_CLASS} path {
+                stroke: #f97316 !important;
+                stroke-width: 3px !important;
+                filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.75));
+              }
+            `}
+          </style>
         )}
         {edgeEditor && (
           <div
