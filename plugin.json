@@ -7,8 +7,8 @@
   "type": "project",
   "framework": "react",
   "enabled": true,
+  "devOnly": false,
   "enrollStrategy": "auto",
-  "devOnly": true,
   "entryPoints": {
     "web": "dist/index.js",
     "api": "routes/api/index.js"
