@@ -72,7 +72,13 @@ export function onOnline(cb) {
 }
 
 // Debounced saver with retry queue
-export function createSaver({ projectId, endpoint = DEFAULT_ENDPOINT, debounceMs = 1200, onConflict }) {
+export function createSaver({
+  projectId,
+  endpoint = DEFAULT_ENDPOINT,
+  debounceMs = 1200,
+  onConflict,
+  onSuccess,
+}) {
   let timer = null;
   let lastVersion = null;
   let pending = null;
@@ -91,6 +97,13 @@ export function createSaver({ projectId, endpoint = DEFAULT_ENDPOINT, debounceMs
     try {
       const res = await saveBoard(projectId, payload, endpoint);
       lastVersion = res.version;
+      if (typeof onSuccess === "function") {
+        try {
+          await onSuccess(res);
+        } catch {
+          // ignore
+        }
+      }
       await saveCache(projectId, { ...res, cachedAt: new Date().toISOString() });
     } catch (err) {
       if (err?.status === 409 && typeof onConflict === "function") {
