@@ -398,7 +398,7 @@ const ImageNode = ({ id, data }) => {
       )}
 
       {data.description && !editing && (
-        <div style={{ fontSize: 11, color: '#4b5563', marginTop: 6, whiteSpace: 'pre-wrap', border: '1px dashed #ccc', padding: 8 }}>{data.description}</div>
+        <div style={{ fontSize: 11, color: '#4b5563', marginTop: 6, whiteSpace: 'pre-wrap', paddingTop: 5, paddingBottom: 3 }}>{data.description}</div>
       )}
 
       {Array.isArray(data.tags) && data.tags.length > 0 && !editing && (
