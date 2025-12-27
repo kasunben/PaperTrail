@@ -221,6 +221,7 @@ const TextNode = ({ id, data }) => {
         border: '1px solid',
         borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
         minWidth: 160,
+        maxWidth: 340,
         outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
         outlineOffset: 2,
       }}
@@ -308,7 +309,7 @@ const TextNode = ({ id, data }) => {
           </div>
         </div>
       ) : data.text ? (
-        <div className="pt-body" style={{ fontSize: 12, lineHeight: 1.35 }} dangerouslySetInnerHTML={{ __html: data.text }} />
+        <div className="pt-body" style={{ fontSize: 12, lineHeight: 1.35, border: '1px dashed #ccc', padding: 8 }} dangerouslySetInnerHTML={{ __html: data.text }} />
       ) : (
         <div style={{ fontSize: 13, color: '#6b7280' }}>Double‑click to edit…</div>
       )}
@@ -375,6 +376,7 @@ const ImageNode = ({ id, data }) => {
         border: '1px solid',
         borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
         minWidth: 240,
+        maxWidth: 340,
         outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
         outlineOffset: 2,
       }}
@@ -389,14 +391,14 @@ const ImageNode = ({ id, data }) => {
 
       {!editing && (
         displaySrc ? (
-          <img src={displaySrc} alt={altFromData(data)} style={{ display: 'block', maxWidth: 260, borderRadius: 6 }} />
+          <img src={displaySrc} alt={altFromData(data)} style={{ display: 'block', width: '100%', borderRadius: 6 }} />
         ) : (
           <div style={{ width: 260, height: 140, borderRadius: 6, background: '#f3f4f6' }} />
         )
       )}
 
       {data.description && !editing && (
-        <div style={{ fontSize: 11, color: '#4b5563', marginTop: 6, whiteSpace: 'pre-wrap' }}>{data.description}</div>
+        <div style={{ fontSize: 11, color: '#4b5563', marginTop: 6, whiteSpace: 'pre-wrap', border: '1px dashed #ccc', padding: 8 }}>{data.description}</div>
       )}
 
       {Array.isArray(data.tags) && data.tags.length > 0 && !editing && (
@@ -561,7 +563,7 @@ const LinkNode = ({ id, data }) => {
         border: '1px solid',
         borderColor: data._searchMatch ? '#f97316' : '#e5e7eb',
         minWidth: 180,
-        maxWidth: 260,
+        maxWidth: 320,
         outline: data._isConnectSource ? '2px dashed #ef4444' : undefined,
         outlineOffset: 2,
       }}
@@ -580,7 +582,7 @@ const LinkNode = ({ id, data }) => {
         </div>
       )}
       {data.description && !editing && (
-        <div className="pt-desc" style={{ fontSize: 11, color: '#4b5563' }}>{data.description}</div>
+        <div className="pt-desc" style={{ fontSize: 11, color: '#4b5563', border: '1px dashed #ccc', padding: 8 }}>{data.description}</div>
       )}
       {Array.isArray(data.tags) && data.tags.length > 0 && !editing && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
